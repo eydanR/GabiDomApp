@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GabiDom.inc - Sistema interno</title>
+  <style>
+    :root {
+      --bg: #f7f6f2;
+      --panel: #fffdf8;
+      --muted: #eeebe3;
+      --line: #d8d2c4;
+      --text: #25231f;
+      --soft: #69645b;
+      --green: #0f6e56;
+      --green-bg: #e1f5ee;
+      --red: #a32d2d;
+      --red-bg: #fcebeb;
+      --gold: #854f0b;
+      --gold-bg: #faeeda;
+      --blue: #3c3489;
+      --blue-bg: #eeedfe;
+      --radius: 8px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); }
+    button, input, select, textarea { font: inherit; }
+    .app { display: flex; min-height: 100vh; }
+    .sidebar { width: 238px; background: var(--panel); border-right: 1px solid var(--line); display: flex; flex-direction: column; }
+    .brand { padding: 18px 16px 14px; border-bottom: 1px solid var(--line); }
+    .brand-name { font-size: 18px; font-weight: 700; }
+    .brand-sub { color: var(--soft); font-size: 12px; margin-top: 4px; }
+    .nav { padding: 10px; display: flex; flex-direction: column; gap: 4px; }
+    .nav-title { font-size: 10px; text-transform: uppercase; color: var(--soft); letter-spacing: .08em; padding: 12px 8px 4px; }
+    .nav button { width: 100%; text-align: left; border: 0; border-radius: var(--radius); background: transparent; padding: 9px 10px; color: var(--soft); cursor: pointer; }
+    .nav button:hover, .nav button.active { background: var(--muted); color: var(--text); }
+    .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+    .topbar { min-height: 58px; padding: 12px 22px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 12px; background: rgba(255,253,248,.8); position: sticky; top: 0; z-index: 2; backdrop-filter: blur(8px); }
+    .title { font-size: 18px; font-weight: 700; }
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .content { padding: 18px 22px 28px; overflow: auto; }
+    .page { display: none; }
+    .page.active { display: block; }
+    .btn { border: 1px solid var(--line); background: var(--panel); color: var(--text); border-radius: var(--radius); padding: 8px 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+    .btn:hover { background: var(--muted); }
+    .btn.primary { background: var(--text); border-color: var(--text); color: var(--panel); }
+    .btn.danger { color: var(--red); }
+    .btn.small { padding: 5px 8px; font-size: 12px; }
+    .grid4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
+    .grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
+    .metric, .box { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; }
+    .metric-label { color: var(--soft); font-size: 12px; }
+    .metric-value { font-size: 24px; font-weight: 750; margin-top: 4px; }
+    .section-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 18px 0 10px; font-weight: 700; }
+    .table-wrap { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: auto; margin-bottom: 18px; }
+    table { border-collapse: collapse; width: 100%; font-size: 13px; min-width: 720px; }
+    th, td { border-bottom: 1px solid var(--line); padding: 9px 10px; text-align: left; vertical-align: middle; }
+    th { background: var(--muted); color: var(--soft); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+    tr:last-child td { border-bottom: 0; }
+    .badge { display: inline-flex; border-radius: 999px; padding: 3px 8px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+    .ok { background: var(--green-bg); color: var(--green); }
+    .warn { background: var(--gold-bg); color: var(--gold); }
+    .bad { background: var(--red-bg); color: var(--red); }
+    .info { background: var(--blue-bg); color: var(--blue); }
+    .filters, .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+    .tabs button.active { background: var(--text); color: var(--panel); border-color: var(--text); }
+    input, select, textarea { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); color: var(--text); padding: 8px 10px; min-width: 0; }
+    textarea { resize: vertical; min-height: 70px; }
+    .form { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; margin-bottom: 18px; display: none; }
+    .form.active { display: block; }
+    .fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .field { display: flex; flex-direction: column; gap: 5px; }
+    .field.full { grid-column: 1 / -1; }
+    label { font-size: 12px; color: var(--soft); font-weight: 650; }
+    .alert { display: none; background: var(--green-bg); color: var(--green); border-radius: var(--radius); padding: 10px 12px; margin-bottom: 14px; }
+    .alert.show { display: block; }
+    .num { width: 72px; text-align: center; padding: 5px; }
+    .employee-card { display: flex; gap: 12px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; margin-bottom: 10px; }
+    .avatar { width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; background: var(--blue-bg); color: var(--blue); flex: 0 0 auto; }
+    .calendar { min-width: 860px; }
+    .calendar td:first-child, .calendar th:first-child { position: sticky; left: 0; background: var(--panel); font-weight: 700; }
+    .assistant { display: grid; grid-template-columns: minmax(0, 1fr) 310px; gap: 14px; }
+    .chat-log { min-height: 330px; max-height: 420px; overflow: auto; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; }
+    .msg { margin-bottom: 10px; padding: 10px 12px; border-radius: var(--radius); background: var(--muted); line-height: 1.4; }
+    .msg.user { background: var(--blue-bg); color: var(--blue); margin-left: 40px; }
+    .msg.bot { margin-right: 40px; }
+    .hint { color: var(--soft); font-size: 13px; line-height: 1.45; }
+    .empty { color: var(--soft); text-align: center; padding: 24px; }
+    @media (max-width: 900px) {
+      .app { flex-direction: column; }
+      .sidebar { width: 100%; border-right: 0; border-bottom: 1px solid var(--line); }
+      .nav { flex-direction: row; overflow: auto; }
+      .nav-title { display: none; }
+      .nav button { white-space: nowrap; width: auto; }
+      .grid4, .grid3, .assistant { grid-template-columns: 1fr; }
+      .fields { grid-template-columns: 1fr; }
+      .topbar { align-items: flex-start; flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-name">GabiDom.inc</div>
+        <div class="brand-sub">Sistema interno integrado</div>
+      </div>
+      <nav class="nav" id="nav">
+        <div class="nav-title">Operación</div>
+        <button data-page="inicio" class="active">Inicio</button>
+        <button data-page="ventas">Ventas y pedidos</button>
+        <button data-page="reportes">Reportes</button>
+        <button data-page="clientes">Clientes</button>
+        <div class="nav-title">Inventario</div>
+        <button data-page="inventario">Inventario general</button>
+        <button data-page="uniformes">Anexo 1 - Uniformes</button>
+        <button data-page="produccion">Anexo 2 - Producción</button>
+        <div class="nav-title">Equipo</div>
+        <button data-page="empleados">Empleados</button>
+        <button data-page="asistencia">Asistencia semanal</button>
+        <div class="nav-title">IA</div>
+        <button data-page="chatgpt">Asistente ChatGPT</button>
+      </nav>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="title" id="pageTitle">Inicio</div>
+        <div class="actions" id="pageActions"></div>
+      </header>
+      <div class="content">
+        <div class="alert" id="alert"></div>
+
+        <section class="page active" id="page-inicio">
+          <div class="grid4" id="metrics"></div>
+          <div class="section-head">Últimas ventas</div>
+          <div class="table-wrap"><table><thead><tr><th>Folio</th><th>Cliente</th><th>Descripción</th><th>Total</th><th>Entrega</th><th>Estado</th></tr></thead><tbody id="inicioVentas"></tbody></table></div>
+          <div class="section-head">Alertas de inventario general</div>
+          <div class="table-wrap"><table><thead><tr><th>Código</th><th>Producto</th><th>Stock</th><th>Mínimo</th><th>Estado</th></tr></thead><tbody id="inicioInventario"></tbody></table></div>
+        </section>
+
+        <section class="page" id="page-ventas">
+          <div class="form" id="formVenta">
+            <div class="fields">
+              <div class="field"><label>Cliente</label><input id="ventaCliente" list="clientesVentaList" placeholder="Escribe o selecciona un cliente"><datalist id="clientesVentaList"></datalist></div>
+              <div class="field"><label>Tipo</label><select id="ventaTipo"><option>Uniforme escolar</option><option>Compostura / arreglo</option><option>Pedido institucional</option><option>Prenda a medida</option><option>Otro</option></select></div>
+              <div class="field full"><label>Descripción</label><textarea id="ventaDesc" placeholder="Ej. 10 uniformes talla 8, azul marino, con logotipo"></textarea></div>
+              <div class="field"><label>Total ($)</label><input type="number" id="ventaTotal" min="0"></div>
+              <div class="field"><label>Anticipo ($)</label><input type="number" id="ventaAnticipo" min="0"></div>
+              <div class="field"><label>Fecha de entrega</label><input type="date" id="ventaEntrega"></div>
+              <div class="field"><label>Estado</label><select id="ventaEstado"><option>En proceso</option><option>Listo para entregar</option><option>Entregado</option><option>Pagado</option><option>Pendiente de pago</option></select></div>
+              <div class="field full"><label>Notas</label><textarea id="ventaNotas"></textarea></div>
+            </div>
+            <div class="section-head"><span></span><span><button class="btn primary" onclick="guardarVenta()">Guardar venta</button> <button class="btn" onclick="toggleForm('Venta', false)">Cancelar</button></span></div>
+          </div>
+          <div class="filters">
+            <input id="buscarVenta" placeholder="Buscar cliente o descripción" oninput="renderVentas()" style="flex:1; min-width:220px">
+            <select id="filtroEstadoVenta" onchange="renderVentas()"><option value="">Todos los estados</option><option>En proceso</option><option>Listo para entregar</option><option>Entregado</option><option>Pagado</option><option>Pendiente de pago</option></select>
+          </div>
+          <div class="table-wrap"><table><thead><tr><th>Folio</th><th>Fecha</th><th>Cliente</th><th>Descripción</th><th>Total</th><th>Anticipo</th><th>Entrega</th><th>Estado</th><th></th></tr></thead><tbody id="tablaVentas"></tbody></table></div>
+        </section>
+
+        <section class="page" id="page-reportes">
+          <div class="grid3" id="reporteMetrics"></div>
+          <div class="filters">
+            <input type="month" id="repMes" oninput="renderReportes()">
+            <input type="date" id="repDia" oninput="renderReportes()">
+            <select id="repEstado" onchange="renderReportes()"><option value="">Todos</option><option>En proceso</option><option>Listo para entregar</option><option>Entregado</option><option>Pagado</option><option>Pendiente de pago</option></select>
+            <button class="btn" onclick="limpiarReportes()">Limpiar</button>
+          </div>
+          <div id="listaReportes"></div>
+        </section>
+
+        <section class="page" id="page-clientes">
+          <div class="form" id="formCliente">
+            <div class="fields">
+              <div class="field"><label>Nombre / escuela</label><input id="clienteNombre"></div>
+              <div class="field"><label>Tipo</label><select id="clienteTipo"><option>Escuela</option><option>Particular</option><option>Empresa</option></select></div>
+              <div class="field"><label>Teléfono</label><input id="clienteTel"></div>
+              <div class="field"><label>Correo</label><input id="clienteEmail"></div>
+              <div class="field full"><label>Dirección</label><input id="clienteDir"></div>
+              <div class="field full"><label>Notas</label><textarea id="clienteNotas"></textarea></div>
+            </div>
+            <div class="section-head"><span></span><span><button class="btn primary" onclick="guardarCliente()">Guardar cliente</button> <button class="btn" onclick="toggleForm('Cliente', false)">Cancelar</button></span></div>
+          </div>
+          <div class="table-wrap"><table><thead><tr><th>#</th><th>Nombre</th><th>Tipo</th><th>Teléfono</th><th>Notas</th><th>Ventas</th></tr></thead><tbody id="tablaClientes"></tbody></table></div>
+        </section>
+
+        <section class="page" id="page-inventario">
+          <div class="form" id="formInv">
+            <div class="fields">
+              <div class="field"><label>Código</label><input id="invCodigo" placeholder="MAT-001"></div>
+              <div class="field"><label>Nombre</label><input id="invNombre"></div>
+              <div class="field"><label>Categoría</label><select id="invCategoria"><option>Tela</option><option>Insumo</option><option>Producto terminado</option><option>Herramienta</option></select></div>
+              <div class="field"><label>Unidad</label><select id="invUnidad"><option>metros</option><option>piezas</option><option>rollos</option><option>pares</option><option>conos</option><option>kg</option></select></div>
+              <div class="field"><label>Stock actual</label><input type="number" id="invStock" min="0"></div>
+              <div class="field"><label>Stock mínimo</label><input type="number" id="invMin" min="0"></div>
+              <div class="field"><label>Precio unitario ($)</label><input type="number" id="invPrecio" min="0"></div>
+              <div class="field"><label>Proveedor</label><input id="invProveedor"></div>
+            </div>
+            <div class="section-head"><span></span><span><button class="btn primary" onclick="guardarInvGeneral()">Guardar producto</button> <button class="btn" onclick="toggleForm('Inv', false)">Cancelar</button></span></div>
+          </div>
+          <div class="table-wrap"><table><thead><tr><th>Código</th><th>Producto</th><th>Categoría</th><th>Stock</th><th>Mínimo</th><th>Precio</th><th>Proveedor</th><th>Estado</th></tr></thead><tbody id="tablaInventario"></tbody></table></div>
+        </section>
+
+        <section class="page" id="page-uniformes">
+          <div class="tabs"><button class="btn active" data-tab="deportivo" onclick="setUniformeTab('deportivo')">Deportivo</button><button class="btn" data-tab="gala" onclick="setUniformeTab('gala')">Gala</button></div>
+          <div id="uniformesTables"></div>
+        </section>
+
+        <section class="page" id="page-produccion">
+          <div class="tabs"><button class="btn active" data-prod="telas" onclick="setProdTab('telas')">Telas</button><button class="btn" data-prod="avios" onclick="setProdTab('avios')">Avíos</button><button class="btn" data-prod="escudos" onclick="setProdTab('escudos')">Escudos</button></div>
+          <div id="prodTables"></div>
+        </section>
+
+        <section class="page" id="page-empleados">
+          <div class="form" id="formEmpleado">
+            <div class="fields">
+              <div class="field"><label>Nombre completo</label><input id="empNombre"></div>
+              <div class="field"><label>Puesto</label><input id="empPuesto"></div>
+              <div class="field"><label>Teléfono</label><input id="empTel"></div>
+              <div class="field"><label>Turno</label><select id="empTurno"><option>Completo</option><option>Medio tiempo</option><option>Por destajo</option></select></div>
+              <div class="field"><label>Salario semanal ($)</label><input type="number" id="empSalario" min="0"></div>
+              <div class="field"><label>Ingreso</label><input type="date" id="empFecha"></div>
+              <div class="field full"><label>Notas</label><textarea id="empNotas"></textarea></div>
+            </div>
+            <div class="section-head"><span></span><span><button class="btn primary" onclick="guardarEmpleado()">Guardar empleado</button> <button class="btn" onclick="toggleForm('Empleado', false)">Cancelar</button></span></div>
+          </div>
+          <div id="empleadosCards"></div>
+        </section>
+
+        <section class="page" id="page-asistencia">
+          <div class="section-head"><button class="btn" onclick="cambiarSemana(-1)">Anterior</button><span id="semanaLabel"></span><button class="btn" onclick="cambiarSemana(1)">Siguiente</button></div>
+          <div class="table-wrap"><table class="calendar" id="tablaAsistencia"></table></div>
+        </section>
+
+        <section class="page" id="page-chatgpt">
+          <div class="assistant">
+            <div>
+              <div class="chat-log" id="chatLog">
+                <div class="msg bot">Hola. Soy el espacio preparado para conectar ChatGPT. Puedo ayudarte a resumir ventas, revisar pendientes o convertir notas en tareas cuando conectes el backend seguro.</div>
+              </div>
+              <div class="filters" style="margin-top:10px">
+                <input id="chatInput" placeholder="Ej. Resume los pedidos pendientes de esta semana" style="flex:1; min-width:240px" onkeydown="if(event.key==='Enter') enviarChat()">
+                <button class="btn primary" onclick="enviarChat()">Enviar</button>
+              </div>
+            </div>
+            <div class="box">
+              <div class="section-head" style="margin-top:0">Conexión segura</div>
+              <p class="hint">Este HTML llama a <b>/api/chat</b>. Esa ruta debe vivir en un servidor o función serverless, porque la clave de OpenAI nunca debe ponerse dentro del navegador.</p>
+              <p class="hint">Cuando lo subas a Vercel, Netlify o Render, se agrega una variable privada llamada <b>OPENAI_API_KEY</b> y el servidor se encarga de hablar con ChatGPT.</p>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const STORE = 'gabidom_integrado_v1';
+    const pages = {
+      inicio: 'Inicio',
+      ventas: 'Ventas y pedidos',
+      reportes: 'Reportes',
+      clientes: 'Clientes',
+      inventario: 'Inventario general',
+      uniformes: 'Anexo 1 - Uniformes',
+      produccion: 'Anexo 2 - Producción',
+      empleados: 'Empleados',
+      asistencia: 'Asistencia semanal',
+      chatgpt: 'Asistente ChatGPT'
+    };
+    const estados = ['En proceso','Listo para entregar','Entregado','Pagado','Pendiente de pago'];
+    const tallas = {
+      Kinder: ['2','4','6','8'],
+      Primaria: ['10','12','14-16 (Ch)'],
+      Secundaria: ['18-28 (Med)','30','32','34','36','38','40 (Gde)']
+    };
+    const prendas = ['Playera','Pants','Short','Chamarra','Falda','Blusa','Camisa','Suéter'];
+    const coloresPique = ['Blanco','Azul marino','Rojo','Verde','Gris','Negro','Amarillo','Rosa'];
+    const coloresSport = ['Blanco','Azul marino','Negro','Gris','Rojo','Verde'];
+    const dias = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+    const turnos = ['Entrada','Almuerzo','Salida'];
+
+    let currentPage = 'inicio';
+    let uniformeTab = 'deportivo';
+    let prodTab = 'telas';
+    let semanaOffset = 0;
+    let db = load();
+
+    function load() {
+      const saved = localStorage.getItem(STORE);
+      if (saved) return JSON.parse(saved);
+      return seed();
+    }
+    function save() {
+      localStorage.setItem(STORE, JSON.stringify(db));
+    }
+    function seed() {
+      const today = iso(new Date());
+      return {
+        folio: 5,
+        clientes: [
+          {id:id(), nombre:'Escuela Primaria Juárez', tipo:'Escuela', tel:'55 1234-5678', email:'', dir:'', notas:'Uniformes azul marino'},
+          {id:id(), nombre:'Laura Méndez', tipo:'Particular', tel:'55 9876-5432', email:'', dir:'', notas:''},
+          {id:id(), nombre:'Colegio San Ángel', tipo:'Escuela', tel:'55 5555-0001', email:'', dir:'', notas:'Tallas 8 y 10 frecuentes'}
+        ],
+        ventas: [
+          {id:id(), folio:'#0001', fecha:today, clienteNombre:'Escuela Primaria Juárez', tipo:'Uniforme escolar', desc:'20 uniformes completos talla 8 azul marino con logotipo bordado', total:6000, anticipo:3000, entrega:today, estado:'Pagado', notas:''},
+          {id:id(), folio:'#0002', fecha:today, clienteNombre:'Laura Méndez', tipo:'Compostura / arreglo', desc:'Ajuste de cintura en pantalón escolar', total:120, anticipo:120, entrega:today, estado:'Entregado', notas:''},
+          {id:id(), folio:'#0003', fecha:today, clienteNombre:'Colegio San Ángel', tipo:'Pedido institucional', desc:'15 blusas blancas talla 8 con escudo bordado', total:2250, anticipo:1000, entrega:today, estado:'En proceso', notas:'Entrega urgente'}
+        ],
+        inventario: [
+          {id:id(), codigo:'MAT-001', nombre:'Tela piqué azul marino', categoria:'Tela', unidad:'metros', stock:18, min:25, precio:85, proveedor:'Local'},
+          {id:id(), codigo:'INS-001', nombre:'Cierres 60 cm', categoria:'Insumo', unidad:'piezas', stock:42, min:30, precio:9, proveedor:'Mercería'},
+          {id:id(), codigo:'PRO-001', nombre:'Playera deportiva talla 8', categoria:'Producto terminado', unidad:'piezas', stock:12, min:8, precio:180, proveedor:'GabiDom'}
+        ],
+        empleados: [
+          {id:id(), nombre:'Gabriela Domínguez Becerril', puesto:'Jefa / Gerente', tel:'', turno:'Completo', salario:0, fecha:today, notas:''},
+          {id:id(), nombre:'Eydan Ramírez Domínguez', puesto:'Costurero / Técnico / Ventas', tel:'', turno:'Completo', salario:0, fecha:today, notas:''},
+          {id:id(), nombre:'María Isabel González Lemus', puesto:'Empleada', tel:'', turno:'Completo', salario:0, fecha:today, notas:''}
+        ],
+        uniformes: {},
+        produccion: { telas:{}, avios:{resorte1:0,resorte2:0,resorte3:0,cierres:{}}, escudos:[{escuela:'Primaria Juárez', cantidad:20},{escuela:'Colegio San Ángel', cantidad:15}] },
+        asistencia: {}
+      };
+    }
+    function id(){ return 'id-' + Math.random().toString(36).slice(2) + Date.now().toString(36); }
+    function iso(d){ return d.toISOString().slice(0,10); }
+    function money(n){ return '$' + Number(n || 0).toLocaleString('es-MX', {maximumFractionDigits:0}); }
+    function dateFmt(s){ if(!s) return '-'; const [y,m,d]=s.split('-'); return `${d}/${m}/${y}`; }
+    function badgeEstado(e) {
+      const cls = e === 'Pagado' || e === 'Entregado' ? 'ok' : e === 'En proceso' ? 'info' : e === 'Pendiente de pago' ? 'bad' : 'warn';
+      return `<span class="badge ${cls}">${e}</span>`;
+    }
+    function show(msg) {
+      const a = document.getElementById('alert');
+      a.textContent = msg;
+      a.classList.add('show');
+      setTimeout(() => a.classList.remove('show'), 2600);
+    }
+    function setPage(page) {
+      currentPage = page;
+      document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+      document.getElementById('page-' + page).classList.add('active');
+      document.querySelectorAll('#nav button[data-page]').forEach(btn => btn.classList.toggle('active', btn.dataset.page === page));
+      document.getElementById('pageTitle').textContent = pages[page];
+      renderActions();
+      renderAll();
+    }
+    document.getElementById('nav').addEventListener('click', e => {
+      const btn = e.target.closest('button[data-page]');
+      if (btn) setPage(btn.dataset.page);
+    });
+    function renderActions() {
+      const a = document.getElementById('pageActions');
+      const map = {
+        ventas: '<button class="btn primary" onclick="toggleForm(\'Venta\', true)">Nueva venta</button>',
+        clientes: '<button class="btn primary" onclick="toggleForm(\'Cliente\', true)">Nuevo cliente</button>',
+        inventario: '<button class="btn primary" onclick="toggleForm(\'Inv\', true)">Agregar producto</button>',
+        empleados: '<button class="btn primary" onclick="toggleForm(\'Empleado\', true)">Nuevo empleado</button>',
+        uniformes: '<button class="btn primary" onclick="guardarUniformes()">Guardar uniformes</button>',
+        produccion: '<button class="btn primary" onclick="guardarProduccion()">Guardar producción</button>',
+        chatgpt: '<button class="btn" onclick="prepararResumenIA()">Usar datos actuales</button>'
+      };
+      a.innerHTML = map[currentPage] || '<button class="btn" onclick="exportarDatos()">Exportar respaldo</button>';
+    }
+    function toggleForm(name, open) {
+      document.getElementById('form' + name).classList.toggle('active', open);
+      if (name === 'Venta' && open) populateClientes();
+    }
+    function renderAll() {
+      renderInicio(); renderVentas(); renderClientes(); populateClientes(); renderInventario(); renderUniformes(); renderProduccion(); renderEmpleados(); renderAsistencia(); renderReportes();
+    }
+
+    function renderInicio() {
+      const totalVentas = db.ventas.reduce((s,v)=>s+Number(v.total||0),0);
+      const saldo = db.ventas.reduce((s,v)=>s+Math.max(0, Number(v.total||0)-Number(v.anticipo||0)),0);
+      const bajas = db.inventario.filter(i => Number(i.stock) <= Number(i.min));
+      document.getElementById('metrics').innerHTML = [
+        ['Ventas', db.ventas.length],
+        ['Ingresos registrados', money(totalVentas)],
+        ['Saldo pendiente', money(saldo)],
+        ['Alertas de stock', bajas.length]
+      ].map(m => `<div class="metric"><div class="metric-label">${m[0]}</div><div class="metric-value">${m[1]}</div></div>`).join('');
+      document.getElementById('inicioVentas').innerHTML = db.ventas.slice(-5).reverse().map(v => `<tr><td>${v.folio}</td><td>${v.clienteNombre}</td><td>${v.desc}</td><td>${money(v.total)}</td><td>${dateFmt(v.entrega)}</td><td>${badgeEstado(v.estado)}</td></tr>`).join('') || '<tr><td colspan="6" class="empty">Sin ventas todavía</td></tr>';
+      document.getElementById('inicioInventario').innerHTML = bajas.map(i => `<tr><td>${i.codigo}</td><td>${i.nombre}</td><td>${i.stock} ${i.unidad}</td><td>${i.min}</td><td><span class="badge bad">Revisar</span></td></tr>`).join('') || '<tr><td colspan="5" class="empty">Sin alertas por ahora</td></tr>';
+    }
+    function populateClientes() {
+      const list = document.getElementById('clientesVentaList');
+      list.innerHTML = db.clientes.map(c => `<option value="${c.nombre}"></option>`).join('');
+    }
+    function renderVentas() {
+      const q = document.getElementById('buscarVenta')?.value?.toLowerCase() || '';
+      const f = document.getElementById('filtroEstadoVenta')?.value || '';
+      const rows = db.ventas.filter(v => (!q || `${v.clienteNombre} ${v.desc}`.toLowerCase().includes(q)) && (!f || v.estado === f));
+      document.getElementById('tablaVentas').innerHTML = rows.map(v => `<tr><td>${v.folio}</td><td>${dateFmt(v.fecha)}</td><td>${v.clienteNombre}</td><td>${v.desc}</td><td>${money(v.total)}</td><td>${money(v.anticipo)}</td><td>${dateFmt(v.entrega)}</td><td><select onchange="cambiarEstado('${v.id}', this.value)">${estados.map(e=>`<option ${e===v.estado?'selected':''}>${e}</option>`).join('')}</select></td><td><button class="btn small danger" onclick="borrar('ventas','${v.id}')">Borrar</button></td></tr>`).join('') || '<tr><td colspan="9" class="empty">Sin ventas</td></tr>';
+    }
+    function guardarVenta() {
+      const cliente = document.getElementById('ventaCliente').value.trim();
+      if (!cliente) return show('Escribe el nombre del cliente');
+      const existeCliente = db.clientes.some(c => c.nombre.toLowerCase() === cliente.toLowerCase());
+      if (!existeCliente) {
+        db.clientes.push({id:id(), nombre:cliente, tipo:'Particular', tel:'', email:'', dir:'', notas:'Registrado desde nueva venta'});
+      }
+      db.ventas.push({ id:id(), folio:'#' + String(db.folio++).padStart(4,'0'), fecha:iso(new Date()), clienteNombre:cliente, tipo:val('ventaTipo'), desc:val('ventaDesc'), total:num('ventaTotal'), anticipo:num('ventaAnticipo'), entrega:val('ventaEntrega'), estado:val('ventaEstado'), notas:val('ventaNotas') });
+      save(); clearIds(['ventaCliente','ventaDesc','ventaTotal','ventaAnticipo','ventaEntrega','ventaNotas']); toggleForm('Venta', false); renderAll(); show(existeCliente ? 'Venta guardada' : 'Venta guardada y cliente agregado');
+    }
+    function cambiarEstado(idVenta, estado) {
+      const v = db.ventas.find(x => x.id === idVenta);
+      if (v) { v.estado = estado; save(); renderAll(); }
+    }
+
+    function renderClientes() {
+      document.getElementById('tablaClientes').innerHTML = db.clientes.map((c,i) => `<tr><td>${i+1}</td><td>${c.nombre}</td><td>${c.tipo}</td><td>${c.tel || '-'}</td><td>${c.notas || '-'}</td><td>${db.ventas.filter(v=>v.clienteNombre===c.nombre).length}</td></tr>`).join('') || '<tr><td colspan="6" class="empty">Sin clientes</td></tr>';
+    }
+    function guardarCliente() {
+      if (!val('clienteNombre')) return show('Escribe el nombre del cliente');
+      db.clientes.push({id:id(), nombre:val('clienteNombre'), tipo:val('clienteTipo'), tel:val('clienteTel'), email:val('clienteEmail'), dir:val('clienteDir'), notas:val('clienteNotas')});
+      save(); clearIds(['clienteNombre','clienteTel','clienteEmail','clienteDir','clienteNotas']); toggleForm('Cliente', false); renderAll(); show('Cliente guardado');
+    }
+
+    function renderInventario() {
+      document.getElementById('tablaInventario').innerHTML = db.inventario.map(i => `<tr><td>${i.codigo}</td><td>${i.nombre}</td><td>${i.categoria}</td><td>${i.stock} ${i.unidad}</td><td>${i.min}</td><td>${money(i.precio)}</td><td>${i.proveedor || '-'}</td><td>${Number(i.stock)<=Number(i.min)?'<span class="badge bad">Bajo</span>':'<span class="badge ok">OK</span>'}</td></tr>`).join('') || '<tr><td colspan="8" class="empty">Sin productos</td></tr>';
+    }
+    function guardarInvGeneral() {
+      if (!val('invNombre')) return show('Escribe el nombre del producto');
+      db.inventario.push({id:id(), codigo:val('invCodigo') || 'SIN-COD', nombre:val('invNombre'), categoria:val('invCategoria'), unidad:val('invUnidad'), stock:num('invStock'), min:num('invMin'), precio:num('invPrecio'), proveedor:val('invProveedor')});
+      save(); clearIds(['invCodigo','invNombre','invStock','invMin','invPrecio','invProveedor']); toggleForm('Inv', false); renderAll(); show('Producto guardado');
+    }
+
+    function renderUniformes() {
+      const out = [];
+      Object.entries(tallas).forEach(([nivel, ts]) => {
+        out.push(`<div class="section-head">${nivel}</div><div class="table-wrap"><table><thead><tr><th>Prenda</th>${ts.map(t=>`<th>${t}</th>`).join('')}</tr></thead><tbody>`);
+        prendas.forEach(p => {
+          out.push(`<tr><td>${p}</td>${ts.map(t => {
+            const k = `${uniformeTab}|${nivel}|${p}|${t}`;
+            return `<td><input class="num" type="number" min="0" value="${db.uniformes[k] || 0}" onchange="db.uniformes['${k}']=Number(this.value||0)"></td>`;
+          }).join('')}</tr>`);
+        });
+        out.push('</tbody></table></div>');
+      });
+      document.getElementById('uniformesTables').innerHTML = out.join('');
+    }
+    function setUniformeTab(tab) {
+      uniformeTab = tab;
+      document.querySelectorAll('[data-tab]').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+      renderUniformes();
+    }
+    function guardarUniformes() { save(); show('Inventario de uniformes guardado'); }
+
+    function renderProduccion() {
+      if (prodTab === 'telas') {
+        document.getElementById('prodTables').innerHTML = renderTela('Piqué sport', coloresPique, 'pique') + renderTela('Sport tock', coloresSport, 'sport');
+      } else if (prodTab === 'avios') {
+        const cierres = [44,46,48,50,52,54,56,58,60,62,64,66,68,70];
+        document.getElementById('prodTables').innerHTML = `<div class="section-head">Resorte</div><div class="grid3">${[1,2,3].map(n=>`<div class="metric"><div class="metric-label">Ancho ${n}</div><input type="number" min="0" value="${db.produccion.avios['resorte'+n]||0}" onchange="db.produccion.avios['resorte${n}']=Number(this.value||0)"></div>`).join('')}</div><div class="section-head">Cierres por medida</div><div class="table-wrap"><table><thead><tr>${cierres.map(c=>`<th>${c} cm</th>`).join('')}</tr></thead><tbody><tr>${cierres.map(c=>`<td><input class="num" type="number" min="0" value="${db.produccion.avios.cierres[c]||0}" onchange="db.produccion.avios.cierres['${c}']=Number(this.value||0)"></td>`).join('')}</tr></tbody></table></div>`;
+      } else {
+        document.getElementById('prodTables').innerHTML = `<div class="section-head">Escudos por escuela <button class="btn small" onclick="agregarEscudo()">Nueva escuela</button></div><div class="table-wrap"><table><thead><tr><th>Escuela</th><th>Cantidad</th><th></th></tr></thead><tbody>${db.produccion.escudos.map((e,i)=>`<tr><td><input value="${e.escuela}" onchange="db.produccion.escudos[${i}].escuela=this.value"></td><td><input class="num" type="number" min="0" value="${e.cantidad}" onchange="db.produccion.escudos[${i}].cantidad=Number(this.value||0)"></td><td><button class="btn small danger" onclick="db.produccion.escudos.splice(${i},1); renderProduccion()">Borrar</button></td></tr>`).join('')}</tbody></table></div>`;
+      }
+    }
+    function renderTela(nombre, colores, key) {
+      return `<div class="section-head">${nombre}</div><div class="table-wrap"><table><thead><tr><th>Color</th><th>Rollos</th><th>Metros aprox.</th></tr></thead><tbody>${colores.map(c => {
+        const k = `${key}|${c}`;
+        const v = db.produccion.telas[k] || {rollos:0, metros:0};
+        return `<tr><td>${c}</td><td><input class="num" type="number" min="0" value="${v.rollos}" onchange="setTela('${k}','rollos',this.value)"></td><td><input class="num" type="number" min="0" value="${v.metros}" onchange="setTela('${k}','metros',this.value)"></td></tr>`;
+      }).join('')}</tbody></table></div>`;
+    }
+    function setTela(k, campo, valor) {
+      if (!db.produccion.telas[k]) db.produccion.telas[k] = {rollos:0, metros:0};
+      db.produccion.telas[k][campo] = Number(valor || 0);
+    }
+    function setProdTab(tab) {
+      prodTab = tab;
+      document.querySelectorAll('[data-prod]').forEach(b => b.classList.toggle('active', b.dataset.prod === tab));
+      renderProduccion();
+    }
+    function agregarEscudo() { db.produccion.escudos.push({escuela:'Nueva escuela', cantidad:0}); renderProduccion(); }
+    function guardarProduccion() { save(); show('Producción guardada'); }
+
+    function renderEmpleados() {
+      document.getElementById('empleadosCards').innerHTML = db.empleados.map(e => `<div class="employee-card"><div class="avatar">${iniciales(e.nombre)}</div><div style="flex:1"><b>${e.nombre}</b><div class="hint">${e.puesto} - ${e.turno} - ${money(e.salario)}/semana</div><div class="hint">Ingreso: ${dateFmt(e.fecha)} ${e.tel ? '- Tel. ' + e.tel : ''}</div></div><button class="btn small danger" onclick="borrar('empleados','${e.id}')">Borrar</button></div>`).join('') || '<div class="empty">Sin empleados</div>';
+    }
+    function guardarEmpleado() {
+      if (!val('empNombre')) return show('Escribe el nombre del empleado');
+      db.empleados.push({id:id(), nombre:val('empNombre'), puesto:val('empPuesto'), tel:val('empTel'), turno:val('empTurno'), salario:num('empSalario'), fecha:val('empFecha'), notas:val('empNotas')});
+      save(); clearIds(['empNombre','empPuesto','empTel','empSalario','empFecha','empNotas']); toggleForm('Empleado', false); renderAll(); show('Empleado guardado');
+    }
+    function iniciales(nombre) { return nombre.split(' ').filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase(); }
+
+    function lunes(offset) {
+      const d = new Date();
+      const day = d.getDay() || 7;
+      d.setDate(d.getDate() - day + 1 + offset * 7);
+      d.setHours(0,0,0,0);
+      return d;
+    }
+    function weekKey(d) { return iso(d); }
+    function cambiarSemana(n) { semanaOffset += n; renderAsistencia(); }
+    function renderAsistencia() {
+      const l = lunes(semanaOffset);
+      const k = weekKey(l);
+      if (!db.asistencia[k]) db.asistencia[k] = {};
+      const fin = new Date(l); fin.setDate(l.getDate()+5);
+      document.getElementById('semanaLabel').textContent = `${dateFmt(iso(l))} al ${dateFmt(iso(fin))}`;
+      let html = '<thead><tr><th>Empleado</th>' + dias.map(d=>`<th>${d}</th>`).join('') + '</tr></thead><tbody>';
+      db.empleados.forEach(emp => {
+        html += `<tr><td>${emp.nombre}</td>`;
+        dias.forEach(dia => {
+          html += `<td>${turnos.map(t => {
+            const key = `${emp.id}|${dia}|${t}`;
+            const val = db.asistencia[k][key] || '';
+            return `<label>${t}</label><br><input type="time" value="${val}" onchange="db.asistencia['${k}']['${key}']=this.value; save()">`;
+          }).join('<br>')}</td>`;
+        });
+        html += '</tr>';
+      });
+      document.getElementById('tablaAsistencia').innerHTML = html + '</tbody>';
+    }
+
+    function renderReportes() {
+      const mes = document.getElementById('repMes')?.value || '';
+      const dia = document.getElementById('repDia')?.value || '';
+      const estado = document.getElementById('repEstado')?.value || '';
+      const rows = db.ventas.filter(v => (!mes || v.fecha.startsWith(mes)) && (!dia || v.fecha === dia) && (!estado || v.estado === estado));
+      const total = rows.reduce((s,v)=>s+Number(v.total||0),0);
+      const anticipos = rows.reduce((s,v)=>s+Number(v.anticipo||0),0);
+      document.getElementById('reporteMetrics').innerHTML = [['Ventas filtradas', rows.length], ['Total', money(total)], ['Anticipos', money(anticipos)]].map(m=>`<div class="metric"><div class="metric-label">${m[0]}</div><div class="metric-value">${m[1]}</div></div>`).join('');
+      document.getElementById('listaReportes').innerHTML = rows.map(v => `<div class="box" style="margin-bottom:10px"><div class="section-head" style="margin:0 0 8px"><span>${v.folio} - ${v.clienteNombre}</span>${badgeEstado(v.estado)}</div><div>${v.desc}</div><div class="hint">Fecha: ${dateFmt(v.fecha)} | Entrega: ${dateFmt(v.entrega)} | Total: ${money(v.total)} | Anticipo: ${money(v.anticipo)}</div></div>`).join('') || '<div class="empty">Sin resultados</div>';
+    }
+    function limpiarReportes() { ['repMes','repDia','repEstado'].forEach(x=>document.getElementById(x).value=''); renderReportes(); }
+
+    function borrar(tipo, itemId) {
+      db[tipo] = db[tipo].filter(x => x.id !== itemId);
+      save(); renderAll(); show('Registro borrado');
+    }
+    function val(idEl){ return document.getElementById(idEl).value.trim(); }
+    function num(idEl){ return Number(document.getElementById(idEl).value || 0); }
+    function clearIds(ids){ ids.forEach(x => document.getElementById(x).value = ''); }
+    function exportarDatos() {
+      const blob = new Blob([JSON.stringify(db, null, 2)], {type:'application/json'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'respaldo-gabidom.json';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    function prepararResumenIA() {
+      setPage('chatgpt');
+      document.getElementById('chatInput').value = `Analiza estos datos de GabiDom y dime pendientes importantes: ${JSON.stringify({ventas:db.ventas, inventario:db.inventario, empleados:db.empleados}).slice(0,3000)}`;
+    }
+    async function enviarChat() {
+      const input = document.getElementById('chatInput');
+      const text = input.value.trim();
+      if (!text) return;
+      addMsg(text, 'user');
+      input.value = '';
+      try {
+        const r = await fetch('/api/chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({message:text, data:{ventas:db.ventas, inventario:db.inventario, empleados:db.empleados}})});
+        if (!r.ok) throw new Error('Sin backend');
+        const data = await r.json();
+        addMsg(data.reply || 'Sin respuesta', 'bot');
+      } catch (err) {
+        addMsg('Todavía falta conectar el backend seguro de ChatGPT. La app ya está lista para llamar a /api/chat, pero esa parte se configura en el host.', 'bot');
+      }
+    }
+    function addMsg(text, who) {
+      const log = document.getElementById('chatLog');
+      const div = document.createElement('div');
+      div.className = 'msg ' + who;
+      div.textContent = text;
+      log.appendChild(div);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    renderActions();
+    renderAll();
+  </script>
+</body>
+</html>
