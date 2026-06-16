@@ -1,2 +1,2 @@
 # GabiDomApp
-centro de operaciones central de GabiDom inc.
+centro de operaciones de GabiDom inc.
