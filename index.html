@@ -31,10 +31,12 @@
     .brand { padding: 18px 16px 14px; border-bottom: 1px solid var(--line); }
     .brand-name { font-size: 18px; font-weight: 700; }
     .brand-sub { color: var(--soft); font-size: 12px; margin-top: 4px; }
-    .nav { padding: 10px; display: flex; flex-direction: column; gap: 4px; }
+    .nav { padding: 10px; display: flex; flex-direction: column; gap: 4px; overflow-y: auto; }
     .nav-title { font-size: 10px; text-transform: uppercase; color: var(--soft); letter-spacing: .08em; padding: 12px 8px 4px; }
-    .nav button { width: 100%; text-align: left; border: 0; border-radius: var(--radius); background: transparent; padding: 9px 10px; color: var(--soft); cursor: pointer; }
+    .nav button { width: 100%; text-align: left; border: 0; border-radius: var(--radius); background: transparent; padding: 9px 10px; color: var(--soft); cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 6px; }
     .nav button:hover, .nav button.active { background: var(--muted); color: var(--text); }
+    .nav button .pill { font-size: 10px; background: var(--muted); color: var(--soft); border-radius: 999px; padding: 1px 7px; }
+    .nav button.active .pill { background: var(--panel); }
     .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
     .topbar { min-height: 58px; padding: 12px 22px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; gap: 12px; background: rgba(255,253,248,.8); position: sticky; top: 0; z-index: 2; backdrop-filter: blur(8px); }
     .title { font-size: 18px; font-weight: 700; }
@@ -53,17 +55,17 @@
     .metric-label { color: var(--soft); font-size: 12px; }
     .metric-value { font-size: 24px; font-weight: 750; margin-top: 4px; }
     .section-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin: 18px 0 10px; font-weight: 700; }
-    .table-wrap { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: auto; margin-bottom: 18px; }
-    table { border-collapse: collapse; width: 100%; font-size: 13px; min-width: 720px; }
+    .table-wrap { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: auto; margin-bottom: 18px; max-height: 560px; }
+    table { border-collapse: collapse; width: 100%; font-size: 13px; min-width: 640px; }
     th, td { border-bottom: 1px solid var(--line); padding: 9px 10px; text-align: left; vertical-align: middle; }
-    th { background: var(--muted); color: var(--soft); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+    th { background: var(--muted); color: var(--soft); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; position: sticky; top: 0; }
     tr:last-child td { border-bottom: 0; }
     .badge { display: inline-flex; border-radius: 999px; padding: 3px 8px; font-size: 11px; font-weight: 700; white-space: nowrap; }
     .ok { background: var(--green-bg); color: var(--green); }
     .warn { background: var(--gold-bg); color: var(--gold); }
     .bad { background: var(--red-bg); color: var(--red); }
     .info { background: var(--blue-bg); color: var(--blue); }
-    .filters, .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+    .filters, .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; align-items: center; }
     .tabs button.active { background: var(--text); color: var(--panel); border-color: var(--text); }
     input, select, textarea { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); color: var(--text); padding: 8px 10px; min-width: 0; }
     textarea { resize: vertical; min-height: 70px; }
@@ -87,6 +89,7 @@
     .msg.bot { margin-right: 40px; }
     .hint { color: var(--soft); font-size: 13px; line-height: 1.45; }
     .empty { color: var(--soft); text-align: center; padding: 24px; }
+    .kpi-note { color: var(--soft); font-size: 12px; margin: -10px 0 16px; }
     @media (max-width: 900px) {
       .app { flex-direction: column; }
       .sidebar { width: 100%; border-right: 0; border-bottom: 1px solid var(--line); }
@@ -109,13 +112,13 @@
       <nav class="nav" id="nav">
         <div class="nav-title">Operación</div>
         <button data-page="inicio" class="active">Inicio</button>
-        <button data-page="ventas">Ventas y pedidos</button>
+        <button data-page="ventas">Ventas</button>
+        <button data-page="revisar">Ventas por revisar</button>
         <button data-page="reportes">Reportes</button>
         <button data-page="clientes">Clientes</button>
         <div class="nav-title">Inventario</div>
-        <button data-page="inventario">Inventario general</button>
-        <button data-page="uniformes">Anexo 1 - Uniformes</button>
-        <button data-page="produccion">Anexo 2 - Producción</button>
+        <button data-page="prendas">Prendas</button>
+        <button data-page="insumos">Insumos (cierres)</button>
         <div class="nav-title">Equipo</div>
         <button data-page="empleados">Empleados</button>
         <button data-page="asistencia">Asistencia semanal</button>
@@ -135,44 +138,61 @@
         <section class="page active" id="page-inicio">
           <div class="grid4" id="metrics"></div>
           <div class="section-head">Últimas ventas</div>
-          <div class="table-wrap"><table><thead><tr><th>Folio</th><th>Cliente</th><th>Descripción</th><th>Total</th><th>Entrega</th><th>Estado</th></tr></thead><tbody id="inicioVentas"></tbody></table></div>
-          <div class="section-head">Alertas de inventario general</div>
-          <div class="table-wrap"><table><thead><tr><th>Código</th><th>Producto</th><th>Stock</th><th>Mínimo</th><th>Estado</th></tr></thead><tbody id="inicioInventario"></tbody></table></div>
+          <div class="table-wrap"><table><thead><tr><th>Folio</th><th>Cliente/Escuela</th><th>Total</th><th>Forma de pago</th><th>Fecha</th><th>Estatus</th></tr></thead><tbody id="inicioVentas"></tbody></table></div>
+          <div class="section-head">Alertas de inventario (prendas)</div>
+          <div class="table-wrap"><table><thead><tr><th>Categoría</th><th>Variante</th><th>Talla</th><th>Stock</th><th>Mínimo</th></tr></thead><tbody id="inicioPrendas"></tbody></table></div>
+          <div class="section-head">Alertas de inventario (insumos - cierres)</div>
+          <div class="table-wrap"><table><thead><tr><th>Color</th><th>Talla</th><th>Medida</th><th>Stock</th><th>Mínimo</th></tr></thead><tbody id="inicioInsumos"></tbody></table></div>
         </section>
 
         <section class="page" id="page-ventas">
           <div class="form" id="formVenta">
             <div class="fields">
-              <div class="field"><label>Cliente</label><input id="ventaCliente" list="clientesVentaList" placeholder="Escribe o selecciona un cliente"><datalist id="clientesVentaList"></datalist></div>
-              <div class="field"><label>Tipo</label><select id="ventaTipo"><option>Uniforme escolar</option><option>Compostura / arreglo</option><option>Pedido institucional</option><option>Prenda a medida</option><option>Otro</option></select></div>
-              <div class="field full"><label>Descripción</label><textarea id="ventaDesc" placeholder="Ej. 10 uniformes talla 8, azul marino, con logotipo"></textarea></div>
-              <div class="field"><label>Total ($)</label><input type="number" id="ventaTotal" min="0"></div>
-              <div class="field"><label>Anticipo ($)</label><input type="number" id="ventaAnticipo" min="0"></div>
-              <div class="field"><label>Fecha de entrega</label><input type="date" id="ventaEntrega"></div>
-              <div class="field"><label>Estado</label><select id="ventaEstado"><option>En proceso</option><option>Listo para entregar</option><option>Entregado</option><option>Pagado</option><option>Pendiente de pago</option></select></div>
-              <div class="field full"><label>Notas</label><textarea id="ventaNotas"></textarea></div>
+              <div class="field"><label>Folio</label><input id="ventaFolio" placeholder="A 665"></div>
+              <div class="field"><label>Fecha</label><input type="date" id="ventaFecha"></div>
+              <div class="field full"><label>Cliente / Escuela</label><input id="ventaCliente" list="clientesVentaList" placeholder="Escribe o selecciona un cliente"><datalist id="clientesVentaList"></datalist></div>
+              <div class="field"><label>Monto total ($)</label><input type="number" id="ventaMontoTotal" min="0"></div>
+              <div class="field"><label>Forma de pago</label><select id="ventaFormaPago"><option>Efectivo</option><option>Tarjeta/Transferencia</option><option>Mixto</option></select></div>
+              <div class="field"><label>Monto en tarjeta ($)</label><input type="number" id="ventaMontoTarjeta" min="0"></div>
+              <div class="field"><label>Efectivo ($)</label><input type="number" id="ventaEfectivo" min="0"></div>
+              <div class="field"><label>Referencia (No. tarjeta/trans/QR)</label><input id="ventaNoTarjeta"></div>
+              <div class="field"><label>Restante ($)</label><input type="number" id="ventaRestante" min="0"></div>
+              <div class="field"><label>Estatus</label><select id="ventaEstatus"><option>Pagado y entregado</option><option>Pendiente</option></select></div>
+              <div class="field full"><label>Observaciones</label><textarea id="ventaObs"></textarea></div>
             </div>
             <div class="section-head"><span></span><span><button class="btn primary" onclick="guardarVenta()">Guardar venta</button> <button class="btn" onclick="toggleForm('Venta', false)">Cancelar</button></span></div>
           </div>
           <div class="filters">
-            <input id="buscarVenta" placeholder="Buscar cliente o descripción" oninput="renderVentas()" style="flex:1; min-width:220px">
-            <select id="filtroEstadoVenta" onchange="renderVentas()"><option value="">Todos los estados</option><option>En proceso</option><option>Listo para entregar</option><option>Entregado</option><option>Pagado</option><option>Pendiente de pago</option></select>
+            <input id="buscarVenta" placeholder="Buscar folio o cliente" oninput="renderVentas()" style="flex:1; min-width:220px">
+            <select id="filtroMesVenta" onchange="renderVentas()"><option value="">Todos los meses</option></select>
+            <select id="filtroEstatusVenta" onchange="renderVentas()"><option value="">Todos los estatus</option><option>Pagado y entregado</option><option>Pendiente</option></select>
+            <select id="filtroPagoVenta" onchange="renderVentas()"><option value="">Toda forma de pago</option><option>Efectivo</option><option>Tarjeta/Transferencia</option><option>Mixto</option></select>
           </div>
-          <div class="table-wrap"><table><thead><tr><th>Folio</th><th>Fecha</th><th>Cliente</th><th>Descripción</th><th>Total</th><th>Anticipo</th><th>Entrega</th><th>Estado</th><th></th></tr></thead><tbody id="tablaVentas"></tbody></table></div>
+          <div class="table-wrap"><table><thead><tr><th>Folio</th><th>Fecha</th><th>Cliente/Escuela</th><th>Total</th><th>Tarjeta</th><th>Efectivo</th><th>Restante</th><th>Forma de pago</th><th>Estatus</th><th></th></tr></thead><tbody id="tablaVentas"></tbody></table></div>
+        </section>
+
+        <section class="page" id="page-revisar">
+          <p class="hint" style="margin-bottom:12px">Estos folios vinieron de la plantilla original sin datos completos (probablemente renglones sin usar). Complétalos como venta o descártalos.</p>
+          <div class="filters">
+            <input id="buscarRevisar" placeholder="Buscar folio" oninput="renderRevisar()" style="flex:1; min-width:220px">
+          </div>
+          <div class="table-wrap"><table><thead><tr><th>Folio</th><th>Mes</th><th>Fecha</th><th>Notas</th><th></th></tr></thead><tbody id="tablaRevisar"></tbody></table></div>
         </section>
 
         <section class="page" id="page-reportes">
-          <div class="grid3" id="reporteMetrics"></div>
+          <div class="grid4" id="reporteMetrics"></div>
           <div class="filters">
             <input type="month" id="repMes" oninput="renderReportes()">
             <input type="date" id="repDia" oninput="renderReportes()">
-            <select id="repEstado" onchange="renderReportes()"><option value="">Todos</option><option>En proceso</option><option>Listo para entregar</option><option>Entregado</option><option>Pagado</option><option>Pendiente de pago</option></select>
+            <select id="repEstatus" onchange="renderReportes()"><option value="">Todos los estatus</option><option>Pagado y entregado</option><option>Pendiente</option></select>
+            <select id="repPago" onchange="renderReportes()"><option value="">Toda forma de pago</option><option>Efectivo</option><option>Tarjeta/Transferencia</option><option>Mixto</option></select>
             <button class="btn" onclick="limpiarReportes()">Limpiar</button>
           </div>
           <div id="listaReportes"></div>
         </section>
 
         <section class="page" id="page-clientes">
+          <p class="hint" style="margin-bottom:12px">Se generan automáticamente a partir del campo Cliente/Escuela de las ventas. También puedes agregar clientes manualmente.</p>
           <div class="form" id="formCliente">
             <div class="fields">
               <div class="field"><label>Nombre / escuela</label><input id="clienteNombre"></div>
@@ -184,34 +204,27 @@
             </div>
             <div class="section-head"><span></span><span><button class="btn primary" onclick="guardarCliente()">Guardar cliente</button> <button class="btn" onclick="toggleForm('Cliente', false)">Cancelar</button></span></div>
           </div>
-          <div class="table-wrap"><table><thead><tr><th>#</th><th>Nombre</th><th>Tipo</th><th>Teléfono</th><th>Notas</th><th>Ventas</th></tr></thead><tbody id="tablaClientes"></tbody></table></div>
-        </section>
-
-        <section class="page" id="page-inventario">
-          <div class="form" id="formInv">
-            <div class="fields">
-              <div class="field"><label>Código</label><input id="invCodigo" placeholder="MAT-001"></div>
-              <div class="field"><label>Nombre</label><input id="invNombre"></div>
-              <div class="field"><label>Categoría</label><select id="invCategoria"><option>Tela</option><option>Insumo</option><option>Producto terminado</option><option>Herramienta</option></select></div>
-              <div class="field"><label>Unidad</label><select id="invUnidad"><option>metros</option><option>piezas</option><option>rollos</option><option>pares</option><option>conos</option><option>kg</option></select></div>
-              <div class="field"><label>Stock actual</label><input type="number" id="invStock" min="0"></div>
-              <div class="field"><label>Stock mínimo</label><input type="number" id="invMin" min="0"></div>
-              <div class="field"><label>Precio unitario ($)</label><input type="number" id="invPrecio" min="0"></div>
-              <div class="field"><label>Proveedor</label><input id="invProveedor"></div>
-            </div>
-            <div class="section-head"><span></span><span><button class="btn primary" onclick="guardarInvGeneral()">Guardar producto</button> <button class="btn" onclick="toggleForm('Inv', false)">Cancelar</button></span></div>
+          <div class="filters">
+            <input id="buscarCliente" placeholder="Buscar cliente" oninput="renderClientes()" style="flex:1; min-width:220px">
           </div>
-          <div class="table-wrap"><table><thead><tr><th>Código</th><th>Producto</th><th>Categoría</th><th>Stock</th><th>Mínimo</th><th>Precio</th><th>Proveedor</th><th>Estado</th></tr></thead><tbody id="tablaInventario"></tbody></table></div>
+          <div class="table-wrap"><table><thead><tr><th>Nombre</th><th>Tipo</th><th>Teléfono</th><th>Notas</th><th>Ventas</th><th>Total facturado</th></tr></thead><tbody id="tablaClientes"></tbody></table></div>
         </section>
 
-        <section class="page" id="page-uniformes">
-          <div class="tabs"><button class="btn active" data-tab="deportivo" onclick="setUniformeTab('deportivo')">Deportivo</button><button class="btn" data-tab="gala" onclick="setUniformeTab('gala')">Gala</button></div>
-          <div id="uniformesTables"></div>
+        <section class="page" id="page-prendas">
+          <div class="tabs" id="prendasTabs"></div>
+          <div class="filters">
+            <input id="buscarPrenda" placeholder="Buscar variante o talla" oninput="renderPrendas()" style="flex:1; min-width:220px">
+            <label style="display:flex; align-items:center; gap:6px; font-weight:600; color:var(--soft)"><input type="checkbox" id="soloAlertaPrendas" onchange="renderPrendas()" style="width:auto"> Solo con alerta</label>
+          </div>
+          <div class="table-wrap"><table><thead><tr><th>Variante</th><th>Talla</th><th>Cantidad</th><th>Mínimo</th><th>Estatus</th><th></th></tr></thead><tbody id="tablaPrendas"></tbody></table></div>
         </section>
 
-        <section class="page" id="page-produccion">
-          <div class="tabs"><button class="btn active" data-prod="telas" onclick="setProdTab('telas')">Telas</button><button class="btn" data-prod="avios" onclick="setProdTab('avios')">Avíos</button><button class="btn" data-prod="escudos" onclick="setProdTab('escudos')">Escudos</button></div>
-          <div id="prodTables"></div>
+        <section class="page" id="page-insumos">
+          <div class="filters">
+            <input id="buscarInsumo" placeholder="Buscar color, talla o medida" oninput="renderInsumos()" style="flex:1; min-width:220px">
+            <label style="display:flex; align-items:center; gap:6px; font-weight:600; color:var(--soft)"><input type="checkbox" id="soloAlertaInsumos" onchange="renderInsumos()" style="width:auto"> Solo con alerta</label>
+          </div>
+          <div class="table-wrap"><table><thead><tr><th>Color</th><th>Talla</th><th>Medida</th><th>Cantidad</th><th>Mínimo</th><th>Estatus</th><th></th></tr></thead><tbody id="tablaInsumos"></tbody></table></div>
         </section>
 
         <section class="page" id="page-empleados">
@@ -239,10 +252,10 @@
           <div class="assistant">
             <div>
               <div class="chat-log" id="chatLog">
-                <div class="msg bot">Hola. Soy el espacio preparado para conectar ChatGPT. Puedo ayudarte a resumir ventas, revisar pendientes o convertir notas en tareas cuando conectes el backend seguro.</div>
+                <div class="msg bot">Hola. Soy el espacio preparado para conectar ChatGPT. Puedo ayudarte a resumir ventas, revisar pendientes de inventario (prendas e insumos) o folios sin datos, cuando conectes el backend seguro.</div>
               </div>
               <div class="filters" style="margin-top:10px">
-                <input id="chatInput" placeholder="Ej. Resume los pedidos pendientes de esta semana" style="flex:1; min-width:240px" onkeydown="if(event.key==='Enter') enviarChat()">
+                <input id="chatInput" placeholder="Ej. Resume las ventas pendientes de este mes" style="flex:1; min-width:240px" onkeydown="if(event.key==='Enter') enviarChat()">
                 <button class="btn primary" onclick="enviarChat()">Enviar</button>
               </div>
             </div>
@@ -257,35 +270,28 @@
     </main>
   </div>
 
+  <script src="data.js"></script>
   <script>
-    const STORE = 'gabidom_integrado_v1';
+    const STORE = 'gabidom_integrado_v2';
     const pages = {
       inicio: 'Inicio',
-      ventas: 'Ventas y pedidos',
+      ventas: 'Ventas',
+      revisar: 'Ventas por revisar',
       reportes: 'Reportes',
       clientes: 'Clientes',
-      inventario: 'Inventario general',
-      uniformes: 'Anexo 1 - Uniformes',
-      produccion: 'Anexo 2 - Producción',
+      prendas: 'Inventario de prendas',
+      insumos: 'Inventario de insumos (cierres)',
       empleados: 'Empleados',
       asistencia: 'Asistencia semanal',
       chatgpt: 'Asistente ChatGPT'
     };
-    const estados = ['En proceso','Listo para entregar','Entregado','Pagado','Pendiente de pago'];
-    const tallas = {
-      Kinder: ['2','4','6','8'],
-      Primaria: ['10','12','14-16 (Ch)'],
-      Secundaria: ['18-28 (Med)','30','32','34','36','38','40 (Gde)']
-    };
-    const prendas = ['Playera','Pants','Short','Chamarra','Falda','Blusa','Camisa','Suéter'];
-    const coloresPique = ['Blanco','Azul marino','Rojo','Verde','Gris','Negro','Amarillo','Rosa'];
-    const coloresSport = ['Blanco','Azul marino','Negro','Gris','Rojo','Verde'];
+    const estatusVenta = ['Pagado y entregado', 'Pendiente'];
+    const formasPago = ['Efectivo', 'Tarjeta/Transferencia', 'Mixto'];
     const dias = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
     const turnos = ['Entrada','Almuerzo','Salida'];
 
     let currentPage = 'inicio';
-    let uniformeTab = 'deportivo';
-    let prodTab = 'telas';
+    let prendaCategoria = null;
     let semanaOffset = 0;
     let db = load();
 
@@ -299,40 +305,68 @@
     }
     function seed() {
       const today = iso(new Date());
+      const seedData = (typeof GABIDOM_SEED !== 'undefined') ? GABIDOM_SEED : { prendas: [], insumos: [], ventas: [], revisar: [] };
       return {
-        folio: 5,
-        clientes: [
-          {id:id(), nombre:'Escuela Primaria Juárez', tipo:'Escuela', tel:'55 1234-5678', email:'', dir:'', notas:'Uniformes azul marino'},
-          {id:id(), nombre:'Laura Méndez', tipo:'Particular', tel:'55 9876-5432', email:'', dir:'', notas:''},
-          {id:id(), nombre:'Colegio San Ángel', tipo:'Escuela', tel:'55 5555-0001', email:'', dir:'', notas:'Tallas 8 y 10 frecuentes'}
-        ],
-        ventas: [
-          {id:id(), folio:'#0001', fecha:today, clienteNombre:'Escuela Primaria Juárez', tipo:'Uniforme escolar', desc:'20 uniformes completos talla 8 azul marino con logotipo bordado', total:6000, anticipo:3000, entrega:today, estado:'Pagado', notas:''},
-          {id:id(), folio:'#0002', fecha:today, clienteNombre:'Laura Méndez', tipo:'Compostura / arreglo', desc:'Ajuste de cintura en pantalón escolar', total:120, anticipo:120, entrega:today, estado:'Entregado', notas:''},
-          {id:id(), folio:'#0003', fecha:today, clienteNombre:'Colegio San Ángel', tipo:'Pedido institucional', desc:'15 blusas blancas talla 8 con escudo bordado', total:2250, anticipo:1000, entrega:today, estado:'En proceso', notas:'Entrega urgente'}
-        ],
-        inventario: [
-          {id:id(), codigo:'MAT-001', nombre:'Tela piqué azul marino', categoria:'Tela', unidad:'metros', stock:18, min:25, precio:85, proveedor:'Local'},
-          {id:id(), codigo:'INS-001', nombre:'Cierres 60 cm', categoria:'Insumo', unidad:'piezas', stock:42, min:30, precio:9, proveedor:'Mercería'},
-          {id:id(), codigo:'PRO-001', nombre:'Playera deportiva talla 8', categoria:'Producto terminado', unidad:'piezas', stock:12, min:8, precio:180, proveedor:'GabiDom'}
-        ],
+        folioSeq: 1,
+        clientes: [],
+        ventas: seedData.ventas.map(v => ({
+          id: id(),
+          folio: v.folio || '',
+          mes: v.mes || '',
+          fecha: v.fecha || today,
+          cliente: (v.cliente === null || v.cliente === undefined) ? '' : String(v.cliente),
+          montoTotal: numOr(v.montoTotal),
+          noTarjeta: v.noTarjeta || '',
+          montoTarjeta: numOr(v.montoTarjeta),
+          efectivo: numOr(v.efectivo),
+          restante: numOr(v.restante),
+          formaPago: v.formaPago || '',
+          estatus: v.estatus || 'Pendiente',
+          obs: v.obs || ''
+        })),
+        revisar: seedData.revisar.map(v => ({
+          id: id(),
+          folio: v.folio || '',
+          mes: v.mes || '',
+          fecha: v.fecha || '',
+          notas: v.noTarjeta || v.obs || ''
+        })),
+        prendas: seedData.prendas.map(p => ({
+          id: id(),
+          categoria: p.categoria,
+          variante: p.variante,
+          talla: p.talla,
+          cantidad: Number(p.cantidad || 0),
+          stockMinimo: p.stockMinimo === '' ? 10 : Number(p.stockMinimo)
+        })),
+        insumos: seedData.insumos.map(i => ({
+          id: id(),
+          insumo: i.insumo,
+          color: i.color,
+          talla: i.talla,
+          medida: i.medida,
+          cantidad: Number(i.cantidad || 0),
+          stockMinimo: i.stockMinimo === '' ? 10 : Number(i.stockMinimo)
+        })),
         empleados: [
           {id:id(), nombre:'Gabriela Domínguez Becerril', puesto:'Jefa / Gerente', tel:'', turno:'Completo', salario:0, fecha:today, notas:''},
           {id:id(), nombre:'Eydan Ramírez Domínguez', puesto:'Costurero / Técnico / Ventas', tel:'', turno:'Completo', salario:0, fecha:today, notas:''},
           {id:id(), nombre:'María Isabel González Lemus', puesto:'Empleada', tel:'', turno:'Completo', salario:0, fecha:today, notas:''}
         ],
-        uniformes: {},
-        produccion: { telas:{}, avios:{resorte1:0,resorte2:0,resorte3:0,cierres:{}}, escudos:[{escuela:'Primaria Juárez', cantidad:20},{escuela:'Colegio San Ángel', cantidad:15}] },
         asistencia: {}
       };
     }
     function id(){ return 'id-' + Math.random().toString(36).slice(2) + Date.now().toString(36); }
     function iso(d){ return d.toISOString().slice(0,10); }
+    function numOr(v){ return (v === '' || v === null || v === undefined) ? '' : Number(v); }
     function money(n){ return '$' + Number(n || 0).toLocaleString('es-MX', {maximumFractionDigits:0}); }
-    function dateFmt(s){ if(!s) return '-'; const [y,m,d]=s.split('-'); return `${d}/${m}/${y}`; }
-    function badgeEstado(e) {
-      const cls = e === 'Pagado' || e === 'Entregado' ? 'ok' : e === 'En proceso' ? 'info' : e === 'Pendiente de pago' ? 'bad' : 'warn';
-      return `<span class="badge ${cls}">${e}</span>`;
+    function dateFmt(s){ if(!s) return '-'; const parts = String(s).split('-'); if(parts.length!==3) return s; const [y,m,d]=parts; return `${d}/${m}/${y}`; }
+    function badgeEstatusVenta(e) {
+      const cls = e === 'Pagado y entregado' ? 'ok' : e === 'Pendiente' ? 'bad' : 'info';
+      return `<span class="badge ${cls}">${e || 'Sin estatus'}</span>`;
+    }
+    function badgeStock(cantidad, minimo) {
+      return Number(cantidad) <= Number(minimo) ? '<span class="badge bad">⚠ Reabastecer</span>' : '<span class="badge ok">OK</span>';
     }
     function show(msg) {
       const a = document.getElementById('alert');
@@ -358,62 +392,112 @@
       const map = {
         ventas: '<button class="btn primary" onclick="toggleForm(\'Venta\', true)">Nueva venta</button>',
         clientes: '<button class="btn primary" onclick="toggleForm(\'Cliente\', true)">Nuevo cliente</button>',
-        inventario: '<button class="btn primary" onclick="toggleForm(\'Inv\', true)">Agregar producto</button>',
         empleados: '<button class="btn primary" onclick="toggleForm(\'Empleado\', true)">Nuevo empleado</button>',
-        uniformes: '<button class="btn primary" onclick="guardarUniformes()">Guardar uniformes</button>',
-        produccion: '<button class="btn primary" onclick="guardarProduccion()">Guardar producción</button>',
         chatgpt: '<button class="btn" onclick="prepararResumenIA()">Usar datos actuales</button>'
       };
       a.innerHTML = map[currentPage] || '<button class="btn" onclick="exportarDatos()">Exportar respaldo</button>';
     }
     function toggleForm(name, open) {
       document.getElementById('form' + name).classList.toggle('active', open);
-      if (name === 'Venta' && open) populateClientes();
+      if (name === 'Venta' && open) {
+        populateClientes();
+        if (!val('ventaFecha')) document.getElementById('ventaFecha').value = iso(new Date());
+      }
     }
     function renderAll() {
-      renderInicio(); renderVentas(); renderClientes(); populateClientes(); renderInventario(); renderUniformes(); renderProduccion(); renderEmpleados(); renderAsistencia(); renderReportes();
+      renderInicio(); renderVentas(); renderRevisar(); renderClientes(); populateClientes(); renderPrendas(); renderInsumos(); renderEmpleados(); renderAsistencia(); renderReportes(); populateMesesFiltro();
+    }
+
+    function stockAlertas(lista) {
+      return lista.filter(x => Number(x.cantidad) <= Number(x.stockMinimo));
     }
 
     function renderInicio() {
-      const totalVentas = db.ventas.reduce((s,v)=>s+Number(v.total||0),0);
-      const saldo = db.ventas.reduce((s,v)=>s+Math.max(0, Number(v.total||0)-Number(v.anticipo||0)),0);
-      const bajas = db.inventario.filter(i => Number(i.stock) <= Number(i.min));
+      const totalVentas = db.ventas.reduce((s,v)=>s+Number(v.montoTotal||0),0);
+      const saldo = db.ventas.filter(v=>v.estatus==='Pendiente').reduce((s,v)=>s+Number(v.restante || (v.montoTotal - (Number(v.montoTarjeta||0)+Number(v.efectivo||0))) || 0),0);
+      const bajasPrendas = stockAlertas(db.prendas);
+      const bajasInsumos = stockAlertas(db.insumos);
       document.getElementById('metrics').innerHTML = [
-        ['Ventas', db.ventas.length],
+        ['Ventas registradas', db.ventas.length],
         ['Ingresos registrados', money(totalVentas)],
         ['Saldo pendiente', money(saldo)],
-        ['Alertas de stock', bajas.length]
+        ['Alertas de stock', bajasPrendas.length + bajasInsumos.length]
       ].map(m => `<div class="metric"><div class="metric-label">${m[0]}</div><div class="metric-value">${m[1]}</div></div>`).join('');
-      document.getElementById('inicioVentas').innerHTML = db.ventas.slice(-5).reverse().map(v => `<tr><td>${v.folio}</td><td>${v.clienteNombre}</td><td>${v.desc}</td><td>${money(v.total)}</td><td>${dateFmt(v.entrega)}</td><td>${badgeEstado(v.estado)}</td></tr>`).join('') || '<tr><td colspan="6" class="empty">Sin ventas todavía</td></tr>';
-      document.getElementById('inicioInventario').innerHTML = bajas.map(i => `<tr><td>${i.codigo}</td><td>${i.nombre}</td><td>${i.stock} ${i.unidad}</td><td>${i.min}</td><td><span class="badge bad">Revisar</span></td></tr>`).join('') || '<tr><td colspan="5" class="empty">Sin alertas por ahora</td></tr>';
+      document.getElementById('inicioVentas').innerHTML = db.ventas.slice(-6).reverse().map(v => `<tr><td>${v.folio}</td><td>${v.cliente || '-'}</td><td>${money(v.montoTotal)}</td><td>${v.formaPago || '-'}</td><td>${dateFmt(v.fecha)}</td><td>${badgeEstatusVenta(v.estatus)}</td></tr>`).join('') || '<tr><td colspan="6" class="empty">Sin ventas todavía</td></tr>';
+      document.getElementById('inicioPrendas').innerHTML = bajasPrendas.slice(0,8).map(p => `<tr><td>${p.categoria}</td><td>${p.variante}</td><td>${p.talla}</td><td>${p.cantidad}</td><td>${p.stockMinimo}</td></tr>`).join('') || '<tr><td colspan="5" class="empty">Sin alertas por ahora</td></tr>';
+      document.getElementById('inicioInsumos').innerHTML = bajasInsumos.slice(0,8).map(i => `<tr><td>${i.color}</td><td>${i.talla}</td><td>${i.medida}</td><td>${i.cantidad}</td><td>${i.stockMinimo}</td></tr>`).join('') || '<tr><td colspan="5" class="empty">Sin alertas por ahora</td></tr>';
+    }
+
+    function clientesUnicos() {
+      const nombres = new Map();
+      db.clientes.forEach(c => nombres.set(c.nombre.toLowerCase(), c));
+      db.ventas.forEach(v => {
+        const nombre = (v.cliente || '').trim();
+        if (!nombre) return;
+        const k = nombre.toLowerCase();
+        if (!nombres.has(k)) nombres.set(k, {id:id(), nombre, tipo:'Escuela', tel:'', email:'', dir:'', notas:'', auto:true});
+      });
+      return Array.from(nombres.values());
     }
     function populateClientes() {
       const list = document.getElementById('clientesVentaList');
-      list.innerHTML = db.clientes.map(c => `<option value="${c.nombre}"></option>`).join('');
+      list.innerHTML = clientesUnicos().map(c => `<option value="${c.nombre}"></option>`).join('');
+    }
+    function populateMesesFiltro() {
+      const sel = document.getElementById('filtroMesVenta');
+      const actual = sel.value;
+      const meses = Array.from(new Set(db.ventas.map(v=>v.mes).filter(Boolean)));
+      sel.innerHTML = '<option value="">Todos los meses</option>' + meses.map(m=>`<option ${m===actual?'selected':''}>${m}</option>`).join('');
     }
     function renderVentas() {
       const q = document.getElementById('buscarVenta')?.value?.toLowerCase() || '';
-      const f = document.getElementById('filtroEstadoVenta')?.value || '';
-      const rows = db.ventas.filter(v => (!q || `${v.clienteNombre} ${v.desc}`.toLowerCase().includes(q)) && (!f || v.estado === f));
-      document.getElementById('tablaVentas').innerHTML = rows.map(v => `<tr><td>${v.folio}</td><td>${dateFmt(v.fecha)}</td><td>${v.clienteNombre}</td><td>${v.desc}</td><td>${money(v.total)}</td><td>${money(v.anticipo)}</td><td>${dateFmt(v.entrega)}</td><td><select onchange="cambiarEstado('${v.id}', this.value)">${estados.map(e=>`<option ${e===v.estado?'selected':''}>${e}</option>`).join('')}</select></td><td><button class="btn small danger" onclick="borrar('ventas','${v.id}')">Borrar</button></td></tr>`).join('') || '<tr><td colspan="9" class="empty">Sin ventas</td></tr>';
+      const mes = document.getElementById('filtroMesVenta')?.value || '';
+      const est = document.getElementById('filtroEstatusVenta')?.value || '';
+      const pago = document.getElementById('filtroPagoVenta')?.value || '';
+      const rows = db.ventas.filter(v => (!q || `${v.folio} ${v.cliente}`.toLowerCase().includes(q)) && (!mes || v.mes===mes) && (!est || v.estatus===est) && (!pago || v.formaPago===pago));
+      document.getElementById('tablaVentas').innerHTML = rows.slice().reverse().map(v => `<tr><td>${v.folio}</td><td>${dateFmt(v.fecha)}</td><td>${v.cliente || '-'}</td><td>${money(v.montoTotal)}</td><td>${v.montoTarjeta!==''?money(v.montoTarjeta):'-'}</td><td>${v.efectivo!==''?money(v.efectivo):'-'}</td><td>${v.restante!==''?money(v.restante):'-'}</td><td>${v.formaPago || '-'}</td><td><select onchange="cambiarEstatus('${v.id}', this.value)">${estatusVenta.map(e=>`<option ${e===v.estatus?'selected':''}>${e}</option>`).join('')}</select></td><td><button class="btn small danger" onclick="borrar('ventas','${v.id}')">Borrar</button></td></tr>`).join('') || '<tr><td colspan="10" class="empty">Sin ventas</td></tr>';
     }
     function guardarVenta() {
-      const cliente = document.getElementById('ventaCliente').value.trim();
-      if (!cliente) return show('Escribe el nombre del cliente');
-      const existeCliente = db.clientes.some(c => c.nombre.toLowerCase() === cliente.toLowerCase());
-      if (!existeCliente) {
-        db.clientes.push({id:id(), nombre:cliente, tipo:'Particular', tel:'', email:'', dir:'', notas:'Registrado desde nueva venta'});
-      }
-      db.ventas.push({ id:id(), folio:'#' + String(db.folio++).padStart(4,'0'), fecha:iso(new Date()), clienteNombre:cliente, tipo:val('ventaTipo'), desc:val('ventaDesc'), total:num('ventaTotal'), anticipo:num('ventaAnticipo'), entrega:val('ventaEntrega'), estado:val('ventaEstado'), notas:val('ventaNotas') });
-      save(); clearIds(['ventaCliente','ventaDesc','ventaTotal','ventaAnticipo','ventaEntrega','ventaNotas']); toggleForm('Venta', false); renderAll(); show(existeCliente ? 'Venta guardada' : 'Venta guardada y cliente agregado');
+      const cliente = val('ventaCliente');
+      if (!cliente) return show('Escribe el nombre del cliente/escuela');
+      const folio = val('ventaFolio') || ('#' + String(db.folioSeq++).padStart(4,'0'));
+      const fecha = val('ventaFecha') || iso(new Date());
+      const mes = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'][Number(fecha.split('-')[1])-1] || '';
+      db.ventas.push({ id:id(), folio, mes, fecha, cliente, montoTotal:num('ventaMontoTotal'), noTarjeta:val('ventaNoTarjeta'), montoTarjeta:num('ventaMontoTarjeta'), efectivo:num('ventaEfectivo'), restante:num('ventaRestante'), formaPago:val('ventaFormaPago'), estatus:val('ventaEstatus'), obs:val('ventaObs') });
+      save(); clearIds(['ventaFolio','ventaCliente','ventaMontoTotal','ventaMontoTarjeta','ventaEfectivo','ventaNoTarjeta','ventaRestante','ventaObs']); toggleForm('Venta', false); renderAll(); show('Venta guardada');
     }
-    function cambiarEstado(idVenta, estado) {
+    function cambiarEstatus(idVenta, estatus) {
       const v = db.ventas.find(x => x.id === idVenta);
-      if (v) { v.estado = estado; save(); renderAll(); }
+      if (v) { v.estatus = estatus; save(); renderAll(); }
+    }
+
+    function renderRevisar() {
+      const q = document.getElementById('buscarRevisar')?.value?.toLowerCase() || '';
+      const rows = db.revisar.filter(r => !q || r.folio.toLowerCase().includes(q));
+      document.getElementById('tablaRevisar').innerHTML = rows.map(r => `<tr><td>${r.folio}</td><td>${r.mes || '-'}</td><td>${dateFmt(r.fecha)}</td><td>${r.notas || '-'}</td><td><button class="btn small" onclick="completarRevisar('${r.id}')">Completar como venta</button> <button class="btn small danger" onclick="borrar('revisar','${r.id}')">Descartar</button></td></tr>`).join('') || '<tr><td colspan="5" class="empty">Sin folios pendientes de revisar</td></tr>';
+      const nav = document.querySelector('#nav button[data-page="revisar"]');
+      if (nav) nav.innerHTML = `Ventas por revisar ${db.revisar.length ? `<span class="pill">${db.revisar.length}</span>` : ''}`;
+    }
+    function completarRevisar(revId) {
+      const r = db.revisar.find(x => x.id === revId);
+      if (!r) return;
+      setPage('ventas');
+      toggleForm('Venta', true);
+      document.getElementById('ventaFolio').value = r.folio;
+      document.getElementById('ventaFecha').value = r.fecha || iso(new Date());
+      db.revisar = db.revisar.filter(x => x.id !== revId);
+      save(); renderAll();
+      show('Completa los datos de la venta y guarda');
     }
 
     function renderClientes() {
-      document.getElementById('tablaClientes').innerHTML = db.clientes.map((c,i) => `<tr><td>${i+1}</td><td>${c.nombre}</td><td>${c.tipo}</td><td>${c.tel || '-'}</td><td>${c.notas || '-'}</td><td>${db.ventas.filter(v=>v.clienteNombre===c.nombre).length}</td></tr>`).join('') || '<tr><td colspan="6" class="empty">Sin clientes</td></tr>';
+      const q = document.getElementById('buscarCliente')?.value?.toLowerCase() || '';
+      const lista = clientesUnicos().filter(c => !q || c.nombre.toLowerCase().includes(q));
+      document.getElementById('tablaClientes').innerHTML = lista.map(c => {
+        const ventasCliente = db.ventas.filter(v => (v.cliente||'').toLowerCase() === c.nombre.toLowerCase());
+        const total = ventasCliente.reduce((s,v)=>s+Number(v.montoTotal||0),0);
+        return `<tr><td>${c.nombre}</td><td>${c.tipo}</td><td>${c.tel || '-'}</td><td>${c.notas || '-'}</td><td>${ventasCliente.length}</td><td>${money(total)}</td></tr>`;
+      }).join('') || '<tr><td colspan="6" class="empty">Sin clientes</td></tr>';
     }
     function guardarCliente() {
       if (!val('clienteNombre')) return show('Escribe el nombre del cliente');
@@ -421,64 +505,37 @@
       save(); clearIds(['clienteNombre','clienteTel','clienteEmail','clienteDir','clienteNotas']); toggleForm('Cliente', false); renderAll(); show('Cliente guardado');
     }
 
-    function renderInventario() {
-      document.getElementById('tablaInventario').innerHTML = db.inventario.map(i => `<tr><td>${i.codigo}</td><td>${i.nombre}</td><td>${i.categoria}</td><td>${i.stock} ${i.unidad}</td><td>${i.min}</td><td>${money(i.precio)}</td><td>${i.proveedor || '-'}</td><td>${Number(i.stock)<=Number(i.min)?'<span class="badge bad">Bajo</span>':'<span class="badge ok">OK</span>'}</td></tr>`).join('') || '<tr><td colspan="8" class="empty">Sin productos</td></tr>';
+    function categoriasPrendas() {
+      return Array.from(new Set(db.prendas.map(p=>p.categoria))).sort();
     }
-    function guardarInvGeneral() {
-      if (!val('invNombre')) return show('Escribe el nombre del producto');
-      db.inventario.push({id:id(), codigo:val('invCodigo') || 'SIN-COD', nombre:val('invNombre'), categoria:val('invCategoria'), unidad:val('invUnidad'), stock:num('invStock'), min:num('invMin'), precio:num('invPrecio'), proveedor:val('invProveedor')});
-      save(); clearIds(['invCodigo','invNombre','invStock','invMin','invPrecio','invProveedor']); toggleForm('Inv', false); renderAll(); show('Producto guardado');
+    function renderPrendasTabs() {
+      const cats = categoriasPrendas();
+      if (!prendaCategoria || !cats.includes(prendaCategoria)) prendaCategoria = cats[0];
+      document.getElementById('prendasTabs').innerHTML = cats.map(c => `<button class="btn ${c===prendaCategoria?'active':''}" onclick="setPrendaCategoria('${c}')">${c} <span class="hint">(${db.prendas.filter(p=>p.categoria===c).length})</span></button>`).join('');
+    }
+    function setPrendaCategoria(c) { prendaCategoria = c; renderPrendas(); }
+    function renderPrendas() {
+      renderPrendasTabs();
+      const q = document.getElementById('buscarPrenda')?.value?.toLowerCase() || '';
+      const soloAlerta = document.getElementById('soloAlertaPrendas')?.checked;
+      const rows = db.prendas.filter(p => p.categoria === prendaCategoria && (!q || `${p.variante} ${p.talla}`.toLowerCase().includes(q)) && (!soloAlerta || Number(p.cantidad) <= Number(p.stockMinimo)));
+      document.getElementById('tablaPrendas').innerHTML = rows.map(p => `<tr><td>${p.variante}</td><td>${p.talla}</td><td><input class="num" type="number" min="0" value="${p.cantidad}" onchange="actualizarPrenda('${p.id}','cantidad',this.value)"></td><td><input class="num" type="number" min="0" value="${p.stockMinimo}" onchange="actualizarPrenda('${p.id}','stockMinimo',this.value)"></td><td>${badgeStock(p.cantidad,p.stockMinimo)}</td><td><button class="btn small danger" onclick="borrar('prendas','${p.id}')">Borrar</button></td></tr>`).join('') || '<tr><td colspan="6" class="empty">Sin resultados</td></tr>';
+    }
+    function actualizarPrenda(pid, campo, valor) {
+      const p = db.prendas.find(x => x.id === pid);
+      if (p) { p[campo] = Number(valor || 0); save(); renderPrendas(); renderInicio(); }
     }
 
-    function renderUniformes() {
-      const out = [];
-      Object.entries(tallas).forEach(([nivel, ts]) => {
-        out.push(`<div class="section-head">${nivel}</div><div class="table-wrap"><table><thead><tr><th>Prenda</th>${ts.map(t=>`<th>${t}</th>`).join('')}</tr></thead><tbody>`);
-        prendas.forEach(p => {
-          out.push(`<tr><td>${p}</td>${ts.map(t => {
-            const k = `${uniformeTab}|${nivel}|${p}|${t}`;
-            return `<td><input class="num" type="number" min="0" value="${db.uniformes[k] || 0}" onchange="db.uniformes['${k}']=Number(this.value||0)"></td>`;
-          }).join('')}</tr>`);
-        });
-        out.push('</tbody></table></div>');
-      });
-      document.getElementById('uniformesTables').innerHTML = out.join('');
+    function renderInsumos() {
+      const q = document.getElementById('buscarInsumo')?.value?.toLowerCase() || '';
+      const soloAlerta = document.getElementById('soloAlertaInsumos')?.checked;
+      const rows = db.insumos.filter(i => (!q || `${i.color} ${i.talla} ${i.medida}`.toLowerCase().includes(q)) && (!soloAlerta || Number(i.cantidad) <= Number(i.stockMinimo)));
+      document.getElementById('tablaInsumos').innerHTML = rows.map(i => `<tr><td>${i.color}</td><td>${i.talla}</td><td>${i.medida}</td><td><input class="num" type="number" min="0" value="${i.cantidad}" onchange="actualizarInsumo('${i.id}','cantidad',this.value)"></td><td><input class="num" type="number" min="0" value="${i.stockMinimo}" onchange="actualizarInsumo('${i.id}','stockMinimo',this.value)"></td><td>${badgeStock(i.cantidad,i.stockMinimo)}</td><td><button class="btn small danger" onclick="borrar('insumos','${i.id}')">Borrar</button></td></tr>`).join('') || '<tr><td colspan="7" class="empty">Sin resultados</td></tr>';
     }
-    function setUniformeTab(tab) {
-      uniformeTab = tab;
-      document.querySelectorAll('[data-tab]').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
-      renderUniformes();
+    function actualizarInsumo(iid, campo, valor) {
+      const i = db.insumos.find(x => x.id === iid);
+      if (i) { i[campo] = Number(valor || 0); save(); renderInsumos(); renderInicio(); }
     }
-    function guardarUniformes() { save(); show('Inventario de uniformes guardado'); }
-
-    function renderProduccion() {
-      if (prodTab === 'telas') {
-        document.getElementById('prodTables').innerHTML = renderTela('Piqué sport', coloresPique, 'pique') + renderTela('Sport tock', coloresSport, 'sport');
-      } else if (prodTab === 'avios') {
-        const cierres = [44,46,48,50,52,54,56,58,60,62,64,66,68,70];
-        document.getElementById('prodTables').innerHTML = `<div class="section-head">Resorte</div><div class="grid3">${[1,2,3].map(n=>`<div class="metric"><div class="metric-label">Ancho ${n}</div><input type="number" min="0" value="${db.produccion.avios['resorte'+n]||0}" onchange="db.produccion.avios['resorte${n}']=Number(this.value||0)"></div>`).join('')}</div><div class="section-head">Cierres por medida</div><div class="table-wrap"><table><thead><tr>${cierres.map(c=>`<th>${c} cm</th>`).join('')}</tr></thead><tbody><tr>${cierres.map(c=>`<td><input class="num" type="number" min="0" value="${db.produccion.avios.cierres[c]||0}" onchange="db.produccion.avios.cierres['${c}']=Number(this.value||0)"></td>`).join('')}</tr></tbody></table></div>`;
-      } else {
-        document.getElementById('prodTables').innerHTML = `<div class="section-head">Escudos por escuela <button class="btn small" onclick="agregarEscudo()">Nueva escuela</button></div><div class="table-wrap"><table><thead><tr><th>Escuela</th><th>Cantidad</th><th></th></tr></thead><tbody>${db.produccion.escudos.map((e,i)=>`<tr><td><input value="${e.escuela}" onchange="db.produccion.escudos[${i}].escuela=this.value"></td><td><input class="num" type="number" min="0" value="${e.cantidad}" onchange="db.produccion.escudos[${i}].cantidad=Number(this.value||0)"></td><td><button class="btn small danger" onclick="db.produccion.escudos.splice(${i},1); renderProduccion()">Borrar</button></td></tr>`).join('')}</tbody></table></div>`;
-      }
-    }
-    function renderTela(nombre, colores, key) {
-      return `<div class="section-head">${nombre}</div><div class="table-wrap"><table><thead><tr><th>Color</th><th>Rollos</th><th>Metros aprox.</th></tr></thead><tbody>${colores.map(c => {
-        const k = `${key}|${c}`;
-        const v = db.produccion.telas[k] || {rollos:0, metros:0};
-        return `<tr><td>${c}</td><td><input class="num" type="number" min="0" value="${v.rollos}" onchange="setTela('${k}','rollos',this.value)"></td><td><input class="num" type="number" min="0" value="${v.metros}" onchange="setTela('${k}','metros',this.value)"></td></tr>`;
-      }).join('')}</tbody></table></div>`;
-    }
-    function setTela(k, campo, valor) {
-      if (!db.produccion.telas[k]) db.produccion.telas[k] = {rollos:0, metros:0};
-      db.produccion.telas[k][campo] = Number(valor || 0);
-    }
-    function setProdTab(tab) {
-      prodTab = tab;
-      document.querySelectorAll('[data-prod]').forEach(b => b.classList.toggle('active', b.dataset.prod === tab));
-      renderProduccion();
-    }
-    function agregarEscudo() { db.produccion.escudos.push({escuela:'Nueva escuela', cantidad:0}); renderProduccion(); }
-    function guardarProduccion() { save(); show('Producción guardada'); }
 
     function renderEmpleados() {
       document.getElementById('empleadosCards').innerHTML = db.empleados.map(e => `<div class="employee-card"><div class="avatar">${iniciales(e.nombre)}</div><div style="flex:1"><b>${e.nombre}</b><div class="hint">${e.puesto} - ${e.turno} - ${money(e.salario)}/semana</div><div class="hint">Ingreso: ${dateFmt(e.fecha)} ${e.tel ? '- Tel. ' + e.tel : ''}</div></div><button class="btn small danger" onclick="borrar('empleados','${e.id}')">Borrar</button></div>`).join('') || '<div class="empty">Sin empleados</div>';
@@ -511,8 +568,8 @@
         dias.forEach(dia => {
           html += `<td>${turnos.map(t => {
             const key = `${emp.id}|${dia}|${t}`;
-            const val = db.asistencia[k][key] || '';
-            return `<label>${t}</label><br><input type="time" value="${val}" onchange="db.asistencia['${k}']['${key}']=this.value; save()">`;
+            const v = db.asistencia[k][key] || '';
+            return `<label>${t}</label><br><input type="time" value="${v}" onchange="db.asistencia['${k}']['${key}']=this.value; save()">`;
           }).join('<br>')}</td>`;
         });
         html += '</tr>';
@@ -523,21 +580,23 @@
     function renderReportes() {
       const mes = document.getElementById('repMes')?.value || '';
       const dia = document.getElementById('repDia')?.value || '';
-      const estado = document.getElementById('repEstado')?.value || '';
-      const rows = db.ventas.filter(v => (!mes || v.fecha.startsWith(mes)) && (!dia || v.fecha === dia) && (!estado || v.estado === estado));
-      const total = rows.reduce((s,v)=>s+Number(v.total||0),0);
-      const anticipos = rows.reduce((s,v)=>s+Number(v.anticipo||0),0);
-      document.getElementById('reporteMetrics').innerHTML = [['Ventas filtradas', rows.length], ['Total', money(total)], ['Anticipos', money(anticipos)]].map(m=>`<div class="metric"><div class="metric-label">${m[0]}</div><div class="metric-value">${m[1]}</div></div>`).join('');
-      document.getElementById('listaReportes').innerHTML = rows.map(v => `<div class="box" style="margin-bottom:10px"><div class="section-head" style="margin:0 0 8px"><span>${v.folio} - ${v.clienteNombre}</span>${badgeEstado(v.estado)}</div><div>${v.desc}</div><div class="hint">Fecha: ${dateFmt(v.fecha)} | Entrega: ${dateFmt(v.entrega)} | Total: ${money(v.total)} | Anticipo: ${money(v.anticipo)}</div></div>`).join('') || '<div class="empty">Sin resultados</div>';
+      const estatus = document.getElementById('repEstatus')?.value || '';
+      const pago = document.getElementById('repPago')?.value || '';
+      const rows = db.ventas.filter(v => (!mes || v.fecha.startsWith(mes)) && (!dia || v.fecha === dia) && (!estatus || v.estatus === estatus) && (!pago || v.formaPago === pago));
+      const total = rows.reduce((s,v)=>s+Number(v.montoTotal||0),0);
+      const tarjeta = rows.reduce((s,v)=>s+Number(v.montoTarjeta||0),0);
+      const efectivo = rows.reduce((s,v)=>s+Number(v.efectivo||0),0);
+      document.getElementById('reporteMetrics').innerHTML = [['Ventas filtradas', rows.length], ['Total', money(total)], ['Tarjeta/Transferencia', money(tarjeta)], ['Efectivo', money(efectivo)]].map(m=>`<div class="metric"><div class="metric-label">${m[0]}</div><div class="metric-value">${m[1]}</div></div>`).join('');
+      document.getElementById('listaReportes').innerHTML = rows.slice().reverse().map(v => `<div class="box" style="margin-bottom:10px"><div class="section-head" style="margin:0 0 8px"><span>${v.folio} - ${v.cliente || 'Sin cliente'}</span>${badgeEstatusVenta(v.estatus)}</div><div class="hint">Fecha: ${dateFmt(v.fecha)} | Total: ${money(v.montoTotal)} | Forma de pago: ${v.formaPago || '-'}${v.obs ? ' | Obs: ' + v.obs : ''}</div></div>`).join('') || '<div class="empty">Sin resultados</div>';
     }
-    function limpiarReportes() { ['repMes','repDia','repEstado'].forEach(x=>document.getElementById(x).value=''); renderReportes(); }
+    function limpiarReportes() { ['repMes','repDia','repEstatus','repPago'].forEach(x=>document.getElementById(x).value=''); renderReportes(); }
 
     function borrar(tipo, itemId) {
       db[tipo] = db[tipo].filter(x => x.id !== itemId);
       save(); renderAll(); show('Registro borrado');
     }
     function val(idEl){ return document.getElementById(idEl).value.trim(); }
-    function num(idEl){ return Number(document.getElementById(idEl).value || 0); }
+    function num(idEl){ const v = document.getElementById(idEl).value; return v === '' ? '' : Number(v); }
     function clearIds(ids){ ids.forEach(x => document.getElementById(x).value = ''); }
     function exportarDatos() {
       const blob = new Blob([JSON.stringify(db, null, 2)], {type:'application/json'});
@@ -550,7 +609,7 @@
 
     function prepararResumenIA() {
       setPage('chatgpt');
-      document.getElementById('chatInput').value = `Analiza estos datos de GabiDom y dime pendientes importantes: ${JSON.stringify({ventas:db.ventas, inventario:db.inventario, empleados:db.empleados}).slice(0,3000)}`;
+      document.getElementById('chatInput').value = `Analiza estos datos de GabiDom y dime pendientes importantes: ${JSON.stringify({ventas:db.ventas.slice(-30), prendas:stockAlertas(db.prendas), insumos:stockAlertas(db.insumos), revisar:db.revisar.length}).slice(0,3000)}`;
     }
     async function enviarChat() {
       const input = document.getElementById('chatInput');
@@ -559,7 +618,7 @@
       addMsg(text, 'user');
       input.value = '';
       try {
-        const r = await fetch('/api/chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({message:text, data:{ventas:db.ventas, inventario:db.inventario, empleados:db.empleados}})});
+        const r = await fetch('/api/chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({message:text, data:{ventas:db.ventas.slice(-50), prendas:stockAlertas(db.prendas), insumos:stockAlertas(db.insumos)}})});
         if (!r.ok) throw new Error('Sin backend');
         const data = await r.json();
         addMsg(data.reply || 'Sin respuesta', 'bot');
