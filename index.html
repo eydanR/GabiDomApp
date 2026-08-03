@@ -268,6 +268,51 @@
     .overlay { display: none; position: fixed; inset: 0; background: rgba(7,20,22,.5); z-index: 29; }
     .overlay.show { display: block; }
 
+    /* ---------- Pantalla de acceso ---------- */
+    .gate { position: fixed; inset: 0; z-index: 100; background: var(--brand-900); display: grid; place-items: center; padding: 20px; overflow: auto; }
+    .gate[hidden] { display: none; }
+    .gate-card { background: var(--surface); border-radius: 18px; padding: 26px; width: 100%; max-width: 400px; box-shadow: 0 18px 50px rgba(0,0,0,.3); }
+    .gate-brand { display: flex; align-items: center; gap: 12px; margin-bottom: 22px; }
+    .gate-label { font-size: 13px; color: var(--ink-3); font-weight: 650; margin-bottom: 10px; }
+    .gate-lista { display: flex; flex-direction: column; gap: 8px; }
+    .gate-persona { display: flex; align-items: center; gap: 11px; width: 100%; text-align: left; border: 1px solid var(--line); background: var(--surface); border-radius: var(--radius); padding: 11px 13px; cursor: pointer; font-size: 14px; font-weight: 600; }
+    .gate-persona:hover { border-color: var(--brand-600); background: var(--surface-2); }
+    .gate-sep { height: 1px; background: var(--line); margin: 20px 0 16px; }
+    .gate-aviso { background: var(--critical-bg); color: var(--critical); border-radius: var(--radius); padding: 11px 13px; font-size: 13px; font-weight: 600; margin-top: 14px; }
+    .gate-aviso[hidden] { display: none; }
+
+    /* ---------- Estado de sincronización ---------- */
+    .sync { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 650; color: var(--ink-3); border: 1px solid var(--line); border-radius: 999px; padding: 5px 11px; background: var(--surface); cursor: pointer; white-space: nowrap; }
+    .sync:hover { background: var(--surface-2); }
+    .sync .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--good); flex: 0 0 auto; }
+    .sync.pend .dot { background: var(--warning); }
+    .sync.local .dot { background: var(--ink-3); }
+    .sync.trabajando .dot { animation: latir 1s ease-in-out infinite; }
+    @keyframes latir { 50% { opacity: .25; } }
+    .quien { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 650; color: var(--ink-2); }
+    .quien .avatar { width: 26px; height: 26px; font-size: 11px; }
+
+    /* ---------- Mostrador: consulta pieza por pieza ---------- */
+    .pieza { display: flex; align-items: center; gap: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 13px 15px; box-shadow: var(--shadow); }
+    .pieza-info { flex: 1; min-width: 0; }
+    .pieza-nombre { font-weight: 700; font-size: 14.5px; }
+    .pieza-meta { color: var(--ink-3); font-size: 12.5px; margin-top: 3px; display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+    .pieza-cant { font-size: 30px; font-weight: 760; letter-spacing: -.02em; min-width: 58px; text-align: center; line-height: 1; }
+    .pieza-cant small { display: block; font-size: 11px; font-weight: 650; color: var(--ink-3); letter-spacing: 0; margin-top: 3px; }
+    .pieza-ctrl { display: flex; align-items: center; gap: 7px; }
+    .paso { width: 42px; height: 42px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); display: grid; place-items: center; cursor: pointer; color: var(--ink); flex: 0 0 auto; }
+    .paso:hover { background: var(--surface-2); border-color: var(--brand-600); }
+    .paso:active { transform: scale(.94); }
+    .paso.mas { background: var(--brand-700); border-color: var(--brand-700); color: #fff; }
+    .paso.mas:hover { background: var(--brand-800); }
+    .piezas { display: flex; flex-direction: column; gap: 10px; }
+    .mostrador-tip { color: var(--ink-3); font-size: 13px; text-align: center; padding: 30px 16px; }
+    @media (max-width: 560px) {
+      .pieza { flex-wrap: wrap; }
+      .pieza-info { flex-basis: 100%; }
+      .pieza-ctrl { flex: 1; justify-content: space-between; }
+    }
+
     @media (max-width: 1080px) {
       .kpis { grid-template-columns: repeat(2, minmax(0,1fr)); }
       .two-col, .assistant { grid-template-columns: 1fr; }
@@ -310,6 +355,7 @@
     <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3.2l1.9 5.1 5.1 1.9-5.1 1.9L12 17.2l-1.9-5.1L5 10.2l5.1-1.9L12 3.2Z"/><path d="M18.5 16.5l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8.8-2Z"/></symbol>
     <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.4 15.4 21 21"/></symbol>
     <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
     <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 3.5v12"/><path d="M7.5 11 12 15.5 16.5 11"/><path d="M4.5 20.5h15"/></symbol>
     <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M9.5 7V4.5h5V7"/><path d="M6 7l1 13.5h10L18 7"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><path d="M4.5 12.5 9.5 17.5 19.5 6.5"/></symbol>
@@ -327,6 +373,43 @@
     <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4Z"/><path d="M14.5 5.5 18.5 9.5"/></symbol>
   </defs></svg>
 
+  <!-- ===================== Pantalla de acceso ===================== -->
+  <div class="gate" id="gate" hidden>
+    <div class="gate-card">
+      <div class="gate-brand">
+        <div class="brand-mark" style="width:46px;height:46px;border-radius:13px;font-size:17px">GD</div>
+        <div>
+          <div style="font-size:19px;font-weight:750">GabiDom.inc</div>
+          <div class="hint" style="margin:2px 0 0">Centro de operaciones</div>
+        </div>
+      </div>
+
+      <div id="gatePersonas">
+        <div class="gate-label">¿Quién eres?</div>
+        <div class="gate-lista" id="gateLista"></div>
+      </div>
+
+      <div id="gatePin" hidden>
+        <button class="btn ghost small" onclick="gateVolver()" style="margin-bottom:12px"><svg class="ico sm"><use href="#i-left"/></svg> Cambiar de persona</button>
+        <div class="gate-label">Hola, <b id="gateNombre"></b></div>
+        <label for="gatePinInput">Tu PIN</label>
+        <input id="gatePinInput" type="password" inputmode="numeric" autocomplete="current-password"
+               placeholder="••••••" maxlength="12" style="width:100%;text-align:center;letter-spacing:.4em;font-size:20px;padding:12px"
+               onkeydown="if(event.key==='Enter') gateEntrar()">
+        <button class="btn primary" id="gateBtn" onclick="gateEntrar()" style="width:100%;justify-content:center;margin-top:12px">Entrar</button>
+      </div>
+
+      <div class="gate-aviso" id="gateAviso" hidden></div>
+
+      <div id="gateLocal" hidden>
+        <div class="gate-sep"></div>
+        <p class="hint">La base compartida todavía no está conectada, así que los cambios se guardarían solo en este dispositivo.</p>
+        <p class="hint">Para que todos vean lo mismo desde cualquier teléfono, llena <b>config.js</b> siguiendo <b>supabase/esquema.sql</b>.</p>
+        <button class="btn" onclick="entrarLocal()" style="width:100%;justify-content:center">Usar solo en este dispositivo</button>
+      </div>
+    </div>
+  </div>
+
   <div class="overlay" id="overlay" onclick="closeNav()"></div>
 
   <div class="app">
@@ -339,6 +422,15 @@
         </div>
       </div>
       <nav class="nav" id="nav"></nav>
+      <div style="padding:12px; border-top:1px solid rgba(255,255,255,.12); display:flex; align-items:center; gap:9px">
+        <div class="avatar" id="sesionAvatar" style="width:32px;height:32px;font-size:12px;background:rgba(255,255,255,.14);color:#eaf6f8">–</div>
+        <div style="flex:1; min-width:0">
+          <div id="sesionNombre" style="font-size:12.5px; font-weight:650; color:#eaf6f8; overflow:hidden; text-overflow:ellipsis; white-space:nowrap">Sin sesión</div>
+          <div id="sesionRol" style="font-size:11px; color:rgba(234,246,248,.6)"></div>
+        </div>
+        <button class="icon-btn" onclick="cerrarSesion()" title="Salir" aria-label="Salir"
+                style="width:32px;height:32px;background:transparent;border-color:rgba(255,255,255,.2);color:#eaf6f8"><svg class="ico sm"><use href="#i-x"/></svg></button>
+      </div>
     </aside>
 
     <main class="main">
@@ -349,6 +441,7 @@
           <div class="subtitle" id="pageSubtitle"></div>
         </div>
         <div class="actions" id="pageActions"></div>
+        <button class="sync" id="syncBtn" onclick="sincronizar(true)" title="Sincronizar ahora"><span class="dot"></span><span id="syncTxt">Local</span></button>
         <button class="icon-btn" id="themeBtn" onclick="toggleTheme()" aria-label="Cambiar tema"><svg class="ico"><use href="#i-moon" id="themeIcon"/></svg></button>
       </header>
 
@@ -367,7 +460,7 @@
                 <tbody id="inicioVentas"></tbody>
               </table></div></div>
             </div>
-            <div class="card">
+            <div class="card solo-dueno">
               <div class="card-head">
                 <div class="card-title"><svg class="ico"><use href="#i-clock"/></svg> Cobros pendientes</div>
                 <span class="card-note" id="pendientesNota"></span>
@@ -400,6 +493,20 @@
               </table></div></div>
             </div>
           </div>
+        </section>
+
+        <!-- ============ MOSTRADOR: pieza por pieza ============ -->
+        <section class="page" id="page-mostrador">
+          <div class="filters">
+            <div class="search"><svg class="ico sm"><use href="#i-search"/></svg><input id="mostradorBuscar" placeholder="Busca prenda, color o talla…" oninput="renderMostrador()" autocomplete="off"></div>
+            <select id="mostradorQue" onchange="renderMostrador()">
+              <option value="prendas">Prendas</option>
+              <option value="insumos">Cierres</option>
+            </select>
+            <select id="mostradorTalla" onchange="renderMostrador()"><option value="">Cualquier talla</option></select>
+          </div>
+          <div class="chips" id="mostradorCats"></div>
+          <div class="piezas" id="mostradorLista"></div>
         </section>
 
         <!-- ============ VENTAS ============ -->
@@ -435,7 +542,7 @@
           <div class="card">
             <div class="card-head"><div class="card-title">Ventas</div><span class="card-note" id="ventasResumen"></span></div>
             <div class="card-body flush"><div class="t-scroll"><table class="t-min">
-              <thead><tr><th>Folio</th><th>Fecha</th><th>Cliente</th><th class="num">Total</th><th class="num">Tarjeta</th><th class="num">Efectivo</th><th class="num">Restante</th><th>Estatus</th><th></th></tr></thead>
+              <thead><tr><th>Folio</th><th>Fecha</th><th>Cliente</th><th class="num">Total</th><th class="num">Tarjeta</th><th class="num">Efectivo</th><th class="num">Restante</th><th>Registró</th><th>Estatus</th><th></th></tr></thead>
               <tbody id="tablaVentas"></tbody>
             </table></div></div>
           </div>
@@ -631,30 +738,35 @@
   <div id="vizTip" role="status" aria-live="polite"></div>
   <div id="toast"><svg class="ico sm"><use href="#i-check"/></svg><span id="toastText"></span></div>
 
+  <script src="config.js"></script>
   <script src="data.js"></script>
+  <script src="nube.js"></script>
   <script>
   'use strict';
   /* ================= Constantes ================= */
   const STORE = 'gabidom_integrado_v2';
   const THEME_KEY = 'gabidom_tema';
+  /* Cada sección declara quién la ve. 'todos' incluye al personal;
+     'dueno' queda fuera del alcance de un empleado. */
   const NAV = [
     { group: 'Operación', items: [
-      ['inicio','Inicio','i-home','Resumen del negocio'],
-      ['ventas','Ventas','i-cart','Registro de ventas y cobros'],
-      ['revisar','Por revisar','i-alert','Folios sin datos completos'],
-      ['reportes','Reportes','i-chart','Ingresos y formas de pago'],
-      ['clientes','Clientes','i-users','Escuelas y particulares']
+      ['inicio','Inicio','i-home','Resumen del día','todos'],
+      ['mostrador','Mostrador','i-box','Consulta el stock pieza por pieza','todos'],
+      ['ventas','Ventas','i-cart','Registro de ventas y cobros','todos'],
+      ['revisar','Por revisar','i-alert','Folios sin datos completos','dueno'],
+      ['reportes','Reportes','i-chart','Ingresos y formas de pago','dueno'],
+      ['clientes','Clientes','i-users','Escuelas y particulares','dueno']
     ]},
     { group: 'Inventario', items: [
-      ['prendas','Prendas','i-shirt','Uniformes por variante y talla'],
-      ['insumos','Cierres','i-zip','Insumos por color y medida']
+      ['prendas','Prendas','i-shirt','Uniformes por variante y talla','todos'],
+      ['insumos','Cierres','i-zip','Insumos por color y medida','todos']
     ]},
     { group: 'Equipo', items: [
-      ['empleados','Empleados','i-team','Personal de GabiDom'],
-      ['asistencia','Asistencia','i-cal','Entradas y salidas por semana']
+      ['empleados','Empleados','i-team','Personal de GabiDom','dueno'],
+      ['asistencia','Asistencia','i-cal','Entradas y salidas por semana','dueno']
     ]},
     { group: 'Inteligencia', items: [
-      ['chatgpt','Asistente','i-spark','Consulta tus datos con ChatGPT']
+      ['chatgpt','Asistente','i-spark','Consulta tus datos con ChatGPT','dueno']
     ]}
   ];
   const MESES = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
@@ -666,15 +778,32 @@
 
   let currentPage = 'inicio';
   let prendaCategoria = null;
+  let mostradorCat = '';
   let semanaOffset = 0;
+  let sesion = null;          // { usuario, nombre, rol } — null = sin acceso
+  let modoLocal = false;      // true = sin nube, guarda solo en este dispositivo
+  let sincronizando = false;
+  let importacionRechazada = false;
   let db = load();
+
+  /** Solo la dueña ve reportes de dinero, empleados y asistencia, y puede borrar. */
+  function esDueno() { return !sesion || sesion.rol === 'dueno'; }
+  function quienSoy() { return sesion ? sesion.nombre : 'Sin sesión'; }
 
   /* ================= Utilidades ================= */
   function esc(s) {
     return String(s === null || s === undefined ? '' : s)
       .replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
   }
-  function uid() { return 'id-' + Math.random().toString(36).slice(2) + Date.now().toString(36); }
+  /** UUID: es el formato que la base compartida usa como llave, así que el
+      mismo id sirve en el dispositivo y en la nube sin traducir nada. */
+  function uid() {
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+      const r = Math.random() * 16 | 0;
+      return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+    });
+  }
   function iso(d) {
     return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
   }
@@ -803,6 +932,199 @@
     };
   }
 
+  /* ================= Acceso ================= */
+  let gateUsuario = null;
+
+  async function arrancarAcceso() {
+    const gate = document.getElementById('gate');
+    const guardada = Nube.sesionActual();
+
+    if (!Nube.configurada()) {
+      // Sin nube configurada no hay a quién validar: se ofrece el modo local.
+      document.getElementById('gatePersonas').hidden = true;
+      document.getElementById('gateLocal').hidden = false;
+      gate.hidden = false;
+      return;
+    }
+    if (guardada && guardada.token && guardada.nombre) {
+      sesion = { usuario: guardada.usuario, nombre: guardada.nombre, rol: guardada.rol };
+      gate.hidden = true;
+      await iniciarApp();
+      return;
+    }
+    try {
+      const personas = await Nube.listaAcceso();
+      document.getElementById('gateLista').innerHTML = (personas || []).map(p =>
+        '<button class="gate-persona" type="button" data-usuario="' + esc(p.usuario) + '" data-nombre="' + esc(p.nombre) + '">'
+        + '<span class="avatar" style="width:30px;height:30px;font-size:11px">' + esc(iniciales(p.nombre)) + '</span>'
+        + esc(p.nombre) + '</button>'
+      ).join('') || '<p class="hint">Todavía no hay personas registradas. Créalas en Supabase siguiendo <b>supabase/esquema.sql</b>.</p>';
+      document.getElementById('gateLocal').hidden = false;
+    } catch (e) {
+      gateError('No se pudo contactar la base compartida. Revisa config.js o tu conexión.');
+      document.getElementById('gateLocal').hidden = false;
+    }
+    gate.hidden = false;
+  }
+  function gateError(msg) {
+    const a = document.getElementById('gateAviso');
+    a.textContent = msg;
+    a.hidden = !msg;
+  }
+  function gateVolver() {
+    document.getElementById('gatePin').hidden = true;
+    document.getElementById('gatePersonas').hidden = false;
+    gateError('');
+  }
+  async function gateEntrar() {
+    const pin = document.getElementById('gatePinInput').value.trim();
+    if (!pin) { gateError('Escribe tu PIN'); return; }
+    const btn = document.getElementById('gateBtn');
+    btn.disabled = true; btn.textContent = 'Entrando…';
+    gateError('');
+    try {
+      const s = await Nube.entrar(gateUsuario, pin);
+      sesion = { usuario: s.usuario, nombre: s.nombre, rol: s.rol };
+      document.getElementById('gatePinInput').value = '';
+      document.getElementById('gate').hidden = true;
+      await iniciarApp();
+    } catch (e) {
+      gateError(e.status === 400 ? 'PIN incorrecto. Inténtalo de nuevo.' : (e.message || 'No se pudo entrar'));
+    } finally {
+      btn.disabled = false; btn.textContent = 'Entrar';
+    }
+  }
+  async function entrarLocal() {
+    modoLocal = true;
+    sesion = { usuario: 'local', nombre: 'Este dispositivo', rol: 'dueno' };
+    document.getElementById('gate').hidden = true;
+    await iniciarApp();
+  }
+  function cerrarSesion() {
+    if (Nube.pendientes() > 0 && !confirm('Hay ' + Nube.pendientes() + ' cambios sin subir. Si sales ahora se quedan pendientes en este dispositivo. ¿Salir igual?')) return;
+    Nube.salir();
+    sesion = null; modoLocal = false;
+    location.reload();
+  }
+
+  /** Arranca la app ya con sesión: pinta todo y trae lo que haya en la nube. */
+  async function iniciarApp() {
+    renderNav();
+    pintarSesion();
+    setPage(esDueno() ? 'inicio' : 'mostrador');
+    if (!modoLocal && Nube.configurada()) await sincronizar(false);
+    actualizarSync();
+  }
+  function pintarSesion() {
+    document.querySelectorAll('.solo-dueno').forEach(el => { el.hidden = !esDueno(); });
+    document.getElementById('sesionAvatar').textContent = sesion ? iniciales(sesion.nombre) : '–';
+    document.getElementById('sesionNombre').textContent = quienSoy();
+    document.getElementById('sesionRol').textContent = !sesion ? ''
+      : (sesion.rol === 'dueno' ? (modoLocal ? 'Solo este dispositivo' : 'Dueña · acceso total') : 'Ventas e inventario');
+  }
+
+  /* ================= Sincronización ================= */
+  function actualizarSync() {
+    const btn = document.getElementById('syncBtn');
+    const txt = document.getElementById('syncTxt');
+    btn.classList.remove('pend', 'local', 'trabajando');
+    if (modoLocal || !Nube.configurada()) {
+      btn.classList.add('local'); txt.textContent = 'Solo aquí';
+      btn.title = 'Los cambios se guardan solo en este dispositivo. Conecta config.js para compartirlos.';
+      return;
+    }
+    if (sincronizando) { btn.classList.add('trabajando'); txt.textContent = 'Sincronizando…'; return; }
+    const p = Nube.pendientes();
+    if (p > 0) {
+      btn.classList.add('pend'); txt.textContent = p + ' por subir';
+      btn.title = 'Hay cambios esperando conexión. Toca para reintentar.';
+    } else {
+      txt.textContent = 'Al día';
+      btn.title = 'Todo guardado en la nube. Toca para traer cambios de otros dispositivos.';
+    }
+  }
+
+  /** Sube lo pendiente y baja lo que hayan cambiado en otros dispositivos. */
+  async function sincronizar(manual) {
+    if (modoLocal || !Nube.configurada() || sincronizando) return;
+    sincronizando = true; actualizarSync();
+    try {
+      const r = await Nube.vaciarCola();
+      const remoto = await Nube.traerTodo();
+
+      /* Una tabla que llega vacía de la nube NO borra la del dispositivo: quiere
+         decir que todavía no se ha subido, no que alguien la haya vaciado.
+         Sin esto, tener ventas en la nube pero no el inventario hacía
+         desaparecer las prendas de la pantalla. */
+      const faltantes = [];
+      ['ventas', 'prendas', 'insumos', 'revisar', 'clientes', 'empleados'].forEach(t => {
+        if (remoto[t] && remoto[t].length) db[t] = remoto[t];
+        else if ((db[t] || []).length) faltantes.push(t);
+      });
+      if (remoto.asistencia && Object.keys(remoto.asistencia).length) db.asistencia = remoto.asistencia;
+      save(); renderAll();
+
+      if (faltantes.length && esDueno() && !importacionRechazada) {
+        sincronizando = false; actualizarSync();
+        await ofrecerImportacion(faltantes);
+        return;
+      }
+      if (manual) toast(r.subidas ? 'Listo: ' + r.subidas + ' cambios subidos' : 'Datos al día');
+    } catch (e) {
+      if (manual) toast('No se pudo sincronizar: ' + (e.message || 'sin conexión'));
+    } finally {
+      sincronizando = false; actualizarSync();
+    }
+  }
+
+  /** Guarda una fila: primero en el dispositivo, luego en la nube (o en la cola). */
+  function subir(tabla, fila) {
+    save();
+    if (modoLocal || !Nube.configurada()) { actualizarSync(); return; }
+    Nube.encolar({ tipo: 'fila', tabla, clave: fila.id, datos: JSON.parse(JSON.stringify(fila)) });
+    actualizarSync();
+    Nube.vaciarCola().then(actualizarSync);
+  }
+  function subirBorrado(tabla, id) {
+    save();
+    if (modoLocal || !Nube.configurada()) { actualizarSync(); return; }
+    Nube.encolar({ tipo: 'borrar', tabla, clave: id });
+    actualizarSync();
+    Nube.vaciarCola().then(actualizarSync);
+  }
+  function anotarMovimiento(tabla, fila, antes, despues, descripcion) {
+    if (modoLocal || !Nube.configurada()) return;
+    Nube.encolar({
+      tipo: 'movimiento', tabla: 'movimientos', clave: uid(),
+      datos: { tabla, fila: fila.id, descripcion, antes, despues, hecho_por: quienSoy() }
+    });
+  }
+
+  /** Primera carga: sube a la nube las tablas que allá todavía están vacías. */
+  async function ofrecerImportacion(tablas) {
+    const NOMBRES = { ventas: 'ventas', prendas: 'prendas', insumos: 'cierres',
+                      revisar: 'folios por revisar', clientes: 'clientes', empleados: 'empleados' };
+    const lista = (tablas && tablas.length ? tablas : ['prendas','insumos','ventas','revisar','clientes','empleados'])
+      .filter(t => (db[t] || []).length);
+    if (!lista.length) { toast('No hay nada nuevo que subir'); return; }
+
+    const detalle = lista.map(t => db[t].length + ' ' + (NOMBRES[t] || t)).join(', ');
+    if (!confirm('Falta subir a la base compartida:\n\n' + detalle
+      + '\n\n¿Subirlos ahora para que se vean desde cualquier dispositivo?')) {
+      importacionRechazada = true;   // no volver a preguntar en cada sincronización
+      return;
+    }
+    sincronizando = true; actualizarSync();
+    try {
+      for (const t of lista) await Nube.subirLote(t, db[t]);
+      toast('Datos subidos. Ya se ven desde cualquier dispositivo.');
+    } catch (e) {
+      toast('No se pudieron subir todos los datos: ' + (e.message || 'error'));
+    } finally {
+      sincronizando = false; actualizarSync();
+    }
+  }
+
   /* ================= Tema ================= */
   /** Tema efectivo: gana el atributo del documento y si no hay, la preferencia del sistema. */
   function temaEsOscuro() {
@@ -824,11 +1146,17 @@
   }
 
   /* ================= Navegación ================= */
+  function puedeVer(page) {
+    for (const sec of NAV) for (const it of sec.items) if (it[0] === page) return it[4] === 'todos' || esDueno();
+    return false;
+  }
   function renderNav() {
     let html = '';
     NAV.forEach(sec => {
+      const visibles = sec.items.filter(it => it[4] === 'todos' || esDueno());
+      if (!visibles.length) return;
       html += '<div class="nav-title">' + esc(sec.group) + '</div>';
-      sec.items.forEach(([page, label, ico]) => {
+      visibles.forEach(([page, label, ico]) => {
         html += '<button class="nav-btn" type="button" data-page="' + page + '">'
           + '<svg class="ico"><use href="#' + ico + '"/></svg>'
           + '<span class="lbl">' + esc(label) + '</span>'
@@ -842,6 +1170,8 @@
     return { title: page, sub: '' };
   }
   function setPage(page) {
+    // Una sección fuera del alcance del rol no se abre ni escribiendo la ruta a mano.
+    if (!puedeVer(page)) page = esDueno() ? 'inicio' : 'mostrador';
     currentPage = page;
     document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
     const target = document.getElementById('page-' + page);
@@ -859,13 +1189,20 @@
   function closeNav() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('overlay').classList.remove('show'); }
   function renderActions() {
     const map = {
+      inicio: '<button class="btn accent" onclick="setPage(\'ventas\'); toggleForm(\'Venta\', true)">' + icon('i-plus') + ' Nueva venta</button>',
+      mostrador: '<button class="btn accent" onclick="setPage(\'ventas\'); toggleForm(\'Venta\', true)">' + icon('i-plus') + ' Nueva venta</button>',
       ventas: '<button class="btn accent" onclick="toggleForm(\'Venta\', true)">' + icon('i-plus') + ' Nueva venta</button>',
       clientes: '<button class="btn accent" onclick="toggleForm(\'Cliente\', true)">' + icon('i-plus') + ' Nuevo cliente</button>',
       empleados: '<button class="btn accent" onclick="toggleForm(\'Empleado\', true)">' + icon('i-plus') + ' Nuevo empleado</button>',
       chatgpt: '<button class="btn primary" onclick="prepararResumenIA()">' + icon('i-spark') + ' Usar datos actuales</button>'
     };
-    document.getElementById('pageActions').innerHTML = (map[currentPage] || '')
-      + '<button class="btn" onclick="exportarDatos()">' + icon('i-down') + ' Respaldo</button>';
+    let html = map[currentPage] || '';
+    // El respaldo y la carga inicial son cosa de la dueña, no del mostrador.
+    if (esDueno()) {
+      if (!modoLocal && Nube.configurada()) html += '<button class="btn" onclick="ofrecerImportacion()">' + icon('i-box') + ' Subir datos</button>';
+      html += '<button class="btn" onclick="exportarDatos()">' + icon('i-down') + ' Respaldo</button>';
+    }
+    document.getElementById('pageActions').innerHTML = html;
   }
   function toggleForm(name, open) {
     const f = document.getElementById('form' + name);
@@ -886,7 +1223,7 @@
   }
 
   function renderAll() {
-    renderInicio(); renderVentas(); renderRevisar(); renderClientes(); populateClientes();
+    renderInicio(); renderMostrador(); renderVentas(); renderRevisar(); renderClientes(); populateClientes();
     renderPrendas(); renderInsumos(); renderEmpleados(); renderAsistencia(); renderReportes();
     populateMesesFiltro(); renderCounts();
   }
@@ -907,12 +1244,24 @@
     const saldo = pendientes.reduce((s,v) => s + restanteDe(v), 0);
     const bajasP = alertas(db.prendas), bajasI = alertas(db.insumos);
 
-    document.getElementById('kpis').innerHTML = [
+    const hoy = iso(new Date());
+    const deHoy = db.ventas.filter(v => v.fecha === hoy);
+    const mias = deHoy.filter(v => v.registroDe && sesion && v.registroDe === sesion.nombre);
+    const piezas = db.prendas.reduce((n,p) => n + (Number(p.cantidad) || 0), 0);
+
+    /* Un empleado no ve totales de dinero del negocio: ve su trabajo del día y el stock. */
+    const tarjetas = esDueno() ? [
       ['i-cart','', 'Ventas registradas', db.ventas.length, db.revisar.length + ' folios por revisar'],
       ['i-money','good', 'Ingresos registrados', money(total), db.ventas.length + ' ventas capturadas'],
       ['i-clock', saldo > 0 ? 'warn' : '', 'Por cobrar', money(saldo), pendientes.length + ' ventas pendientes'],
       ['i-alert', (bajasP.length + bajasI.length) > 0 ? 'bad' : 'good', 'Por reabastecer', bajasP.length + bajasI.length, bajasP.length + ' prendas · ' + bajasI.length + ' cierres']
-    ].map(k => '<div class="kpi"><div class="kpi-ico ' + k[1] + '">' + icon(k[0], 'lg') + '</div><div style="min-width:0">'
+    ] : [
+      ['i-cart','', 'Ventas de hoy', deHoy.length, 'En todo el negocio'],
+      ['i-team','good', 'Registradas por ti', mias.length, 'Hoy, ' + dateFmt(hoy)],
+      ['i-box','', 'Piezas en inventario', piezas.toLocaleString('es-MX'), db.prendas.length + ' variantes de prenda'],
+      ['i-alert', (bajasP.length + bajasI.length) > 0 ? 'bad' : 'good', 'Por reabastecer', bajasP.length + bajasI.length, bajasP.length + ' prendas · ' + bajasI.length + ' cierres']
+    ];
+    document.getElementById('kpis').innerHTML = tarjetas.map(k => '<div class="kpi"><div class="kpi-ico ' + k[1] + '">' + icon(k[0], 'lg') + '</div><div style="min-width:0">'
       + '<div class="kpi-label">' + k[2] + '</div><div class="kpi-value">' + k[3] + '</div><div class="kpi-foot">' + k[4] + '</div></div></div>').join('');
 
     document.getElementById('inicioVentas').innerHTML = db.ventas.slice(-6).reverse().map(v =>
@@ -936,6 +1285,92 @@
       '<tr><td>' + esc(i.color) + '</td><td>' + esc(i.medida) + '</td>'
       + '<td>' + stockCell(i.cantidad, i.stockMinimo) + '</td></tr>'
     ).join('') || emptyRow(3, 'Todos los cierres están sobre el mínimo', 'i-check');
+  }
+
+  /* ================= Mostrador: consulta pieza por pieza =================
+     Pensado para el celular con el cliente enfrente: se busca la prenda, se ve
+     cuántas piezas hay de esa talla exacta y se ajusta con un toque.        */
+  function mostradorFuente() {
+    return document.getElementById('mostradorQue').value === 'insumos' ? 'insumos' : 'prendas';
+  }
+  function etiquetaPieza(fuente, x) {
+    return fuente === 'prendas'
+      ? { nombre: x.variante, meta: [x.categoria, 'Talla ' + x.talla] }
+      : { nombre: x.color + ' · ' + (x.medida || 's/medida'), meta: ['Cierre', 'Talla ' + (x.talla || '—')] };
+  }
+  function renderMostradorFiltros(fuente) {
+    const lista = db[fuente];
+    const cats = fuente === 'prendas'
+      ? Array.from(new Set(lista.map(p => p.categoria))).sort((a,b) => String(a).localeCompare(String(b),'es'))
+      : Array.from(new Set(lista.map(i => i.color))).sort((a,b) => String(a).localeCompare(String(b),'es'));
+    if (mostradorCat && cats.indexOf(mostradorCat) === -1) mostradorCat = '';
+    document.getElementById('mostradorCats').innerHTML =
+      '<button class="chip' + (mostradorCat === '' ? ' active' : '') + '" type="button" data-mcat="">Todo</button>'
+      + cats.map(c => '<button class="chip' + (c === mostradorCat ? ' active' : '') + '" type="button" data-mcat="' + esc(c) + '">' + esc(c) + '</button>').join('');
+
+    const sel = document.getElementById('mostradorTalla');
+    const previa = sel.value;
+    const tallas = Array.from(new Set(lista.map(x => x.talla).filter(t => t !== '' && t !== null)))
+      .sort((a,b) => (Number(a) || 999) - (Number(b) || 999) || String(a).localeCompare(String(b)));
+    sel.innerHTML = '<option value="">Cualquier talla</option>'
+      + tallas.map(t => '<option' + (String(t) === previa ? ' selected' : '') + '>' + esc(t) + '</option>').join('');
+  }
+  function renderMostrador() {
+    const fuente = mostradorFuente();
+    renderMostradorFiltros(fuente);
+    const q = (document.getElementById('mostradorBuscar').value || '').trim().toLowerCase();
+    const talla = document.getElementById('mostradorTalla').value;
+    const cont = document.getElementById('mostradorLista');
+
+    let rows = db[fuente].filter(x => {
+      if (talla && String(x.talla) !== talla) return false;
+      if (mostradorCat && (fuente === 'prendas' ? x.categoria : x.color) !== mostradorCat) return false;
+      if (!q) return true;
+      const texto = fuente === 'prendas'
+        ? (x.categoria + ' ' + x.variante + ' ' + x.talla)
+        : (x.color + ' ' + x.talla + ' ' + x.medida);
+      return texto.toLowerCase().includes(q);
+    });
+
+    if (!q && !talla && !mostradorCat) {
+      cont.innerHTML = '<div class="card"><div class="mostrador-tip">' + icon('i-search','lg')
+        + '<p style="margin:8px 0 0">Escribe la prenda o elige una categoría para ver cuántas piezas hay.</p>'
+        + '<p style="margin:6px 0 0; font-size:12.5px">' + db[fuente].length + ' registros disponibles.</p></div></div>';
+      return;
+    }
+    rows = rows.slice(0, 60);
+    if (!rows.length) {
+      cont.innerHTML = '<div class="card"><div class="empty">' + icon('i-box','lg') + '<p>Nada coincide con esa búsqueda</p></div></div>';
+      return;
+    }
+    cont.innerHTML = rows.map(x => {
+      const et = etiquetaPieza(fuente, x);
+      const bajo = esBajo(x);
+      return '<div class="pieza">'
+        + '<div class="pieza-info"><div class="pieza-nombre">' + esc(et.nombre) + '</div>'
+        + '<div class="pieza-meta">' + et.meta.map(m => '<span class="badge neutral">' + esc(m) + '</span>').join('')
+        + (bajo ? '<span class="badge bad">' + icon('i-alert') + 'Bajo mínimo (' + Number(x.stockMinimo) + ')</span>' : '') + '</div></div>'
+        + '<div class="pieza-cant">' + Number(x.cantidad) + '<small>piezas</small></div>'
+        + '<div class="pieza-ctrl">'
+        + '<button class="paso" onclick="ajustarPieza(\'' + fuente + '\',\'' + x.id + '\',-1)" aria-label="Quitar una pieza">' + icon('i-minus','lg') + '</button>'
+        + '<button class="paso mas" onclick="ajustarPieza(\'' + fuente + '\',\'' + x.id + '\',1)" aria-label="Agregar una pieza">' + icon('i-plus','lg') + '</button>'
+        + '</div></div>';
+    }).join('');
+  }
+  /** Suma o resta una pieza y deja constancia de quién lo hizo. */
+  function ajustarPieza(fuente, id, delta) {
+    const x = db[fuente].find(f => f.id === id);
+    if (!x) return;
+    const antes = Number(x.cantidad) || 0;
+    const despues = Math.max(0, antes + delta);
+    if (antes === despues) { toast('Ya está en cero'); return; }
+    x.cantidad = despues;
+    const et = etiquetaPieza(fuente, x);
+    anotarMovimiento(fuente, x, antes, despues, et.nombre + ' · ' + et.meta.join(' · '));
+    subir(fuente, x);
+    renderMostrador(); renderInicio(); renderCounts();
+    if (fuente === 'prendas') renderPrendas(); else renderInsumos();
+    toast(et.nombre + ': ' + antes + ' → ' + despues);
   }
 
   /* ================= Ventas ================= */
@@ -981,31 +1416,34 @@
       + '<td class="num">' + (v.montoTarjeta !== '' ? money(v.montoTarjeta) : '—') + '</td>'
       + '<td class="num">' + (v.efectivo !== '' ? money(v.efectivo) : '—') + '</td>'
       + '<td class="num">' + (restanteDe(v) > 0 ? money(restanteDe(v)) : '—') + '</td>'
+      + '<td>' + (esc(v.registroDe) || '—') + '</td>'
       + '<td><select onchange="cambiarEstatus(\'' + v.id + '\', this.value)" aria-label="Estatus de ' + esc(v.folio) + '">'
       + ESTATUS.map(e => '<option' + (e === v.estatus ? ' selected' : '') + '>' + e + '</option>').join('') + '</select></td>'
-      + '<td><button class="btn small danger" onclick="borrar(\'ventas\',\'' + v.id + '\')" aria-label="Borrar venta">' + icon('i-trash') + '</button></td></tr>'
-    ).join('') || emptyRow(9, 'Ninguna venta coincide con los filtros', 'i-search');
+      + '<td>' + (esDueno() ? '<button class="btn small danger" onclick="borrar(\'ventas\',\'' + v.id + '\')" aria-label="Borrar venta">' + icon('i-trash') + '</button>' : '') + '</td></tr>'
+    ).join('') || emptyRow(10, 'Ninguna venta coincide con los filtros', 'i-search');
   }
   function guardarVenta() {
     const cliente = val('ventaCliente');
     if (!cliente) { toast('Escribe el cliente o escuela'); document.getElementById('ventaCliente').focus(); return; }
     const fecha = val('ventaFecha') || iso(new Date());
     const mesIdx = Number(String(fecha).split('-')[1]) - 1;
-    db.ventas.push({
+    const venta = {
       id: uid(),
       folio: val('ventaFolio') || ('#' + String(db.folioSeq++).padStart(4,'0')),
       mes: MESES[mesIdx] || '', fecha, cliente,
       montoTotal: num('ventaMontoTotal'), noTarjeta: val('ventaNoTarjeta'),
       montoTarjeta: num('ventaMontoTarjeta'), efectivo: num('ventaEfectivo'), restante: num('ventaRestante'),
-      formaPago: val('ventaFormaPago'), estatus: val('ventaEstatus'), obs: val('ventaObs')
-    });
-    save();
+      formaPago: val('ventaFormaPago'), estatus: val('ventaEstatus'), obs: val('ventaObs'),
+      registroDe: quienSoy()
+    };
+    db.ventas.push(venta);
+    subir('ventas', venta);
     clearIds(['ventaFolio','ventaCliente','ventaMontoTotal','ventaMontoTarjeta','ventaEfectivo','ventaNoTarjeta','ventaRestante','ventaObs']);
     toggleForm('Venta', false); renderAll(); toast('Venta guardada');
   }
   function cambiarEstatus(id, estatus) {
     const v = db.ventas.find(x => x.id === id);
-    if (v) { v.estatus = estatus; save(); renderInicio(); renderVentas(); renderReportes(); }
+    if (v) { v.estatus = estatus; subir('ventas', v); renderInicio(); renderVentas(); renderReportes(); }
   }
 
   /* ================= Por revisar ================= */
@@ -1048,9 +1486,10 @@
   function guardarCliente() {
     const nombre = val('clienteNombre');
     if (!nombre) { toast('Escribe el nombre del cliente'); return; }
-    db.clientes.push({ id: uid(), nombre, tipo: val('clienteTipo'), tel: val('clienteTel'),
-      email: val('clienteEmail'), dir: val('clienteDir'), notas: val('clienteNotas') });
-    save(); clearIds(['clienteNombre','clienteTel','clienteEmail','clienteDir','clienteNotas']);
+    const cliente = { id: uid(), nombre, tipo: val('clienteTipo'), tel: val('clienteTel'),
+      email: val('clienteEmail'), dir: val('clienteDir'), notas: val('clienteNotas') };
+    db.clientes.push(cliente);
+    subir('clientes', cliente); clearIds(['clienteNombre','clienteTel','clienteEmail','clienteDir','clienteNotas']);
     toggleForm('Cliente', false); renderAll(); toast('Cliente guardado');
   }
 
@@ -1077,14 +1516,19 @@
       + '<td class="num"><input class="num" style="width:76px" type="number" min="0" value="' + Number(p.cantidad) + '" onchange="actualizarPrenda(\'' + p.id + '\',\'cantidad\',this.value)" aria-label="Cantidad"></td>'
       + '<td class="num"><input class="num" style="width:76px" type="number" min="0" value="' + Number(p.stockMinimo) + '" onchange="actualizarPrenda(\'' + p.id + '\',\'stockMinimo\',this.value)" aria-label="Mínimo"></td>'
       + '<td>' + stockCell(p.cantidad, p.stockMinimo) + '</td>'
-      + '<td><button class="btn small danger" onclick="borrar(\'prendas\',\'' + p.id + '\')" aria-label="Borrar">' + icon('i-trash') + '</button></td></tr>'
+      + '<td>' + (esDueno() ? '<button class="btn small danger" onclick="borrar(\'prendas\',\'' + p.id + '\')" aria-label="Borrar">' + icon('i-trash') + '</button>' : '') + '</td></tr>'
     ).join('') || emptyRow(6, 'Sin prendas que coincidan', 'i-shirt');
   }
   function actualizarPrenda(id, campo, valor) {
     const p = db.prendas.find(x => x.id === id);
     if (!p) return;
+    const antes = Number(p.cantidad) || 0;
     p[campo] = Math.max(0, Number(valor) || 0);
-    save(); renderPrendas(); renderInicio(); renderCounts();
+    if (campo === 'cantidad' && antes !== p.cantidad) {
+      anotarMovimiento('prendas', p, antes, p.cantidad, p.categoria + ' · ' + p.variante + ' · talla ' + p.talla);
+    }
+    subir('prendas', p);
+    renderPrendas(); renderInicio(); renderCounts();
   }
 
   /* ================= Insumos ================= */
@@ -1098,14 +1542,19 @@
       + '<td class="num"><input class="num" style="width:76px" type="number" min="0" value="' + Number(i.cantidad) + '" onchange="actualizarInsumo(\'' + i.id + '\',\'cantidad\',this.value)" aria-label="Cantidad"></td>'
       + '<td class="num"><input class="num" style="width:76px" type="number" min="0" value="' + Number(i.stockMinimo) + '" onchange="actualizarInsumo(\'' + i.id + '\',\'stockMinimo\',this.value)" aria-label="Mínimo"></td>'
       + '<td>' + stockCell(i.cantidad, i.stockMinimo) + '</td>'
-      + '<td><button class="btn small danger" onclick="borrar(\'insumos\',\'' + i.id + '\')" aria-label="Borrar">' + icon('i-trash') + '</button></td></tr>'
+      + '<td>' + (esDueno() ? '<button class="btn small danger" onclick="borrar(\'insumos\',\'' + i.id + '\')" aria-label="Borrar">' + icon('i-trash') + '</button>' : '') + '</td></tr>'
     ).join('') || emptyRow(7, 'Sin cierres que coincidan', 'i-zip');
   }
   function actualizarInsumo(id, campo, valor) {
     const i = db.insumos.find(x => x.id === id);
     if (!i) return;
+    const antes = Number(i.cantidad) || 0;
     i[campo] = Math.max(0, Number(valor) || 0);
-    save(); renderInsumos(); renderInicio(); renderCounts();
+    if (campo === 'cantidad' && antes !== i.cantidad) {
+      anotarMovimiento('insumos', i, antes, i.cantidad, 'Cierre ' + i.color + ' · ' + i.medida);
+    }
+    subir('insumos', i);
+    renderInsumos(); renderInicio(); renderCounts();
   }
 
   /* ================= Empleados ================= */
@@ -1124,9 +1573,10 @@
   function guardarEmpleado() {
     const nombre = val('empNombre');
     if (!nombre) { toast('Escribe el nombre del empleado'); return; }
-    db.empleados.push({ id: uid(), nombre, puesto: val('empPuesto'), tel: val('empTel'),
-      turno: val('empTurno'), salario: num('empSalario') || 0, fecha: val('empFecha') || iso(new Date()), notas: val('empNotas') });
-    save(); clearIds(['empNombre','empPuesto','empTel','empSalario','empFecha','empNotas']);
+    const empleado = { id: uid(), nombre, puesto: val('empPuesto'), tel: val('empTel'),
+      turno: val('empTurno'), salario: num('empSalario') || 0, fecha: val('empFecha') || iso(new Date()), notas: val('empNotas') };
+    db.empleados.push(empleado);
+    subir('empleados', empleado); clearIds(['empNombre','empPuesto','empTel','empSalario','empFecha','empNotas']);
     toggleForm('Empleado', false); renderAll(); toast('Empleado guardado');
   }
 
@@ -1173,6 +1623,12 @@
     if (!db.asistencia[semana]) db.asistencia[semana] = {};
     db.asistencia[semana][key] = valor;
     save();
+    if (!modoLocal && Nube.configurada()) {
+      Nube.encolar({ tipo: 'asistencia', tabla: 'asistencia', clave: semana + '|' + key,
+                     datos: { semana, clave: key, hora: valor } });
+      actualizarSync();
+      Nube.vaciarCola().then(actualizarSync);
+    }
   }
 
   /* ================= Gráficas =================
@@ -1375,13 +1831,15 @@
 
   /* ================= Comunes ================= */
   function borrar(tipo, id) {
+    if (!esDueno()) { toast('Solo la dueña puede borrar registros'); return; }
     const lista = db[tipo];
     if (!Array.isArray(lista)) return;
     const item = lista.find(x => x.id === id);
     const nombre = item ? (item.folio || item.nombre || item.variante || item.color || 'registro') : 'registro';
     if (!confirm('¿Borrar "' + nombre + '"? Esta acción no se puede deshacer.')) return;
     db[tipo] = lista.filter(x => x.id !== id);
-    save(); renderAll(); toast('Registro borrado');
+    subirBorrado(tipo, id);
+    renderAll(); toast('Registro borrado');
   }
   function exportarDatos() {
     const blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' });
@@ -1456,9 +1914,27 @@
     if (!localStorage.getItem(THEME_KEY)) applyTheme(null);
   });
 
-  renderNav();
+  document.getElementById('gateLista').addEventListener('click', ev => {
+    const b = ev.target.closest('.gate-persona');
+    if (!b) return;
+    gateUsuario = b.dataset.usuario;
+    document.getElementById('gateNombre').textContent = b.dataset.nombre;
+    document.getElementById('gatePersonas').hidden = true;
+    document.getElementById('gatePin').hidden = false;
+    document.getElementById('gatePinInput').focus();
+  });
+  document.getElementById('mostradorCats').addEventListener('click', ev => {
+    const c = ev.target.closest('[data-mcat]');
+    if (!c) return;
+    mostradorCat = c.dataset.mcat;
+    renderMostrador();
+  });
+  // Al volver a la app se traen los cambios que otros hayan hecho mientras tanto.
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) sincronizar(false); });
+  window.addEventListener('online', () => sincronizar(false));
+
   applyTheme(localStorage.getItem(THEME_KEY));
-  setPage('inicio');
+  arrancarAcceso();
   </script>
 </body>
 </html>

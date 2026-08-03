@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """Genera gabidom-movil.html: un archivo unico y autonomo para abrir en el celular.
 
-Incrusta data.js dentro de index.html y agrega las meta etiquetas que permiten
-"Agregar a pantalla de inicio", de modo que el archivo funcione sin servidor,
-sin internet y sin archivos vecinos.
+Incrusta config.js, data.js y nube.js dentro de index.html y agrega las meta
+etiquetas que permiten "Agregar a pantalla de inicio", de modo que el archivo
+funcione sin servidor y sin archivos vecinos.
+
+Ojo: si config.js ya trae la conexion a Supabase, queda dentro del archivo.
+Comparte ese archivo solo con tu gente.
 
 Uso: python3 build-movil.py
 """
@@ -13,7 +16,7 @@ import sys
 
 RAIZ = pathlib.Path(__file__).parent
 ENTRADA = RAIZ / "index.html"
-DATOS = RAIZ / "data.js"
+SCRIPTS = ["config.js", "data.js", "nube.js"]
 SALIDA = RAIZ / "gabidom-movil.html"
 
 META_MOVIL = """  <meta name="mobile-web-app-capable" content="yes">
@@ -24,25 +27,30 @@ META_MOVIL = """  <meta name="mobile-web-app-capable" content="yes">
 
 
 def main() -> int:
-    for archivo in (ENTRADA, DATOS):
-        if not archivo.exists():
-            print(f"Falta {archivo.name}", file=sys.stderr)
-            return 1
+    if not ENTRADA.exists():
+        print("Falta index.html", file=sys.stderr)
+        return 1
 
     html = ENTRADA.read_text(encoding="utf-8")
-    datos = DATOS.read_text(encoding="utf-8")
 
-    etiqueta = '<script src="data.js"></script>'
-    if etiqueta not in html:
-        print("No se encontro la etiqueta de data.js en index.html", file=sys.stderr)
-        return 1
+    for nombre in SCRIPTS:
+        archivo = RAIZ / nombre
+        if not archivo.exists():
+            print(f"Falta {nombre}", file=sys.stderr)
+            return 1
+        codigo = archivo.read_text(encoding="utf-8")
 
-    # </script> dentro del JSON cerraria el bloque antes de tiempo.
-    if "</script" in datos.lower():
-        print("data.js contiene una etiqueta de cierre de script", file=sys.stderr)
-        return 1
+        etiqueta = f'<script src="{nombre}"></script>'
+        if etiqueta not in html:
+            print(f"No se encontro la etiqueta de {nombre} en index.html", file=sys.stderr)
+            return 1
 
-    html = html.replace(etiqueta, "<script>\n" + datos.rstrip() + "\n  </script>")
+        # </script> dentro del codigo cerraria el bloque antes de tiempo.
+        if "</script" in codigo.lower():
+            print(f"{nombre} contiene una etiqueta de cierre de script", file=sys.stderr)
+            return 1
+
+        html = html.replace(etiqueta, "<script>\n" + codigo.rstrip() + "\n  </script>")
     html = re.sub(r'(  <meta name="theme-color"[^>]*>\n)', r"\1" + META_MOVIL, html, count=1)
 
     SALIDA.write_text(html, encoding="utf-8")
