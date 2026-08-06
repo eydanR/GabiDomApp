@@ -44,16 +44,24 @@ Por cada quien vaya a entrar, en **Authentication → Users → Add user**:
 - **Password**: su PIN, **de 6 dígitos**
 - Marca **Auto Confirm User**
 
-Copia el UUID que aparece en la lista y, de vuelta en el SQL Editor, corre una
-línea por persona:
+De vuelta en el SQL Editor, corre el bloque del final de `supabase/esquema.sql`
+cambiando los correos y los nombres por los tuyos. Busca a cada quien por su
+correo, así que **no hace falta copiar ningún UUID a mano**:
 
 ```sql
-insert into public.perfiles (id, usuario, nombre, rol) values
-  ('el-uuid-que-copiaste', 'gabriela', 'Gabriela Domínguez Becerril', 'dueno');
-
-insert into public.perfiles (id, usuario, nombre, rol) values
-  ('el-uuid-que-copiaste', 'eydan', 'Eydan Ramírez Domínguez', 'empleado');
+insert into public.perfiles (id, usuario, nombre, rol)
+select id, split_part(email, '@', 1), datos.nombre, datos.rol
+from auth.users
+join (values
+    ('gabriela@gabidom.mx', 'Gabriela Domínguez Becerril', 'dueno'),
+    ('eydan@gabidom.mx',    'Eydan Ramírez Domínguez',     'empleado')
+  ) as datos(correo, nombre, rol) on auth.users.email = datos.correo
+on conflict (id) do update
+  set nombre = excluded.nombre, rol = excluded.rol, activo = true;
 ```
+
+El dominio después de la `@` debe ser el mismo en todos y coincidir con
+`DOMINIO_ACCESO` en `config.js`: es el error más común.
 
 El PIN va de 6 dígitos porque Supabase exige mínimo 6 caracteres, y porque con
 4 dígitos solo existen 10 mil combinaciones posibles.

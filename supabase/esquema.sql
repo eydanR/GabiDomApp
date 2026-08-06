@@ -219,22 +219,33 @@ create index if not exists prendas_busca_idx  on public.prendas (variante, talla
 create index if not exists insumos_busca_idx  on public.insumos (color, medida);
 
 -- ============================================================================
--- PASO 2 — crear a las personas que van a entrar
+-- PASO 2 — dar de alta a las personas
 --
--- Por cada una, en Supabase → Authentication → Users → "Add user":
---   Email: usuario@gabidom.mx   (inventa el usuario: gabriela, eydan, isabel…)
---   Password: el PIN de 6 dígitos
+-- Primero créalas en Supabase → Authentication → Users → "Add user":
+--   Email:    usuario@gabidom.mx   (inventa el usuario: gabriela, eydan, isabel…)
+--   Password: su PIN, de 6 dígitos
 --   Marca "Auto Confirm User"
 --
--- Luego copia el UUID que te muestra y corre una línea como esta por persona,
--- cambiando el UUID, el usuario, el nombre y el rol:
+-- El PIN va de 6 dígitos porque Supabase exige mínimo 6 caracteres, y porque
+-- con 4 dígitos solo existen 10 mil combinaciones posibles.
 --
---   insert into public.perfiles (id, usuario, nombre, rol) values
---     ('pega-aqui-el-uuid', 'gabriela', 'Gabriela Domínguez Becerril', 'dueno');
---
---   insert into public.perfiles (id, usuario, nombre, rol) values
---     ('pega-aqui-el-uuid', 'eydan', 'Eydan Ramírez Domínguez', 'empleado');
---
--- El PIN debe traer 6 dígitos: Supabase exige mínimo 6 caracteres y con 4
--- dígitos solo hay 10 mil combinaciones posibles.
+-- Después corre esto para ponerles nombre y rol. Busca a cada quien por su
+-- correo, así que NO hace falta copiar ningún UUID a mano.
+-- Cambia los correos y los nombres por los tuyos, y borra las líneas que sobren.
 -- ============================================================================
+
+insert into public.perfiles (id, usuario, nombre, rol)
+select id, split_part(email, '@', 1), datos.nombre, datos.rol
+from auth.users
+join (values
+    -- correo                     nombre completo                    rol
+    ('gabriela@gabidom.mx', 'Gabriela Domínguez Becerril', 'dueno'),
+    ('eydan@gabidom.mx',    'Eydan Ramírez Domínguez',     'empleado'),
+    ('isabel@gabidom.mx',   'María Isabel González Lemus', 'empleado')
+  ) as datos(correo, nombre, rol) on auth.users.email = datos.correo
+on conflict (id) do update
+  set nombre = excluded.nombre, rol = excluded.rol, activo = true;
+
+-- Comprueba que quedaron bien. Deben aparecer todas las personas con su rol;
+-- si alguna falta, es que su correo aquí no coincide con el de Authentication.
+select usuario, nombre, rol from public.perfiles order by rol, nombre;
