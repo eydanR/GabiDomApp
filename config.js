@@ -18,7 +18,7 @@
    ========================================================================= */
 window.GABIDOM_CONFIG = {
   SUPABASE_URL: 'https://znypcaxyqtofvuvzbfcz.supabase.co',
-  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpueXBjYXh5cXRvZnZ1dnpiZmN6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU5NjczNTgsImV4cCI6MjEwMTU0MzM1OH0.WbAeBPaZ_r7Y4rdW1SB-H2liSu8Y__Q2tSa_IKBj5Bo',
+  SUPABASE_ANON_KEY: 'sb_publishable_NP4sEjs2YRt1U0h_Ul7y4g_mocsP8E8',
 
   // Dominio con el que se arman los correos de acceso a partir del usuario.
   // Si en Supabase creaste "gabriela@gabidom.mx", deja "gabidom.mx".
