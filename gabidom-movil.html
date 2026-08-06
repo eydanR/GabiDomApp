@@ -407,9 +407,30 @@
 
       <div id="gateLocal" hidden>
         <div class="gate-sep"></div>
-        <p class="hint">La base compartida todavía no está conectada, así que los cambios se guardarían solo en este dispositivo.</p>
-        <p class="hint">Para que todos vean lo mismo desde cualquier teléfono, llena <b>config.js</b> siguiendo <b>supabase/esquema.sql</b>.</p>
+        <p class="hint">Para que todos vean lo mismo desde cualquier teléfono hay que conectar la base compartida. Se hace una vez por dispositivo.</p>
+        <button class="btn primary" id="btnConectar" onclick="abrirConexion()" style="width:100%;justify-content:center;margin-bottom:8px">Conectar la base compartida</button>
         <button class="btn" onclick="entrarLocal()" style="width:100%;justify-content:center">Usar solo en este dispositivo</button>
+      </div>
+
+      <div id="gateConexion" hidden>
+        <button class="btn ghost small" onclick="cerrarConexion()" style="margin-bottom:12px"><svg class="ico sm"><use href="#i-left"/></svg> Regresar</button>
+        <div class="gate-label">Datos de tu proyecto de Supabase</div>
+        <p class="hint" style="margin-top:-4px">Los encuentras en Supabase → <b>Settings → API</b>. No hace falta editar archivos.</p>
+        <div class="field" style="margin-bottom:10px">
+          <label for="cxUrl">Project URL</label>
+          <input id="cxUrl" placeholder="https://abcdefgh.supabase.co" autocomplete="off" autocapitalize="off" spellcheck="false">
+        </div>
+        <div class="field" style="margin-bottom:10px">
+          <label for="cxKey">Llave pública (anon public)</label>
+          <textarea id="cxKey" placeholder="eyJhbGciOiJIUzI1NiIs…" autocomplete="off" autocapitalize="off" spellcheck="false" style="min-height:70px;font-size:12.5px"></textarea>
+        </div>
+        <div class="field" style="margin-bottom:12px">
+          <label for="cxDominio">Dominio de los correos de acceso</label>
+          <input id="cxDominio" value="gabidom.mx" autocomplete="off" autocapitalize="off" spellcheck="false">
+        </div>
+        <p class="hint" style="margin-top:-4px">Si creaste <b>gabriela@gabidom.mx</b>, aquí va <b>gabidom.mx</b>.</p>
+        <button class="btn primary" id="cxBtn" onclick="guardarConexion()" style="width:100%;justify-content:center">Probar y conectar</button>
+        <p class="hint" style="margin-bottom:0">Nunca pongas aquí la llave <b>service_role</b>: esa se salta todos los permisos.</p>
       </div>
     </div>
   </div>
@@ -788,9 +809,50 @@ const GABIDOM_SEED = {"prendas":[{"categoria":"Sueter","variante":"Azul Rey","ta
 'use strict';
 
 const Nube = (() => {
-  const cfg = () => (window.GABIDOM_CONFIG || {});
   const SESION_KEY = 'gabidom_sesion';
   const COLA_KEY = 'gabidom_cola';
+  const CONFIG_KEY = 'gabidom_conexion';
+
+  /* La conexión puede venir de config.js (viene dentro del archivo) o haberse
+     escrito desde la propia app y quedar guardada en el dispositivo. Gana la
+     guardada, porque es la que alguien puso a propósito en ese teléfono. */
+  let conexionGuardada = null;
+  try { conexionGuardada = JSON.parse(localStorage.getItem(CONFIG_KEY) || 'null'); } catch (e) { conexionGuardada = null; }
+
+  const cfg = () => Object.assign({}, window.GABIDOM_CONFIG || {}, conexionGuardada || {});
+
+  function guardarConexion(datos) {
+    const limpia = {
+      SUPABASE_URL: String(datos.SUPABASE_URL || '').trim().replace(/\/+$/, ''),
+      SUPABASE_ANON_KEY: String(datos.SUPABASE_ANON_KEY || '').trim(),
+      DOMINIO_ACCESO: String(datos.DOMINIO_ACCESO || 'gabidom.mx').trim().replace(/^@/, '')
+    };
+    conexionGuardada = limpia;
+    try { localStorage.setItem(CONFIG_KEY, JSON.stringify(limpia)); } catch (e) { /* sin almacenamiento */ }
+    return limpia;
+  }
+  function olvidarConexion() {
+    conexionGuardada = null;
+    try { localStorage.removeItem(CONFIG_KEY); } catch (e) { /* sin almacenamiento */ }
+  }
+  /** Comprueba que los datos sirvan antes de guardarlos. */
+  async function probarConexion(datos) {
+    const url = String(datos.SUPABASE_URL || '').trim().replace(/\/+$/, '');
+    const key = String(datos.SUPABASE_ANON_KEY || '').trim();
+    if (!/^https?:\/\/.+/.test(url)) throw new Error('La dirección debe empezar con https:// y ser el "Project URL" de Supabase');
+    if (!key) throw new Error('Falta la llave pública (anon public)');
+    const r = await fetch(url + '/rest/v1/perfiles_login?select=usuario,nombre', {
+      headers: { apikey: key, 'Content-Type': 'application/json' }
+    });
+    if (r.status === 401 || r.status === 403) throw new Error('La llave no es válida para ese proyecto');
+    if (r.status === 404) throw new Error('El proyecto responde, pero le faltan las tablas: corre supabase/esquema.sql');
+    if (!r.ok) throw new Error('El proyecto respondió con un error ' + r.status);
+    const personas = await r.json();
+    if (!Array.isArray(personas) || !personas.length) {
+      throw new Error('Conecta bien, pero no hay personas dadas de alta todavía (paso 3 y 4 de la guía)');
+    }
+    return personas;
+  }
 
   /** Las tablas de la nube y cómo se llaman sus columnas en la app. */
   const TABLAS = {
@@ -1076,7 +1138,8 @@ const Nube = (() => {
   }
 
   return {
-    configurada, sesionActual, listaAcceso, entrar, salir, refrescar,
+    configurada, guardarConexion, olvidarConexion, probarConexion, cfg,
+    sesionActual, listaAcceso, entrar, salir, refrescar,
     traerTodo, traerTabla, traerAsistencia,
     subirFila, subirLote, borrarFila, guardarAsistencia, anotarMovimiento, contarFilas,
     encolar, vaciarCola, pendientes, TABLAS
@@ -1280,14 +1343,17 @@ const Nube = (() => {
   async function arrancarAcceso() {
     const gate = document.getElementById('gate');
     const guardada = Nube.sesionActual();
+    const conectada = Nube.configurada();
 
-    if (!Nube.configurada()) {
-      // Sin nube configurada no hay a quién validar: se ofrece el modo local.
-      document.getElementById('gatePersonas').hidden = true;
-      document.getElementById('gateLocal').hidden = false;
-      gate.hidden = false;
-      return;
-    }
+    document.getElementById('gateConexion').hidden = true;
+    document.getElementById('gatePin').hidden = true;
+    document.getElementById('gateLocal').hidden = false;
+    document.getElementById('gatePersonas').hidden = !conectada;
+    document.getElementById('btnConectar').textContent = conectada
+      ? 'Cambiar la conexión' : 'Conectar la base compartida';
+
+    if (!conectada) { gate.hidden = false; return; }
+
     if (guardada && guardada.token && guardada.nombre) {
       sesion = { usuario: guardada.usuario, nombre: guardada.nombre, rol: guardada.rol };
       gate.hidden = true;
@@ -1300,13 +1366,53 @@ const Nube = (() => {
         '<button class="gate-persona" type="button" data-usuario="' + esc(p.usuario) + '" data-nombre="' + esc(p.nombre) + '">'
         + '<span class="avatar" style="width:30px;height:30px;font-size:11px">' + esc(iniciales(p.nombre)) + '</span>'
         + esc(p.nombre) + '</button>'
-      ).join('') || '<p class="hint">Todavía no hay personas registradas. Créalas en Supabase siguiendo <b>supabase/esquema.sql</b>.</p>';
-      document.getElementById('gateLocal').hidden = false;
+      ).join('') || '<p class="hint">Todavía no hay personas dadas de alta. Créalas en Supabase (pasos 3 y 4 de la guía).</p>';
+      gateError('');
     } catch (e) {
-      gateError('No se pudo contactar la base compartida. Revisa config.js o tu conexión.');
-      document.getElementById('gateLocal').hidden = false;
+      gateError('No se pudo contactar la base compartida. Revisa la conexión o tu internet.');
     }
     gate.hidden = false;
+  }
+  /* --- Conectar la base compartida desde la propia app --------------------
+     Evita tener que editar config.js y volver a generar el archivo: en un
+     teléfono eso no es posible, y en Windows requiere instalar Python. */
+  function abrirConexion() {
+    const c = Nube.cfg();
+    document.getElementById('cxUrl').value = c.SUPABASE_URL || '';
+    document.getElementById('cxKey').value = c.SUPABASE_ANON_KEY || '';
+    document.getElementById('cxDominio').value = c.DOMINIO_ACCESO || 'gabidom.mx';
+    document.getElementById('gatePersonas').hidden = true;
+    document.getElementById('gateLocal').hidden = true;
+    document.getElementById('gatePin').hidden = true;
+    document.getElementById('gateConexion').hidden = false;
+    gateError('');
+    document.getElementById('cxUrl').focus();
+  }
+  function cerrarConexion() {
+    document.getElementById('gateConexion').hidden = true;
+    gateError('');
+    arrancarAcceso();
+  }
+  async function guardarConexion() {
+    const datos = {
+      SUPABASE_URL: val('cxUrl'),
+      SUPABASE_ANON_KEY: val('cxKey'),
+      DOMINIO_ACCESO: val('cxDominio') || 'gabidom.mx'
+    };
+    const btn = document.getElementById('cxBtn');
+    btn.disabled = true; btn.textContent = 'Probando…';
+    gateError('');
+    try {
+      await Nube.probarConexion(datos);      // solo se guarda si de verdad responde
+      Nube.guardarConexion(datos);
+      document.getElementById('gateConexion').hidden = true;
+      await arrancarAcceso();
+      toast('Base compartida conectada');
+    } catch (e) {
+      gateError(e.message || 'No se pudo conectar');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Probar y conectar';
+    }
   }
   function gateError(msg) {
     const a = document.getElementById('gateAviso');

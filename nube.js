@@ -12,9 +12,50 @@
 'use strict';
 
 const Nube = (() => {
-  const cfg = () => (window.GABIDOM_CONFIG || {});
   const SESION_KEY = 'gabidom_sesion';
   const COLA_KEY = 'gabidom_cola';
+  const CONFIG_KEY = 'gabidom_conexion';
+
+  /* La conexión puede venir de config.js (viene dentro del archivo) o haberse
+     escrito desde la propia app y quedar guardada en el dispositivo. Gana la
+     guardada, porque es la que alguien puso a propósito en ese teléfono. */
+  let conexionGuardada = null;
+  try { conexionGuardada = JSON.parse(localStorage.getItem(CONFIG_KEY) || 'null'); } catch (e) { conexionGuardada = null; }
+
+  const cfg = () => Object.assign({}, window.GABIDOM_CONFIG || {}, conexionGuardada || {});
+
+  function guardarConexion(datos) {
+    const limpia = {
+      SUPABASE_URL: String(datos.SUPABASE_URL || '').trim().replace(/\/+$/, ''),
+      SUPABASE_ANON_KEY: String(datos.SUPABASE_ANON_KEY || '').trim(),
+      DOMINIO_ACCESO: String(datos.DOMINIO_ACCESO || 'gabidom.mx').trim().replace(/^@/, '')
+    };
+    conexionGuardada = limpia;
+    try { localStorage.setItem(CONFIG_KEY, JSON.stringify(limpia)); } catch (e) { /* sin almacenamiento */ }
+    return limpia;
+  }
+  function olvidarConexion() {
+    conexionGuardada = null;
+    try { localStorage.removeItem(CONFIG_KEY); } catch (e) { /* sin almacenamiento */ }
+  }
+  /** Comprueba que los datos sirvan antes de guardarlos. */
+  async function probarConexion(datos) {
+    const url = String(datos.SUPABASE_URL || '').trim().replace(/\/+$/, '');
+    const key = String(datos.SUPABASE_ANON_KEY || '').trim();
+    if (!/^https?:\/\/.+/.test(url)) throw new Error('La dirección debe empezar con https:// y ser el "Project URL" de Supabase');
+    if (!key) throw new Error('Falta la llave pública (anon public)');
+    const r = await fetch(url + '/rest/v1/perfiles_login?select=usuario,nombre', {
+      headers: { apikey: key, 'Content-Type': 'application/json' }
+    });
+    if (r.status === 401 || r.status === 403) throw new Error('La llave no es válida para ese proyecto');
+    if (r.status === 404) throw new Error('El proyecto responde, pero le faltan las tablas: corre supabase/esquema.sql');
+    if (!r.ok) throw new Error('El proyecto respondió con un error ' + r.status);
+    const personas = await r.json();
+    if (!Array.isArray(personas) || !personas.length) {
+      throw new Error('Conecta bien, pero no hay personas dadas de alta todavía (paso 3 y 4 de la guía)');
+    }
+    return personas;
+  }
 
   /** Las tablas de la nube y cómo se llaman sus columnas en la app. */
   const TABLAS = {
@@ -300,7 +341,8 @@ const Nube = (() => {
   }
 
   return {
-    configurada, sesionActual, listaAcceso, entrar, salir, refrescar,
+    configurada, guardarConexion, olvidarConexion, probarConexion, cfg,
+    sesionActual, listaAcceso, entrar, salir, refrescar,
     traerTodo, traerTabla, traerAsistencia,
     subirFila, subirLote, borrarFila, guardarAsistencia, anotarMovimiento, contarFilas,
     encolar, vaciarCola, pendientes, TABLAS
