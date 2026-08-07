@@ -265,6 +265,20 @@
     .hint { color: var(--ink-3); font-size: 13px; line-height: 1.55; margin: 0 0 10px; }
     .hint b { color: var(--ink-2); }
 
+    /* ---------- Foto de la nota ---------- */
+    .foto-acciones { display: flex; gap: 8px; flex-wrap: wrap; }
+    .foto-acciones .btn { flex: 1; justify-content: center; min-width: 150px; }
+    .foto-preview { display: flex; gap: 12px; align-items: flex-start; margin-top: 10px; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px; }
+    .foto-preview[hidden] { display: none; }
+    .foto-preview img { width: 96px; height: 96px; object-fit: cover; border-radius: 8px; flex: 0 0 auto; background: var(--muted, var(--line)); }
+    .foto-info { flex: 1; min-width: 0; }
+    .foto-nombre { font-size: 13px; font-weight: 650; word-break: break-all; }
+    .miniatura { width: 34px; height: 34px; border-radius: 7px; object-fit: cover; border: 1px solid var(--line); cursor: pointer; display: block; }
+    .visor { position: fixed; inset: 0; z-index: 90; background: rgba(7,20,22,.92); display: none; align-items: center; justify-content: center; padding: 18px; flex-direction: column; gap: 12px; }
+    .visor.show { display: flex; }
+    .visor img { max-width: 100%; max-height: 82vh; border-radius: 10px; object-fit: contain; }
+    .visor-barra { display: flex; gap: 8px; align-items: center; color: #eaf6f8; font-size: 13.5px; font-weight: 650; }
+
     .overlay { display: none; position: fixed; inset: 0; background: rgba(7,20,22,.5); z-index: 29; }
     .overlay.show { display: block; }
 
@@ -356,6 +370,9 @@
     <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.4 15.4 21 21"/></symbol>
     <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
     <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+    <symbol id="i-camara" viewBox="0 0 24 24"><path d="M3 8.5h3.4L8 6h8l1.6 2.5H21v11H3v-11Z"/><circle cx="12" cy="13.5" r="3.4"/></symbol>
+    <symbol id="i-imagen" viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="15" rx="2.2"/><circle cx="8.5" cy="10" r="1.7"/><path d="M4 17.5 9.5 12l3.5 3.2 3-2.4 4 4.7"/></symbol>
+    <symbol id="i-ojo" viewBox="0 0 24 24"><path d="M2.5 12S6 5.8 12 5.8 21.5 12 21.5 12 18 18.2 12 18.2 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3.1"/></symbol>
     <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 3.5v12"/><path d="M7.5 11 12 15.5 16.5 11"/><path d="M4.5 20.5h15"/></symbol>
     <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M9.5 7V4.5h5V7"/><path d="M6 7l1 13.5h10L18 7"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><path d="M4.5 12.5 9.5 17.5 19.5 6.5"/></symbol>
@@ -547,6 +564,25 @@
                 <div class="field"><label for="ventaRestante">Restante por cobrar ($)</label><input type="number" id="ventaRestante" min="0" step="1"></div>
                 <div class="field"><label for="ventaEstatus">Estatus</label><select id="ventaEstatus"><option>Pagado y entregado</option><option>Pendiente</option></select></div>
                 <div class="field full"><label for="ventaObs">Observaciones</label><textarea id="ventaObs"></textarea></div>
+                <div class="field full">
+                  <label>Foto de la nota o comprobante</label>
+                  <!-- capture pide la cámara trasera en el celular; sin capture se
+                       abre la galería. Dos botones para no obligar a elegir de un menú. -->
+                  <input type="file" id="ventaFotoCamara" accept="image/jpeg,image/png,image/webp" capture="environment" hidden onchange="elegirFoto(this)">
+                  <input type="file" id="ventaFotoArchivo" accept="image/jpeg,image/jpg,image/png,image/webp" hidden onchange="elegirFoto(this)">
+                  <div class="foto-acciones">
+                    <button type="button" class="btn" onclick="document.getElementById('ventaFotoCamara').click()"><svg class="ico sm"><use href="#i-camara"/></svg> Tomar foto</button>
+                    <button type="button" class="btn" onclick="document.getElementById('ventaFotoArchivo').click()"><svg class="ico sm"><use href="#i-imagen"/></svg> Elegir de la galería</button>
+                  </div>
+                  <div id="ventaFotoPreview" class="foto-preview" hidden>
+                    <img id="ventaFotoImg" alt="Vista previa de la nota">
+                    <div class="foto-info">
+                      <div id="ventaFotoNombre" class="foto-nombre"></div>
+                      <div id="ventaFotoPeso" class="hint" style="margin:2px 0 0"></div>
+                      <button type="button" class="btn small danger" onclick="quitarFoto()" style="margin-top:6px"><svg class="ico sm"><use href="#i-trash"/></svg> Quitar</button>
+                    </div>
+                  </div>
+                </div>
               </div>
               <div class="form-foot">
                 <button class="btn" onclick="toggleForm('Venta', false)">Cancelar</button>
@@ -563,7 +599,7 @@
           <div class="card">
             <div class="card-head"><div class="card-title">Ventas</div><span class="card-note" id="ventasResumen"></span></div>
             <div class="card-body flush"><div class="t-scroll"><table class="t-min">
-              <thead><tr><th>Folio</th><th>Fecha</th><th>Cliente</th><th class="num">Total</th><th class="num">Tarjeta</th><th class="num">Efectivo</th><th class="num">Restante</th><th>Registró</th><th>Estatus</th><th></th></tr></thead>
+              <thead><tr><th>Folio</th><th>Fecha</th><th>Cliente</th><th class="num">Total</th><th class="num">Tarjeta</th><th class="num">Efectivo</th><th class="num">Restante</th><th>Nota</th><th>Registró</th><th>Estatus</th><th></th></tr></thead>
               <tbody id="tablaVentas"></tbody>
             </table></div></div>
           </div>
@@ -756,6 +792,13 @@
     </main>
   </div>
 
+  <div class="visor" id="visorFoto" onclick="cerrarVisor(event)">
+    <div class="visor-barra"><span id="visorTitulo"></span>
+      <button class="btn small" onclick="cerrarVisor(event, true)"><svg class="ico sm"><use href="#i-x"/></svg> Cerrar</button>
+    </div>
+    <img id="visorImg" alt="Foto de la nota">
+  </div>
+
   <div id="vizTip" role="status" aria-live="polite"></div>
   <div id="toast"><svg class="ico sm"><use href="#i-check"/></svg><span id="toastText"></span></div>
 
@@ -791,6 +834,10 @@
     ]}
   ];
   const MESES = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+  /* Desde esta fecha las notas se numeran otra vez desde 0001. Los folios
+     anteriores (A 665, 22467…) se conservan tal cual: esto solo cambia lo que
+     la app propone al registrar una venta nueva. */
+  const FOLIO_REINICIO = '2026-08-07';
   const MESES_CORTO = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
   const ESTATUS = ['Pagado y entregado','Pendiente'];
   const PAGOS = ['Efectivo','Tarjeta/Transferencia','Mixto'];
@@ -1276,7 +1323,10 @@
       populateClientes();
       const fecha = document.getElementById('ventaFecha');
       if (!fecha.value) fecha.value = iso(new Date());
-      document.getElementById('ventaFolio').focus();
+      const folio = document.getElementById('ventaFolio');
+      if (!folio.value) folio.value = siguienteFolio();
+      quitarFoto();
+      document.getElementById('ventaCliente').focus();
     }
     if (open) f.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
@@ -1437,7 +1487,110 @@
     toast(et.nombre + ': ' + antes + ' → ' + despues);
   }
 
+  /* ================= Foto de la nota =================
+     Una foto de celular pesa 3-5 MB. Se reescala y recomprime antes de subir
+     para no gastar los datos de quien está en el mostrador ni llenar el
+     almacenamiento; el comprobante se sigue leyendo perfecto.          */
+  const FOTO_LADO_MAX = 1600;
+  const FOTO_CALIDAD = 0.82;
+  let fotoPendiente = null;   // { blob, ext, nombre } de la venta que se está capturando
+
+  function pesoLegible(bytes) {
+    if (bytes >= 1048576) return (bytes / 1048576).toFixed(1) + ' MB';
+    return Math.max(1, Math.round(bytes / 1024)) + ' KB';
+  }
+  function comprimirImagen(archivo) {
+    return new Promise((resolve, reject) => {
+      const lector = new FileReader();
+      lector.onerror = () => reject(new Error('No se pudo leer la imagen'));
+      lector.onload = () => {
+        const img = new Image();
+        img.onerror = () => reject(new Error('El archivo no es una imagen válida'));
+        img.onload = () => {
+          const escala = Math.min(1, FOTO_LADO_MAX / Math.max(img.width, img.height));
+          const w = Math.max(1, Math.round(img.width * escala));
+          const h = Math.max(1, Math.round(img.height * escala));
+          const lienzo = document.createElement('canvas');
+          lienzo.width = w; lienzo.height = h;
+          const ctx = lienzo.getContext('2d');
+          ctx.fillStyle = '#fff';           // el PNG transparente no debe salir negro en JPEG
+          ctx.fillRect(0, 0, w, h);
+          ctx.drawImage(img, 0, 0, w, h);
+          lienzo.toBlob(b => {
+            if (!b) { reject(new Error('No se pudo procesar la imagen')); return; }
+            resolve({ blob: b, ext: 'jpg', dataUrl: lienzo.toDataURL('image/jpeg', FOTO_CALIDAD) });
+          }, 'image/jpeg', FOTO_CALIDAD);
+        };
+        img.src = lector.result;
+      };
+      lector.readAsDataURL(archivo);
+    });
+  }
+  async function elegirFoto(input) {
+    const archivo = input.files && input.files[0];
+    input.value = '';                        // permite volver a elegir el mismo archivo
+    if (!archivo) return;
+    if (!/^image\/(jpeg|jpg|png|webp)$/i.test(archivo.type)) {
+      toast('Solo se aceptan imágenes JPG, PNG o WEBP');
+      return;
+    }
+    if (archivo.size > 25 * 1024 * 1024) { toast('Esa imagen pesa demasiado (máximo 25 MB)'); return; }
+    try {
+      const r = await comprimirImagen(archivo);
+      fotoPendiente = { blob: r.blob, ext: r.ext, nombre: archivo.name, dataUrl: r.dataUrl };
+      document.getElementById('ventaFotoImg').src = r.dataUrl;
+      document.getElementById('ventaFotoNombre').textContent = archivo.name;
+      document.getElementById('ventaFotoPeso').textContent =
+        pesoLegible(archivo.size) + ' → ' + pesoLegible(r.blob.size) + ' al guardar';
+      document.getElementById('ventaFotoPreview').hidden = false;
+    } catch (e) {
+      toast(e.message || 'No se pudo usar esa imagen');
+    }
+  }
+  function quitarFoto() {
+    fotoPendiente = null;
+    document.getElementById('ventaFotoPreview').hidden = true;
+    document.getElementById('ventaFotoImg').removeAttribute('src');
+  }
+  function celdaFoto(v) {
+    if (!v.foto) return '<span class="hint">—</span>';
+    return '<button class="btn small" onclick="verFoto(\'' + v.id + '\')" title="Ver la nota">'
+      + icon('i-ojo') + '</button>';
+  }
+  async function verFoto(idVenta) {
+    const v = db.ventas.find(x => x.id === idVenta);
+    if (!v || !v.foto) return;
+    const visor = document.getElementById('visorFoto');
+    document.getElementById('visorTitulo').textContent = 'Nota ' + (v.folio || '');
+    document.getElementById('visorImg').removeAttribute('src');
+    visor.classList.add('show');
+    try {
+      // Guardada en el dispositivo (modo local) o en la nube (enlace temporal).
+      const src = v.foto.startsWith('data:') ? v.foto : await Nube.urlFoto(v.foto, 3600);
+      if (!src) throw new Error('sin enlace');
+      document.getElementById('visorImg').src = src;
+    } catch (e) {
+      cerrarVisor(null, true);
+      toast('No se pudo abrir la foto: ' + (e.message || 'error'));
+    }
+  }
+  function cerrarVisor(ev, forzar) {
+    if (!forzar && ev && ev.target && ev.target.id === 'visorImg') return;
+    document.getElementById('visorFoto').classList.remove('show');
+    document.getElementById('visorImg').removeAttribute('src');
+  }
+
   /* ================= Ventas ================= */
+  /** Siguiente número de nota, contando solo las emitidas desde el reinicio. */
+  function siguienteFolio() {
+    let mayor = 0;
+    db.ventas.forEach(v => {
+      if (!v.fecha || v.fecha < FOLIO_REINICIO) return;
+      const f = String(v.folio || '').trim();
+      if (/^\d{1,5}$/.test(f)) mayor = Math.max(mayor, Number(f));
+    });
+    return String(mayor + 1).padStart(4, '0');
+  }
   function clientesUnicos() {
     const map = new Map();
     db.clientes.forEach(c => map.set(c.nombre.toLowerCase(), c));
@@ -1480,30 +1633,54 @@
       + '<td class="num">' + (v.montoTarjeta !== '' ? money(v.montoTarjeta) : '—') + '</td>'
       + '<td class="num">' + (v.efectivo !== '' ? money(v.efectivo) : '—') + '</td>'
       + '<td class="num">' + (restanteDe(v) > 0 ? money(restanteDe(v)) : '—') + '</td>'
+      + '<td>' + celdaFoto(v) + '</td>'
       + '<td>' + (esc(v.registroDe) || '—') + '</td>'
       + '<td><select onchange="cambiarEstatus(\'' + v.id + '\', this.value)" aria-label="Estatus de ' + esc(v.folio) + '">'
       + ESTATUS.map(e => '<option' + (e === v.estatus ? ' selected' : '') + '>' + e + '</option>').join('') + '</select></td>'
       + '<td>' + (esDueno() ? '<button class="btn small danger" onclick="borrar(\'ventas\',\'' + v.id + '\')" aria-label="Borrar venta">' + icon('i-trash') + '</button>' : '') + '</td></tr>'
-    ).join('') || emptyRow(10, 'Ninguna venta coincide con los filtros', 'i-search');
+    ).join('') || emptyRow(11, 'Ninguna venta coincide con los filtros', 'i-search');
   }
-  function guardarVenta() {
+  async function guardarVenta() {
     const cliente = val('ventaCliente');
     if (!cliente) { toast('Escribe el cliente o escuela'); document.getElementById('ventaCliente').focus(); return; }
     const fecha = val('ventaFecha') || iso(new Date());
     const mesIdx = Number(String(fecha).split('-')[1]) - 1;
     const venta = {
       id: uid(),
-      folio: val('ventaFolio') || ('#' + String(db.folioSeq++).padStart(4,'0')),
+      folio: val('ventaFolio') || siguienteFolio(),
       mes: MESES[mesIdx] || '', fecha, cliente,
       montoTotal: num('ventaMontoTotal'), noTarjeta: val('ventaNoTarjeta'),
       montoTarjeta: num('ventaMontoTarjeta'), efectivo: num('ventaEfectivo'), restante: num('ventaRestante'),
       formaPago: val('ventaFormaPago'), estatus: val('ventaEstatus'), obs: val('ventaObs'),
-      registroDe: quienSoy()
+      registroDe: quienSoy(), foto: ''
     };
+
+    let avisoFoto = '';
+    if (fotoPendiente) {
+      if (modoLocal || !Nube.configurada()) {
+        // Sin nube la foto vive en este dispositivo y ocupa espacio del navegador.
+        venta.foto = fotoPendiente.dataUrl;
+      } else {
+        const btn = document.querySelector('#formVenta .btn.primary');
+        if (btn) { btn.disabled = true; btn.textContent = 'Subiendo foto…'; }
+        try {
+          venta.foto = await Nube.subirFoto(venta.id, fotoPendiente.blob, fotoPendiente.ext);
+        } catch (e) {
+          // La venta no se pierde por culpa de la foto: se guarda igual y se avisa.
+          venta.foto = '';
+          avisoFoto = ' — la foto no subió: ' + (e.message || 'error');
+        } finally {
+          if (btn) { btn.disabled = false; btn.innerHTML = icon('i-check') + ' Guardar venta'; }
+        }
+      }
+    }
+
     db.ventas.push(venta);
     subir('ventas', venta);
     clearIds(['ventaFolio','ventaCliente','ventaMontoTotal','ventaMontoTarjeta','ventaEfectivo','ventaNoTarjeta','ventaRestante','ventaObs']);
-    toggleForm('Venta', false); renderAll(); toast('Venta guardada');
+    quitarFoto();
+    toggleForm('Venta', false); renderAll();
+    toast('Nota ' + venta.folio + ' guardada' + avisoFoto);
   }
   function cambiarEstatus(id, estatus) {
     const v = db.ventas.find(x => x.id === id);

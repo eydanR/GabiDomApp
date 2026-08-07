@@ -64,7 +64,7 @@ const Nube = (() => {
         id: 'id', folio: 'folio', mes: 'mes', fecha: 'fecha', cliente: 'cliente',
         montoTotal: 'monto_total', noTarjeta: 'no_tarjeta', montoTarjeta: 'monto_tarjeta',
         efectivo: 'efectivo', restante: 'restante', formaPago: 'forma_pago',
-        estatus: 'estatus', obs: 'obs', registroDe: 'registro_de'
+        estatus: 'estatus', obs: 'obs', registroDe: 'registro_de', foto: 'foto'
       },
       numericos: ['montoTotal', 'montoTarjeta', 'efectivo', 'restante'],
       fechas: ['fecha']
@@ -293,6 +293,50 @@ const Nube = (() => {
     return Number((rango.split('/')[1] || '0')) || 0;
   }
 
+  /* -------------------------------------------------------------- fotos --- */
+  const BUCKET = 'ventas';
+
+  /** Sube la foto de una venta. Devuelve la ruta con la que se vuelve a pedir. */
+  async function subirFoto(idVenta, blob, extension) {
+    if (!configurada() || !sesion) throw new Error('Sin base compartida');
+    const ruta = idVenta + '/' + Date.now() + '.' + (extension || 'jpg');
+    const r = await fetch(base() + '/storage/v1/object/' + BUCKET + '/' + ruta, {
+      method: 'POST',
+      headers: {
+        apikey: cfg().SUPABASE_ANON_KEY,
+        Authorization: 'Bearer ' + sesion.token,
+        'Content-Type': blob.type || 'image/jpeg',
+        'x-upsert': 'true'
+      },
+      body: blob
+    });
+    if (!r.ok) {
+      let detalle = '';
+      try { detalle = (await r.json()).message || ''; } catch (e) { /* sin cuerpo */ }
+      if (r.status === 404) throw new Error('Falta crear el espacio de fotos: corre el PASO 3 de supabase/esquema.sql');
+      throw new Error(detalle || ('No se pudo subir la foto (error ' + r.status + ')'));
+    }
+    return ruta;
+  }
+
+  /** El bucket es privado, así que para verla se pide un enlace temporal. */
+  async function urlFoto(ruta, segundos) {
+    if (!ruta || !configurada() || !sesion) return null;
+    const datos = await pedir('/storage/v1/object/sign/' + BUCKET + '/' + ruta, {
+      method: 'POST', body: JSON.stringify({ expiresIn: segundos || 3600 })
+    });
+    if (!datos || !datos.signedURL) return null;
+    return base() + '/storage/v1' + datos.signedURL.replace(/^\/storage\/v1/, '');
+  }
+
+  async function borrarFoto(ruta) {
+    if (!ruta || !configurada() || !sesion) return;
+    await fetch(base() + '/storage/v1/object/' + BUCKET + '/' + ruta, {
+      method: 'DELETE',
+      headers: { apikey: cfg().SUPABASE_ANON_KEY, Authorization: 'Bearer ' + sesion.token }
+    });
+  }
+
   /* ---------------------------------------------------- cola de pendientes -- */
   /* Si el teléfono pierde señal a media captura, el cambio no se pierde:
      queda anotado aquí y se reintenta al recuperar conexión.              */
@@ -345,6 +389,7 @@ const Nube = (() => {
     sesionActual, listaAcceso, entrar, salir, refrescar,
     traerTodo, traerTabla, traerAsistencia,
     subirFila, subirLote, borrarFila, guardarAsistencia, anotarMovimiento, contarFilas,
+    subirFoto, urlFoto, borrarFoto,
     encolar, vaciarCola, pendientes, TABLAS
   };
 })();

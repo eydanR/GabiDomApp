@@ -249,3 +249,70 @@ on conflict (id) do update
 -- Comprueba que quedaron bien. Deben aparecer todas las personas con su rol;
 -- si alguna falta, es que su correo aquí no coincide con el de Authentication.
 select usuario, nombre, rol from public.perfiles order by rol, nombre;
+
+-- ============================================================================
+-- PASO 3 — fotos de las notas de venta
+--
+-- Corre esto una vez para que la app pueda guardar la foto o el comprobante
+-- de cada venta. El bucket queda PRIVADO: las fotos solo se ven desde la app
+-- por quien haya entrado con su PIN, nunca por alguien que adivine la
+-- dirección del archivo.
+-- ============================================================================
+
+-- Columna donde la venta recuerda cuál es su foto.
+alter table public.ventas add column if not exists foto text;
+
+-- Bucket privado, con tope de 8 MB y solo imágenes.
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('ventas', 'ventas', false, 8388608,
+        array['image/jpeg','image/jpg','image/png','image/webp'])
+on conflict (id) do update
+  set public = false,
+      file_size_limit = 8388608,
+      allowed_mime_types = array['image/jpeg','image/jpg','image/png','image/webp'];
+
+-- Quien entró puede ver y subir fotos; borrarlas queda para la dueña.
+drop policy if exists ventas_fotos_ver on storage.objects;
+create policy ventas_fotos_ver on storage.objects
+  for select to authenticated using (bucket_id = 'ventas');
+
+drop policy if exists ventas_fotos_subir on storage.objects;
+create policy ventas_fotos_subir on storage.objects
+  for insert to authenticated with check (bucket_id = 'ventas');
+
+drop policy if exists ventas_fotos_reemplazar on storage.objects;
+create policy ventas_fotos_reemplazar on storage.objects
+  for update to authenticated using (bucket_id = 'ventas') with check (bucket_id = 'ventas');
+
+drop policy if exists ventas_fotos_borrar on storage.objects;
+create policy ventas_fotos_borrar on storage.objects
+  for delete to authenticated using (bucket_id = 'ventas' and public.es_dueno());
+
+-- ============================================================================
+-- PASO 4 — reinicio de la numeración de notas (7 de agosto de 2026)
+--
+-- A partir de esta fecha las notas se numeran desde 0001. Los folios viejos
+-- (A 665, 22467…) se conservan tal cual: esto solo cambia lo que la app
+-- propone al registrar una venta nueva.
+-- ============================================================================
+
+create table if not exists public.ajustes (
+  clave  text primary key,
+  valor  text,
+  nota   text,
+  puesto timestamptz not null default now()
+);
+
+alter table public.ajustes enable row level security;
+
+drop policy if exists ajustes_leer on public.ajustes;
+create policy ajustes_leer on public.ajustes for select to authenticated using (true);
+
+drop policy if exists ajustes_dueno on public.ajustes;
+create policy ajustes_dueno on public.ajustes
+  for all to authenticated using (public.es_dueno()) with check (public.es_dueno());
+
+insert into public.ajustes (clave, valor, nota) values
+  ('folio_reinicio_desde', '2026-08-07',
+   'Desde esta fecha las notas se numeran desde 0001. Los folios anteriores se conservan.')
+on conflict (clave) do nothing;
