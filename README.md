@@ -90,7 +90,11 @@ Vuelve al **SQL Editor** y corre el **PASO 3** que viene al final de
 Ese espacio queda **privado**: las fotos solo se ven desde la app por quien haya
 entrado con su PIN, nunca por alguien que adivine la dirección del archivo.
 
-Si te saltas este paso la app funciona igual, pero al guardar una venta con foto
+Si Supabase no te deja crear ese espacio desde el SQL Editor (pasa en algunos
+proyectos), **el resto del archivo se instala igual** y el propio SQL te dice
+cómo crearlo a mano desde el menú **Storage**. No es un error tuyo.
+
+Si te saltas este paso la app funciona, pero al guardar una venta con foto
 avisará que falta crearlo.
 
 ### 6. Subir los datos que ya existen
@@ -126,14 +130,18 @@ La foto se reduce y recomprime **antes de subirse** (una de 1.7 MB queda en unos
 600 KB) para no gastar los datos de quien está en el mostrador. En la tabla de
 ventas cada nota con foto trae un botón para verla en grande.
 
-Si en ese momento no hay señal, la venta se guarda igual y te avisa que la foto
-no subió.
+Si en ese momento no hay señal, la venta se guarda igual y **la foto no se
+pierde**: queda en el teléfono, se puede ver, y sube sola en cuanto vuelve la
+conexión. Al borrar una venta se borra también su foto.
 
 ## Numeración de las notas
 
 **A partir del 7 de agosto de 2026 las notas se numeran desde 0001.** La app
 propone sola el siguiente número al abrir una venta nueva, contando únicamente
 las emitidas desde esa fecha; lo puedes cambiar a mano si hace falta.
+
+Si dos personas capturan a la vez y les toca el mismo número, al guardar la app
+avisa y ofrece el siguiente libre, para no terminar con dos notas 0007.
 
 Los folios anteriores (`A 665`, `22467`…) **se conservan tal cual**: el reinicio
 solo afecta a las notas nuevas.

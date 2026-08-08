@@ -262,31 +262,56 @@ select usuario, nombre, rol from public.perfiles order by rol, nombre;
 -- Columna donde la venta recuerda cuál es su foto.
 alter table public.ventas add column if not exists foto text;
 
--- Bucket privado, con tope de 8 MB y solo imágenes.
-insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-values ('ventas', 'ventas', false, 8388608,
-        array['image/jpeg','image/jpg','image/png','image/webp'])
-on conflict (id) do update
-  set public = false,
-      file_size_limit = 8388608,
-      allowed_mime_types = array['image/jpeg','image/jpg','image/png','image/webp'];
+-- El almacenamiento de Supabase pertenece a otro usuario interno, así que
+-- crear su bucket y sus reglas puede quedar fuera del alcance del SQL Editor.
+-- Si eso pasa, este bloque NO detiene el resto del archivo: avisa qué hacer a
+-- mano y todo lo demás queda instalado igual.
+do $$
+begin
+  insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+  values ('ventas', 'ventas', false, 8388608,
+          array['image/jpeg','image/jpg','image/png','image/webp'])
+  on conflict (id) do update
+    set public = false,
+        file_size_limit = 8388608,
+        allowed_mime_types = array['image/jpeg','image/jpg','image/png','image/webp'];
 
--- Quien entró puede ver y subir fotos; borrarlas queda para la dueña.
-drop policy if exists ventas_fotos_ver on storage.objects;
-create policy ventas_fotos_ver on storage.objects
-  for select to authenticated using (bucket_id = 'ventas');
+  -- Quien entró puede ver y subir fotos; borrarlas queda para la dueña.
+  execute 'drop policy if exists ventas_fotos_ver on storage.objects';
+  execute 'create policy ventas_fotos_ver on storage.objects
+             for select to authenticated using (bucket_id = ''ventas'')';
 
-drop policy if exists ventas_fotos_subir on storage.objects;
-create policy ventas_fotos_subir on storage.objects
-  for insert to authenticated with check (bucket_id = 'ventas');
+  execute 'drop policy if exists ventas_fotos_subir on storage.objects';
+  execute 'create policy ventas_fotos_subir on storage.objects
+             for insert to authenticated with check (bucket_id = ''ventas'')';
 
-drop policy if exists ventas_fotos_reemplazar on storage.objects;
-create policy ventas_fotos_reemplazar on storage.objects
-  for update to authenticated using (bucket_id = 'ventas') with check (bucket_id = 'ventas');
+  execute 'drop policy if exists ventas_fotos_reemplazar on storage.objects';
+  execute 'create policy ventas_fotos_reemplazar on storage.objects
+             for update to authenticated using (bucket_id = ''ventas'')
+             with check (bucket_id = ''ventas'')';
 
-drop policy if exists ventas_fotos_borrar on storage.objects;
-create policy ventas_fotos_borrar on storage.objects
-  for delete to authenticated using (bucket_id = 'ventas' and public.es_dueno());
+  execute 'drop policy if exists ventas_fotos_borrar on storage.objects';
+  execute 'create policy ventas_fotos_borrar on storage.objects
+             for delete to authenticated using (bucket_id = ''ventas'' and public.es_dueno())';
+
+  raise notice 'Espacio de fotos listo.';
+exception
+  when insufficient_privilege or undefined_table then
+    raise notice '===================================================================';
+    raise notice 'El espacio de fotos hay que crearlo a mano (no fue por tu culpa:';
+    raise notice 'Supabase no deja tocarlo desde aquí en algunos proyectos).';
+    raise notice '';
+    raise notice '1. Menu Storage -> New bucket';
+    raise notice '     Name: ventas';
+    raise notice '     Public bucket: DESACTIVADO';
+    raise notice '2. En ese bucket -> Policies -> New policy -> For full customization';
+    raise notice '     Crea una para SELECT y otra para INSERT,';
+    raise notice '     ambas con el rol authenticated y la condicion:';
+    raise notice '       bucket_id = ''ventas''';
+    raise notice '';
+    raise notice 'TODO LO DEMAS DE ESTE ARCHIVO SI QUEDO INSTALADO.';
+    raise notice '===================================================================';
+end $$;
 
 -- ============================================================================
 -- PASO 4 — reinicio de la numeración de notas (7 de agosto de 2026)
