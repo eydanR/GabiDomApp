@@ -1590,6 +1590,7 @@ const Nube = (() => {
     sincronizando = true; actualizarSync();
     try {
       const r = await Nube.vaciarCola();
+      const fotos = await subirFotosPendientes();
       const remoto = await Nube.traerTodo();
 
       /* Una tabla que llega vacía de la nube NO borra la del dispositivo: quiere
@@ -1609,12 +1610,36 @@ const Nube = (() => {
         await ofrecerImportacion(faltantes);
         return;
       }
-      if (manual) toast(r.subidas ? 'Listo: ' + r.subidas + ' cambios subidos' : 'Datos al día');
+      if (manual) {
+        const partes = [];
+        if (r.subidas) partes.push(r.subidas + ' cambios');
+        if (fotos) partes.push(fotos + (fotos === 1 ? ' foto' : ' fotos'));
+        toast(partes.length ? 'Listo: ' + partes.join(' y ') + ' al día' : 'Datos al día');
+      }
     } catch (e) {
       if (manual) toast('No se pudo sincronizar: ' + (e.message || 'sin conexión'));
     } finally {
       sincronizando = false; actualizarSync();
     }
+  }
+
+  /** Sube las fotos que quedaron guardadas en el dispositivo por falta de señal. */
+  async function subirFotosPendientes() {
+    if (modoLocal || !Nube.configurada()) return 0;
+    const pendientes = db.ventas.filter(v => String(v.foto || '').startsWith('data:'));
+    let subidas = 0;
+    for (const v of pendientes) {
+      try {
+        const blob = await (await fetch(v.foto)).blob();
+        v.foto = await Nube.subirFoto(v.id, blob, 'jpg');
+        Nube.encolar({ tipo: 'fila', tabla: 'ventas', clave: v.id, datos: JSON.parse(JSON.stringify(v)) });
+        subidas++;
+      } catch (e) {
+        break;                    // sigue sin señal: se reintenta en la próxima
+      }
+    }
+    if (subidas) { save(); await Nube.vaciarCola(); }
+    return subidas;
   }
 
   /** Guarda una fila: primero en el dispositivo, luego en la nube (o en la cola). */
@@ -2020,6 +2045,10 @@ const Nube = (() => {
     });
     return String(mayor + 1).padStart(4, '0');
   }
+  function folioExiste(folio) {
+    const f = String(folio).trim().toLowerCase();
+    return db.ventas.some(v => String(v.folio || '').trim().toLowerCase() === f);
+  }
   function clientesUnicos() {
     const map = new Map();
     db.clientes.forEach(c => map.set(c.nombre.toLowerCase(), c));
@@ -2074,9 +2103,25 @@ const Nube = (() => {
     if (!cliente) { toast('Escribe el cliente o escuela'); document.getElementById('ventaCliente').focus(); return; }
     const fecha = val('ventaFecha') || iso(new Date());
     const mesIdx = Number(String(fecha).split('-')[1]) - 1;
+
+    /* Dos personas capturando a la vez pueden ver el mismo número propuesto.
+       Antes de guardar se comprueba contra lo que ya hay y se ofrece el
+       siguiente libre, para no terminar con dos notas 0007. */
+    let folio = val('ventaFolio') || siguienteFolio();
+    if (folioExiste(folio)) {
+      const libre = siguienteFolio();
+      if (!confirm('Ya existe una nota con el folio ' + folio + '.\n\n'
+                 + '¿Guardar esta como ' + libre + '?\n\n'
+                 + '(Cancela si prefieres escribir otro número a mano.)')) {
+        document.getElementById('ventaFolio').focus();
+        return;
+      }
+      folio = libre;
+    }
+
     const venta = {
       id: uid(),
-      folio: val('ventaFolio') || siguienteFolio(),
+      folio,
       mes: MESES[mesIdx] || '', fecha, cliente,
       montoTotal: num('ventaMontoTotal'), noTarjeta: val('ventaNoTarjeta'),
       montoTarjeta: num('ventaMontoTarjeta'), efectivo: num('ventaEfectivo'), restante: num('ventaRestante'),
@@ -2095,9 +2140,10 @@ const Nube = (() => {
         try {
           venta.foto = await Nube.subirFoto(venta.id, fotoPendiente.blob, fotoPendiente.ext);
         } catch (e) {
-          // La venta no se pierde por culpa de la foto: se guarda igual y se avisa.
-          venta.foto = '';
-          avisoFoto = ' — la foto no subió: ' + (e.message || 'error');
+          /* La venta no se pierde por culpa de la foto, y la foto tampoco: se
+             guarda en el dispositivo y sincronizar() la sube al volver la señal. */
+          venta.foto = fotoPendiente.dataUrl;
+          avisoFoto = ' — la foto se subirá cuando haya señal';
         } finally {
           if (btn) { btn.disabled = false; btn.innerHTML = icon('i-check') + ' Guardar venta'; }
         }
@@ -2507,6 +2553,10 @@ const Nube = (() => {
     const item = lista.find(x => x.id === id);
     const nombre = item ? (item.folio || item.nombre || item.variante || item.color || 'registro') : 'registro';
     if (!confirm('¿Borrar "' + nombre + '"? Esta acción no se puede deshacer.')) return;
+    // La foto se va con la venta: si no, queda ocupando espacio para siempre.
+    if (tipo === 'ventas' && item && item.foto && !String(item.foto).startsWith('data:')) {
+      Nube.borrarFoto(item.foto).catch(() => { /* se reintenta al limpiar huérfanas */ });
+    }
     db[tipo] = lista.filter(x => x.id !== id);
     subirBorrado(tipo, id);
     renderAll(); toast('Registro borrado');
