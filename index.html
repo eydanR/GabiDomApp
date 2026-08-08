@@ -1020,6 +1020,11 @@
     if (guardada && guardada.token && guardada.nombre) {
       sesion = { usuario: guardada.usuario, nombre: guardada.nombre, rol: guardada.rol };
       gate.hidden = true;
+      // El rol guardado en el dispositivo no manda: se confirma con el servidor.
+      try {
+        const perfil = await Nube.refrescarPerfil();
+        if (perfil) sesion = { usuario: perfil.usuario, nombre: perfil.nombre, rol: perfil.rol };
+      } catch (e) { /* sin conexión: se sigue con lo último conocido */ }
       await iniciarApp();
       return;
     }

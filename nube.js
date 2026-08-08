@@ -162,13 +162,43 @@ const Nube = (() => {
     }, false);
 
     guardarSesion({ token: datos.access_token, refresh: datos.refresh_token, usuario });
-    const perfiles = await pedir('/rest/v1/perfiles?select=usuario,nombre,rol&limit=1');
-    const perfil = (perfiles && perfiles[0]) || { usuario, nombre: usuario, rol: 'empleado' };
+
+    /* El perfil se pide POR USUARIO, nunca "el primero que salga": la dueña ve
+       todos los perfiles (así lo permite su regla de acceso), así que un
+       limit=1 sin filtro le devolvía el de cualquier otra persona y entraba
+       con el nombre y los permisos equivocados. */
+    const perfiles = await pedir('/rest/v1/perfiles?select=usuario,nombre,rol'
+      + '&usuario=eq.' + encodeURIComponent(usuario) + '&limit=1');
+    const perfil = (perfiles || []).find(p =>
+      String(p.usuario || '').trim().toLowerCase() === String(usuario).trim().toLowerCase());
+
+    if (!perfil) {
+      // Existe la cuenta pero nadie le puso nombre ni rol: mejor decirlo que
+      // dejar entrar con una identidad inventada.
+      guardarSesion(null);
+      throw new Error('Tu cuenta entró bien, pero no tiene perfil en la base. '
+        + 'Falta correr el PASO 2 de supabase/esquema.sql para "' + usuario + '".');
+    }
     guardarSesion({
       token: datos.access_token, refresh: datos.refresh_token,
       usuario: perfil.usuario, nombre: perfil.nombre, rol: perfil.rol
     });
     return sesion;
+  }
+
+  /** Vuelve a leer del servidor el nombre y el rol de quien tiene la sesión.
+      Así un rol cambiado en la base —o alterado en el dispositivo— no manda. */
+  async function refrescarPerfil() {
+    if (!sesion || !sesion.usuario) return null;
+    const perfiles = await pedir('/rest/v1/perfiles?select=usuario,nombre,rol'
+      + '&usuario=eq.' + encodeURIComponent(sesion.usuario) + '&limit=1');
+    const perfil = (perfiles || []).find(p =>
+      String(p.usuario || '').trim().toLowerCase() === String(sesion.usuario).trim().toLowerCase());
+    if (!perfil) return null;
+    guardarSesion(Object.assign({}, sesion, {
+      nombre: perfil.nombre, rol: perfil.rol, usuario: perfil.usuario
+    }));
+    return perfil;
   }
 
   async function refrescar() {
@@ -386,7 +416,7 @@ const Nube = (() => {
 
   return {
     configurada, guardarConexion, olvidarConexion, probarConexion, cfg,
-    sesionActual, listaAcceso, entrar, salir, refrescar,
+    sesionActual, listaAcceso, entrar, salir, refrescar, refrescarPerfil,
     traerTodo, traerTabla, traerAsistencia,
     subirFila, subirLote, borrarFila, guardarAsistencia, anotarMovimiento, contarFilas,
     subirFoto, urlFoto, borrarFoto,
