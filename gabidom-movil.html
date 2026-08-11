@@ -1907,9 +1907,30 @@ const Nube = (() => {
   function load() {
     try {
       const saved = localStorage.getItem(STORE);
-      if (saved) return JSON.parse(saved);
+      if (saved) return completarCatalogos(JSON.parse(saved));
     } catch (e) { /* almacenamiento no disponible o dato corrupto: se re-siembra */ }
     return seed();
+  }
+
+  /* Un dispositivo que ya venía usando la app guardó su base antes de que
+     existieran estos catálogos, y como la siembra solo corre en instalaciones
+     nuevas, se quedaba sin escuelas —el desplegable salía vacío— o sin los
+     artículos del escáner. Aquí se completan los que falten, desde el código.
+     Lo que ya esté guardado no se toca: solo se rellena lo que no existe. */
+  function completarCatalogos(base) {
+    if (!base || typeof base !== 'object') return seed();
+    /* La lista va aquí dentro a propósito: load() corre antes que las
+       constantes de más abajo, y una de ellas aquí rompería el arranque. */
+    const faltan = ['escuelas', 'etiquetas']
+      .filter(k => !Array.isArray(base[k]) || !base[k].length);
+    if (faltan.length) {
+      const nuevo = seed();
+      faltan.forEach(k => { base[k] = nuevo[k]; });
+    }
+    if (!base.asistencia || typeof base.asistencia !== 'object') base.asistencia = {};
+    ['ventas', 'revisar', 'prendas', 'insumos', 'clientes', 'empleados']
+      .forEach(k => { if (!Array.isArray(base[k])) base[k] = []; });
+    return base;
   }
   function save() {
     try { localStorage.setItem(STORE, JSON.stringify(db)); }
