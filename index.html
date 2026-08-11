@@ -33,10 +33,16 @@
       --critical: #c0322f;  --critical-bg: #fbeaea;
       --info: #2a78d6;      --info-bg: #eaf1fc;
 
-      /* Datos: paleta validada (validate_palette.js, light/#ffffff) */
+      /* Datos: paleta validada (validate_palette.js, light/#ffffff).
+         Seis ranuras porque las formas de pago pasaron de tres a cinco, más el
+         histórico; las tres últimas quedan bajo 3:1 contra el fondo claro, por
+         eso la gráfica siempre lleva su leyenda escrita y su tabla. */
       --series-1: #2a78d6;
       --series-2: #eb6834;
       --series-3: #1baf7a;
+      --series-4: #eda100;
+      --series-5: #e87ba4;
+      --series-6: #008300;
       --grid: #e1e0d9;
       --axis: #c3c2b7;
       --muted-ink: #898781;
@@ -58,6 +64,7 @@
         --good: #38c638; --good-bg: #16301a; --warning: #f0b429; --warning-bg: #33280d;
         --critical: #ef6b68; --critical-bg: #331a1a; --info: #6da7ec; --info-bg: #16233a;
         --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70;
+        --series-4: #c98500; --series-5: #d55181; --series-6: #008300;
         --grid: #2c2c2a; --axis: #383835; --muted-ink: #898781;
         --shadow: 0 1px 2px rgba(0,0,0,.4);
       }
@@ -73,6 +80,7 @@
       --good: #38c638; --good-bg: #16301a; --warning: #f0b429; --warning-bg: #33280d;
       --critical: #ef6b68; --critical-bg: #331a1a; --info: #6da7ec; --info-bg: #16233a;
       --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70;
+      --series-4: #c98500; --series-5: #d55181; --series-6: #008300;
       --grid: #2c2c2a; --axis: #383835; --muted-ink: #898781;
       --shadow: 0 1px 2px rgba(0,0,0,.4);
     }
@@ -592,9 +600,10 @@
               <div class="fields">
                 <div class="field"><label for="ventaFolio">Folio</label><input id="ventaFolio" placeholder="A 665"></div>
                 <div class="field"><label for="ventaFecha">Fecha</label><input type="date" id="ventaFecha"></div>
-                <div class="field full"><label for="ventaCliente">Cliente / escuela</label><input id="ventaCliente" list="clientesVentaList" placeholder="Escribe o elige un cliente"><datalist id="clientesVentaList"></datalist></div>
+                <div class="field"><label for="ventaCliente">Cliente</label><input id="ventaCliente" list="clientesVentaList" placeholder="Nombre de quien atiendes"><datalist id="clientesVentaList"></datalist></div>
+                <div class="field"><label for="ventaEscuela">Escuela</label><select id="ventaEscuela"></select></div>
                 <div class="field"><label for="ventaMontoTotal">Monto total ($)</label><input type="number" id="ventaMontoTotal" min="0" step="1"></div>
-                <div class="field"><label for="ventaFormaPago">Forma de pago</label><select id="ventaFormaPago"><option>Efectivo</option><option>Tarjeta/Transferencia</option><option>Mixto</option></select></div>
+                <div class="field"><label for="ventaFormaPago">Forma de pago</label><select id="ventaFormaPago"></select></div>
                 <div class="field"><label for="ventaEfectivo">Efectivo ($)</label><input type="number" id="ventaEfectivo" min="0" step="1"></div>
                 <div class="field"><label for="ventaMontoTarjeta">Tarjeta / transferencia ($)</label><input type="number" id="ventaMontoTarjeta" min="0" step="1"></div>
                 <div class="field"><label for="ventaNoTarjeta">Referencia (tarjeta, TRANS, QR)</label><input id="ventaNoTarjeta"></div>
@@ -639,12 +648,12 @@
             <div class="search"><svg class="ico sm"><use href="#i-search"/></svg><input id="buscarVenta" placeholder="Buscar folio o cliente" oninput="renderVentas()"></div>
             <select id="filtroMesVenta" onchange="renderVentas()"><option value="">Todos los meses</option></select>
             <select id="filtroEstatusVenta" onchange="renderVentas()"><option value="">Todos los estatus</option><option>Pagado y entregado</option><option>Pendiente</option></select>
-            <select id="filtroPagoVenta" onchange="renderVentas()"><option value="">Toda forma de pago</option><option>Efectivo</option><option>Tarjeta/Transferencia</option><option>Mixto</option></select>
+            <select id="filtroPagoVenta" onchange="renderVentas()"><option value="">Toda forma de pago</option></select>
           </div>
           <div class="card">
             <div class="card-head"><div class="card-title">Ventas</div><span class="card-note" id="ventasResumen"></span></div>
             <div class="card-body flush"><div class="t-scroll"><table class="t-min">
-              <thead><tr><th>Folio</th><th>Fecha</th><th>Cliente</th><th class="num">Total</th><th class="num">Tarjeta</th><th class="num">Efectivo</th><th class="num">Restante</th><th>Nota</th><th>Registró</th><th>Estatus</th><th></th></tr></thead>
+              <thead><tr><th>Folio</th><th>Fecha</th><th>Cliente</th><th>Escuela</th><th class="num">Total</th><th class="num">Tarjeta</th><th class="num">Efectivo</th><th class="num">Restante</th><th>Nota</th><th>Registró</th><th>Estatus</th><th></th></tr></thead>
               <tbody id="tablaVentas"></tbody>
             </table></div></div>
           </div>
@@ -673,7 +682,7 @@
             <div class="field"><label for="repMes">Mes</label><input type="month" id="repMes" oninput="renderReportes()"></div>
             <div class="field"><label for="repDia">Día exacto</label><input type="date" id="repDia" oninput="renderReportes()"></div>
             <div class="field"><label for="repEstatus">Estatus</label><select id="repEstatus" onchange="renderReportes()"><option value="">Todos</option><option>Pagado y entregado</option><option>Pendiente</option></select></div>
-            <div class="field"><label for="repPago">Forma de pago</label><select id="repPago" onchange="renderReportes()"><option value="">Todas</option><option>Efectivo</option><option>Tarjeta/Transferencia</option><option>Mixto</option></select></div>
+            <div class="field"><label for="repPago">Forma de pago</label><select id="repPago" onchange="renderReportes()"><option value="">Todas</option></select></div>
             <button class="btn" onclick="limpiarReportes()" style="align-self:flex-end"><svg class="ico sm"><use href="#i-x"/></svg> Limpiar</button>
           </div>
           <div class="kpis" id="reporteKpis"></div>
@@ -728,6 +737,17 @@
           <div class="filters">
             <div class="search"><svg class="ico sm"><use href="#i-search"/></svg><input id="buscarCliente" placeholder="Buscar cliente o escuela" oninput="renderClientes()"></div>
           </div>
+          <div class="card solo-dueno">
+            <div class="card-head">
+              <div class="card-title"><svg class="ico"><use href="#i-cal"/></svg> Escuelas</div>
+              <span class="card-note" id="escuelasNota"></span>
+            </div>
+            <div class="card-body flush"><div class="t-scroll"><table>
+              <thead><tr><th>Escuela</th><th>Turno</th><th>Nivel</th><th class="num">Ventas</th></tr></thead>
+              <tbody id="tablaEscuelas"></tbody>
+            </table></div></div>
+          </div>
+
           <div class="card">
             <div class="card-head"><div class="card-title">Clientes</div><span class="card-note">Se detectan automáticamente desde las ventas</span></div>
             <div class="card-body flush"><div class="t-scroll"><table class="t-min">
@@ -868,6 +888,7 @@
 
   <script src="config.js"></script>
   <script src="etiquetas.js"></script>
+  <script src="escuelas.js"></script>
   <script src="escaner.js"></script>
   <script src="data.js"></script>
   <script src="nube.js"></script>
@@ -906,7 +927,18 @@
   const FOLIO_REINICIO = '2026-08-07';
   const MESES_CORTO = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
   const ESTATUS = ['Pagado y entregado','Pendiente'];
-  const PAGOS = ['Efectivo','Tarjeta/Transferencia','Mixto'];
+  const PAGOS = ['Efectivo','QR','Transferencia','Tarjeta bienestar','Mixto'];
+  const NIVELES = ['Kinder', 'Primaria', 'Secundaria'];
+  /* Las 117 ventas del Excel traen 'Tarjeta/Transferencia', que ya no se ofrece
+     al capturar. Se mantiene disponible en los filtros para poder consultar el
+     histórico sin tener que tocar esos registros. */
+  function pagosParaFiltrar() {
+    const usados = Array.from(new Set(db.ventas.map(v => v.formaPago).filter(Boolean)));
+    return PAGOS.concat(usados.filter(p => PAGOS.indexOf(p) < 0).sort());
+  }
+  function opcionesPago(seleccionada) {
+    return PAGOS.map(p => '<option' + (p === seleccionada ? ' selected' : '') + '>' + p + '</option>').join('');
+  }
   const DIAS = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
   const TURNOS = ['Entrada','Almuerzo','Salida'];
 
@@ -1056,6 +1088,9 @@
       insumos: s.insumos.map(i => ({
         id: uid(), insumo: i.insumo, color: i.color, talla: i.talla, medida: i.medida,
         cantidad: Number(i.cantidad || 0), stockMinimo: i.stockMinimo === '' ? 10 : Number(i.stockMinimo)
+      })),
+      escuelas: (typeof GABIDOM_ESCUELAS !== 'undefined' ? GABIDOM_ESCUELAS : []).map(e => ({
+        id: uid(), n: e.n, nombre: e.nombre || e.n, nivel: e.nivel || '', turno: e.turno || ''
       })),
       /* Catálogo de etiquetas con su existencia: sale de los PDF de etiquetas
          y se lleva aparte del inventario del Excel, que tiene otro origen. */
@@ -1214,7 +1249,8 @@
   /* ================= Sincronización ================= */
   /* Si la base va atrás de la app, se avisa qué parte del esquema falta en vez
      de dejar los datos atascados sin explicación. */
-  const PASO_DE = { articulos: 5, descontada: 5, foto: 3, etiquetas: 5, movimientos: 5 };
+  const PASO_DE = { articulos: 5, descontada: 5, foto: 3, etiquetas: 5, movimientos: 5,
+                    escuela: 6, escuelas: 6 };
   let avisadoEsquema = false;
   let pasoQueFalta = null;      // se muestra fijo en el indicador, no solo un instante
   Nube.alFaltarEsquema((tabla, columna) => {
@@ -1272,7 +1308,7 @@
          Sin esto, tener ventas en la nube pero no el inventario hacía
          desaparecer las prendas de la pantalla. */
       const faltantes = [];
-      ['ventas', 'prendas', 'insumos', 'revisar', 'clientes', 'empleados', 'etiquetas'].forEach(t => {
+      ['ventas', 'prendas', 'insumos', 'revisar', 'clientes', 'empleados', 'etiquetas', 'escuelas'].forEach(t => {
         if (!remoto[t] || !remoto[t].length) {
           if ((db[t] || []).length) faltantes.push(t);
           return;
@@ -1380,9 +1416,9 @@
   /** Primera carga: sube a la nube las tablas que allá todavía están vacías. */
   async function ofrecerImportacion(tablas) {
     const NOMBRES = { ventas: 'ventas', prendas: 'prendas', insumos: 'cierres',
-                      etiquetas: 'artículos con código de barras',
+                      etiquetas: 'artículos con código de barras', escuelas: 'escuelas',
                       revisar: 'folios por revisar', clientes: 'clientes', empleados: 'empleados' };
-    const lista = (tablas && tablas.length ? tablas : ['prendas','insumos','etiquetas','ventas','revisar','clientes','empleados'])
+    const lista = (tablas && tablas.length ? tablas : ['prendas','insumos','etiquetas','escuelas','ventas','revisar','clientes','empleados'])
       .filter(t => (db[t] || []).length);
     if (!lista.length) { toast('No hay nada nuevo que subir'); return; }
 
@@ -1393,11 +1429,21 @@
       return;
     }
     sincronizando = true; actualizarSync();
+    /* Una tabla que todavía no existe en la base —porque falta correr ese paso
+       del esquema— no puede frenar la subida de las demás. Se anota cuál quedó
+       pendiente y se avisa al final, con nombre entendible. */
+    const pendientes = [];
+    let fallo = null;
     try {
-      for (const t of lista) await Nube.subirLote(t, db[t]);
-      toast('Datos subidos. Ya se ven desde cualquier dispositivo.');
-    } catch (e) {
-      toast('No se pudieron subir todos los datos: ' + (e.message || 'error'));
+      for (const t of lista) {
+        try {
+          if (!await Nube.subirLote(t, db[t])) pendientes.push(NOMBRES[t] || t);
+        } catch (e) { pendientes.push(NOMBRES[t] || t); fallo = fallo || e; }
+      }
+      if (!pendientes.length) toast('Datos subidos. Ya se ven desde cualquier dispositivo.');
+      else if (fallo) toast('No se pudieron subir todos los datos: ' + (fallo.message || 'error'));
+      else toast('Falta subir ' + pendientes.join(' y ')
+                 + ': para eso hay que correr supabase/esquema.sql en la base.');
     } finally {
       sincronizando = false; actualizarSync();
     }
@@ -1494,6 +1540,7 @@
       if (!folio.value) folio.value = siguienteFolio();
       articulosVenta = [];
       renderArticulos();
+      populateEscuelas();
       quitarFoto();
       document.getElementById('ventaCliente').focus();
     }
@@ -1506,9 +1553,9 @@
   }
 
   function renderAll() {
-    renderInicio(); renderMostrador(); renderVentas(); renderRevisar(); renderClientes(); populateClientes();
+    renderInicio(); renderMostrador(); renderVentas(); renderRevisar(); renderClientes(); renderEscuelas(); populateClientes();
     renderPrendas(); renderInsumos(); renderEmpleados(); renderAsistencia(); renderReportes();
-    populateMesesFiltro(); renderCounts();
+    populateMesesFiltro(); populatePagos(); populateEscuelas(); renderCounts();
   }
   function renderCounts() {
     /* Solo "por revisar" lleva contador: los mínimos de inventario aún vienen en 10 por
@@ -1939,6 +1986,43 @@
     document.getElementById('visorImg').removeAttribute('src');
   }
 
+  /* ================= Escuelas ================= */
+  /** El desplegable agrupa por nivel; lo que aún no tiene nivel va al final,
+      visible, para que se note que falta clasificarlo y no se pierda. */
+  function populateEscuelas() {
+    const sel = document.getElementById('ventaEscuela');
+    if (!sel) return;
+    const actual = sel.value;
+    const lista = db.escuelas || [];
+    let html = '<option value="">Sin escuela (venta a particular)</option>';
+    NIVELES.forEach(nivel => {
+      const dentro = lista.filter(e => e.nivel === nivel);
+      if (!dentro.length) return;
+      html += '<optgroup label="' + esc(nivel) + '">'
+        + dentro.map(e => '<option value="' + esc(e.n) + '"' + (e.n === actual ? ' selected' : '') + '>'
+            + esc(e.nombre || e.n) + '</option>').join('') + '</optgroup>';
+    });
+    const sinNivel = lista.filter(e => !e.nivel);
+    if (sinNivel.length) {
+      html += '<optgroup label="Por clasificar (' + sinNivel.length + ')">'
+        + sinNivel.map(e => '<option value="' + esc(e.n) + '"' + (e.n === actual ? ' selected' : '') + '>'
+            + esc(e.nombre || e.n) + '</option>').join('') + '</optgroup>';
+    }
+    sel.innerHTML = html;
+  }
+  function nombreEscuela(clave) {
+    const e = (db.escuelas || []).find(x => x.n === clave);
+    return e ? (e.nombre || e.n) : (clave || '');
+  }
+  function cambiarNivelEscuela(clave, nivel) {
+    const e = (db.escuelas || []).find(x => x.n === clave);
+    if (!e) return;
+    e.nivel = nivel;
+    subir('escuelas', e);
+    renderClientes(); populateEscuelas();
+    toast(nivel ? nombreEscuela(clave) + ' → ' + nivel : 'Nivel quitado');
+  }
+
   /* ================= Ventas ================= */
   /** Siguiente número de nota, contando solo las emitidas desde el reinicio. */
   function siguienteFolio() {
@@ -1969,6 +2053,18 @@
     document.getElementById('clientesVentaList').innerHTML =
       clientesUnicos().map(c => '<option value="' + esc(c.nombre) + '"></option>').join('');
   }
+  /** Llena los desplegables de forma de pago, con lo nuevo y lo del histórico. */
+  function populatePagos() {
+    const form = document.getElementById('ventaFormaPago');
+    if (form && !form.options.length) form.innerHTML = opcionesPago('Efectivo');
+    [['filtroPagoVenta','Toda forma de pago'], ['repPago','Todas']].forEach(([id, vacio]) => {
+      const sel = document.getElementById(id);
+      if (!sel) return;
+      const actual = sel.value;
+      sel.innerHTML = '<option value="">' + vacio + '</option>'
+        + pagosParaFiltrar().map(p => '<option' + (p === actual ? ' selected' : '') + '>' + esc(p) + '</option>').join('');
+    });
+  }
   function populateMesesFiltro() {
     const sel = document.getElementById('filtroMesVenta');
     const actual = sel.value;
@@ -1983,7 +2079,7 @@
     const est = document.getElementById('filtroEstatusVenta').value;
     const pago = document.getElementById('filtroPagoVenta').value;
     return db.ventas.filter(v =>
-      (!q || (v.folio + ' ' + v.cliente).toLowerCase().includes(q)) &&
+      (!q || (v.folio + ' ' + v.cliente + ' ' + nombreEscuela(v.escuela)).toLowerCase().includes(q)) &&
       (!mes || v.mes === mes) && (!est || v.estatus === est) && (!pago || v.formaPago === pago));
   }
   function renderVentas() {
@@ -1992,6 +2088,7 @@
     document.getElementById('ventasResumen').textContent = rows.length + ' de ' + db.ventas.length + ' · ' + money(total);
     document.getElementById('tablaVentas').innerHTML = rows.slice().reverse().map(v =>
       '<tr><td style="white-space:nowrap"><b>' + esc(v.folio) + '</b>' + avisoVenta(v) + '</td><td>' + dateFmt(v.fecha) + '</td><td>' + (esc(v.cliente) || '—') + '</td>'
+      + '<td>' + (esc(nombreEscuela(v.escuela)) || '—') + '</td>'
       + '<td class="num">' + moneyOr(v.montoTotal) + '</td>'
       + '<td class="num">' + (v.montoTarjeta !== '' ? money(v.montoTarjeta) : '—') + '</td>'
       + '<td class="num">' + (v.efectivo !== '' ? money(v.efectivo) : '—') + '</td>'
@@ -2001,11 +2098,16 @@
       + '<td><select onchange="cambiarEstatus(\'' + v.id + '\', this.value)" aria-label="Estatus de ' + esc(v.folio) + '">'
       + ESTATUS.map(e => '<option' + (e === v.estatus ? ' selected' : '') + '>' + e + '</option>').join('') + '</select></td>'
       + '<td>' + (esDueno() ? '<button class="btn small danger" onclick="borrar(\'ventas\',\'' + v.id + '\')" aria-label="Borrar venta">' + icon('i-trash') + '</button>' : '') + '</td></tr>'
-    ).join('') || emptyRow(11, 'Ninguna venta coincide con los filtros', 'i-search');
+    ).join('') || emptyRow(12, 'Ninguna venta coincide con los filtros', 'i-search');
   }
   async function guardarVenta() {
     const cliente = val('ventaCliente');
-    if (!cliente) { toast('Escribe el cliente o escuela'); document.getElementById('ventaCliente').focus(); return; }
+    const escuela = val('ventaEscuela');
+    if (!cliente && !escuela) {
+      toast('Escribe el cliente o elige la escuela');
+      document.getElementById('ventaCliente').focus();
+      return;
+    }
     const fecha = val('ventaFecha') || iso(new Date());
     const mesIdx = Number(String(fecha).split('-')[1]) - 1;
 
@@ -2027,7 +2129,7 @@
     const venta = {
       id: uid(),
       folio,
-      mes: MESES[mesIdx] || '', fecha, cliente,
+      mes: MESES[mesIdx] || '', fecha, cliente, escuela,
       montoTotal: num('ventaMontoTotal'), noTarjeta: val('ventaNoTarjeta'),
       montoTarjeta: num('ventaMontoTarjeta'), efectivo: num('ventaEfectivo'), restante: num('ventaRestante'),
       formaPago: val('ventaFormaPago'), estatus: val('ventaEstatus'), obs: val('ventaObs'),
@@ -2066,6 +2168,7 @@
     }
     subir('ventas', venta);
     clearIds(['ventaFolio','ventaCliente','ventaMontoTotal','ventaMontoTarjeta','ventaEfectivo','ventaNoTarjeta','ventaRestante','ventaObs']);
+    document.getElementById('ventaEscuela').value = '';
     articulosVenta = []; renderArticulos(); quitarFoto();
     toggleForm('Venta', false); renderAll();
     toast('Nota ' + venta.folio + ' guardada' + avisoStock + avisoFoto);
@@ -2112,6 +2215,24 @@
   }
 
   /* ================= Clientes ================= */
+  function renderEscuelas() {
+    const cuerpo = document.getElementById('tablaEscuelas');
+    if (!cuerpo) return;
+    const lista = db.escuelas || [];
+    const sinNivel = lista.filter(e => !e.nivel).length;
+    document.getElementById('escuelasNota').textContent = sinNivel
+      ? sinNivel + ' por clasificar de ' + lista.length
+      : lista.length + ' escuelas, todas clasificadas';
+    cuerpo.innerHTML = lista.map(e => {
+      const ventas = db.ventas.filter(v => v.escuela === e.n).length;
+      return '<tr><td><b>' + esc(e.nombre || e.n) + '</b><div class="hint">' + esc(e.n) + '</div></td>'
+        + '<td>' + (esc(e.turno) || '—') + '</td>'
+        + '<td><select onchange="cambiarNivelEscuela(\'' + esc(e.n) + '\', this.value)" aria-label="Nivel de ' + esc(e.nombre || e.n) + '">'
+        + '<option value=""' + (!e.nivel ? ' selected' : '') + '>Por clasificar</option>'
+        + NIVELES.map(n => '<option' + (n === e.nivel ? ' selected' : '') + '>' + n + '</option>').join('')
+        + '</select></td><td class="num">' + ventas + '</td></tr>';
+    }).join('') || emptyRow(4, 'Sin escuelas en el catálogo', 'i-cal');
+  }
   function renderClientes() {
     const q = (document.getElementById('buscarCliente').value || '').toLowerCase();
     const lista = clientesUnicos().filter(c => !q || c.nombre.toLowerCase().includes(q));
@@ -2368,8 +2489,9 @@
   /** Barra apilada horizontal: parte-del-total por forma de pago. Leyenda siempre + tabla. */
   function renderChartPago(rows) {
     const mount = document.getElementById('chartPago');
-    const colores = ['var(--series-1)','var(--series-2)','var(--series-3)'];
-    const totales = PAGOS.map(p => ({
+    const colores = ['var(--series-1)','var(--series-2)','var(--series-3)',
+                     'var(--series-4)','var(--series-5)','var(--series-6)'];
+    const totales = pagosParaFiltrar().map(p => ({
       nombre: p,
       total: rows.filter(v => v.formaPago === p).reduce((s,v) => s + Number(v.montoTotal || 0), 0),
       n: rows.filter(v => v.formaPago === p).length

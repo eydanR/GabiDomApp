@@ -16,7 +16,8 @@ import sys
 
 RAIZ = pathlib.Path(__file__).parent
 ENTRADA = RAIZ / "index.html"
-SCRIPTS = ["config.js", "etiquetas.js", "escaner.js", "data.js", "nube.js"]
+SCRIPTS = ["config.js", "etiquetas.js", "escuelas.js", "escaner.js", "data.js",
+           "nube.js"]
 SALIDA = RAIZ / "gabidom-movil.html"
 
 META_MOVIL = """  <meta name="mobile-web-app-capable" content="yes">

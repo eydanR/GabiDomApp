@@ -65,7 +65,7 @@ const Nube = (() => {
         montoTotal: 'monto_total', noTarjeta: 'no_tarjeta', montoTarjeta: 'monto_tarjeta',
         efectivo: 'efectivo', restante: 'restante', formaPago: 'forma_pago',
         estatus: 'estatus', obs: 'obs', registroDe: 'registro_de', foto: 'foto',
-        articulos: 'articulos', descontada: 'descontada'
+        articulos: 'articulos', descontada: 'descontada', escuela: 'escuela'
       },
       json: ['articulos'],
       numericos: ['montoTotal', 'montoTarjeta', 'efectivo', 'restante'],
@@ -102,6 +102,10 @@ const Nube = (() => {
       campos: { id: 'id', codigo: 'codigo', descripcion: 'descripcion', talla: 'talla',
                 sku: 'sku', precio: 'precio', tipo: 'tipo', cantidad: 'cantidad' },
       numericos: ['precio', 'cantidad'], fechas: []
+    },
+    escuelas: {
+      campos: { id: 'id', n: 'clave', nombre: 'nombre', nivel: 'nivel', turno: 'turno' },
+      numericos: [], fechas: []
     }
   };
 
@@ -385,11 +389,21 @@ const Nube = (() => {
   async function subirFila(tabla, fila) {
     return escribir(tabla, [aRemoto(tabla, fila)]);
   }
+  /** Sube una tabla entera. Devuelve false si esa tabla todavía no existe en la
+      base, para que la primera importación siga con las demás en vez de
+      quedarse a medias por un paso del esquema sin correr. */
   async function subirLote(tabla, filas) {
     const paso = 400;
     for (let i = 0; i < filas.length; i += paso) {
-      await escribir(tabla, filas.slice(i, i + paso).map(f => aRemoto(tabla, f)));
+      try {
+        await escribir(tabla, filas.slice(i, i + paso).map(f => aRemoto(tabla, f)));
+      } catch (e) {
+        if (!faltaLaTabla(e)) throw e;
+        anotarQueFalta(tabla, '(tabla)');
+        return false;
+      }
     }
+    return true;
   }
   async function borrarFila(tabla, id) {
     return pedir('/rest/v1/' + nombreRemoto(tabla) + '?id=eq.' + encodeURIComponent(id), {
