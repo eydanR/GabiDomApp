@@ -1377,7 +1377,9 @@
       if (manual) {
         const rechazo = Nube.rechazoReciente();
         if (rechazo) {
-          toast('Algunos cambios no los aceptó la base y se apartaron para no frenar el resto. '
+          toast(/row-level security|permission denied/i.test(rechazo)
+            ? 'Algunos cambios no se guardaron: eran de una venta que no registraste tú, y solo quien la registró o la dueña pueden editarla.'
+            : 'Algunos cambios no los aceptó la base y se apartaron para no frenar el resto. '
               + 'Revisa que supabase/esquema.sql esté completo.');
         } else {
           const partes = [];
@@ -1403,6 +1405,9 @@
       return 'La base rechazó un dato por una regla vieja; corre supabase/esquema.sql completo.';
     }
     if (/JWT|token/i.test(texto)) return 'Tu sesión caducó: vuelve a entrar con tu PIN.';
+    if (/row-level security|permission denied/i.test(texto)) {
+      return 'No tenías permiso para ese cambio: solo quien registró la venta o la dueña pueden editarla.';
+    }
     if (!texto || /fetch|network|Failed/i.test(texto)) return 'Sin conexión ahora mismo; se reintenta solo.';
     return 'No se pudo sincronizar: ' + texto;
   }
@@ -2118,12 +2123,19 @@
       (!q || (v.folio + ' ' + v.cliente + ' ' + nombreEscuela(v.escuela)).toLowerCase().includes(q)) &&
       (!mes || v.mes === mes) && (!est || v.estatus === est) && (!pago || v.formaPago === pago));
   }
+  /** La dueña edita cualquier venta; cada quien más solo la que registró
+      (las viejas sin registro_de quedan solo para la dueña). Coincide con
+      la regla de acceso ventas_editar de supabase/esquema.sql: si aquí se
+      deja editar algo que la base va a rechazar, solo se logra un error
+      confuso más tarde. */
+  function puedeEditarVenta(v) { return esDueno() || (v.registroDe && v.registroDe === quienSoy()); }
   function renderVentas() {
     const rows = ventasFiltradas();
     const total = rows.reduce((s,v) => s + Number(v.montoTotal || 0), 0);
     document.getElementById('ventasResumen').textContent = rows.length + ' de ' + db.ventas.length + ' · ' + money(total);
-    document.getElementById('tablaVentas').innerHTML = rows.slice().reverse().map(v =>
-      '<tr><td style="white-space:nowrap"><b>' + esc(v.folio) + '</b>' + avisoVenta(v) + '</td><td>' + dateFmt(v.fecha) + '</td><td>' + (esc(v.cliente) || '—') + '</td>'
+    document.getElementById('tablaVentas').innerHTML = rows.slice().reverse().map(v => {
+      const editable = puedeEditarVenta(v);
+      return '<tr><td style="white-space:nowrap"><b>' + esc(v.folio) + '</b>' + avisoVenta(v) + '</td><td>' + dateFmt(v.fecha) + '</td><td>' + (esc(v.cliente) || '—') + '</td>'
       + '<td>' + (esc(nombreEscuela(v.escuela)) || '—') + '</td>'
       + '<td class="num">' + moneyOr(v.montoTotal) + '</td>'
       + '<td class="num">' + (v.montoTarjeta !== '' ? money(v.montoTarjeta) : '—') + '</td>'
@@ -2131,10 +2143,12 @@
       + '<td class="num">' + (restanteDe(v) > 0 ? money(restanteDe(v)) : '—') + '</td>'
       + '<td>' + celdaFoto(v) + '</td>'
       + '<td>' + (esc(v.registroDe) || '—') + '</td>'
-      + '<td><select onchange="cambiarEstatus(\'' + v.id + '\', this.value)" aria-label="Estatus de ' + esc(v.folio) + '">'
-      + ESTATUS.map(e => '<option' + (e === v.estatus ? ' selected' : '') + '>' + e + '</option>').join('') + '</select></td>'
-      + '<td>' + (esDueno() ? '<button class="btn small danger" onclick="borrar(\'ventas\',\'' + v.id + '\')" aria-label="Borrar venta">' + icon('i-trash') + '</button>' : '') + '</td></tr>'
-    ).join('') || emptyRow(12, 'Ninguna venta coincide con los filtros', 'i-search');
+      + '<td>' + (editable
+        ? '<select onchange="cambiarEstatus(\'' + v.id + '\', this.value)" aria-label="Estatus de ' + esc(v.folio) + '">'
+          + ESTATUS.map(e => '<option' + (e === v.estatus ? ' selected' : '') + '>' + e + '</option>').join('') + '</select>'
+        : badgeEstatus(v.estatus)) + '</td>'
+      + '<td>' + (esDueno() ? '<button class="btn small danger" onclick="borrar(\'ventas\',\'' + v.id + '\')" aria-label="Borrar venta">' + icon('i-trash') + '</button>' : '') + '</td></tr>';
+    }).join('') || emptyRow(12, 'Ninguna venta coincide con los filtros', 'i-search');
   }
   async function guardarVenta() {
     const cliente = val('ventaCliente');
@@ -2212,6 +2226,7 @@
   function cambiarEstatus(id, estatus) {
     const v = db.ventas.find(x => x.id === id);
     if (!v) return;
+    if (!puedeEditarVenta(v)) { toast('Solo quien registró esta venta o la dueña pueden cambiar su estatus'); renderVentas(); return; }
     v.estatus = estatus;
     /* Los artículos salen del inventario al entregarse, no al capturarse:
        hasta ese momento la mercancía sigue en la tienda. */

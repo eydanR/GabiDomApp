@@ -419,3 +419,30 @@ create policy escuelas_dueno on public.escuelas
 
 create index if not exists escuelas_clave_idx on public.escuelas (clave);
 create index if not exists ventas_escuela_idx on public.ventas (escuela);
+
+-- ============================================================================
+-- PASO 7 — editar ventas: cada quien la suya, la dueña todas
+--
+-- Antes cualquiera con sesión podía editar cualquier venta. A partir de aquí,
+-- una empleada solo puede editar las ventas que ella registró (columna
+-- registro_de, que ya guarda su nombre tal como está en perfiles); la dueña
+-- sigue pudiendo editar cualquiera. Ver y crear ventas no cambia. Borrar ya
+-- era solo de la dueña (PASO 1) y sigue igual.
+-- ============================================================================
+
+-- security definer: lee el nombre propio sin caer en la recursión de RLS.
+create or replace function public.mi_nombre()
+returns text
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select nombre from public.perfiles where id = auth.uid();
+$$;
+
+drop policy if exists ventas_editar on public.ventas;
+create policy ventas_editar on public.ventas
+  for update to authenticated
+  using (public.es_dueno() or registro_de = public.mi_nombre())
+  with check (public.es_dueno() or registro_de = public.mi_nombre());
