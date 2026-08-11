@@ -1067,13 +1067,26 @@
   function completarCatalogos(base) {
     if (!base || typeof base !== 'object') return seed();
     /* La lista va aquí dentro a propósito: load() corre antes que las
-       constantes de más abajo, y una de ellas aquí rompería el arranque. */
-    const faltan = ['escuelas', 'etiquetas']
-      .filter(k => !Array.isArray(base[k]) || !base[k].length);
-    if (faltan.length) {
-      const nuevo = seed();
-      faltan.forEach(k => { base[k] = nuevo[k]; });
-    }
+       constantes de más abajo, y una de ellas aquí rompería el arranque.
+       Cada catálogo se compara por su clave natural, no por posición. */
+    const CLAVES = { escuelas: 'n', etiquetas: 'codigo' };
+    const nuevo = seed();
+    Object.keys(CLAVES).forEach(k => {
+      const clave = CLAVES[k];
+      if (!Array.isArray(base[k]) || !base[k].length) { base[k] = nuevo[k]; return; }
+      const guardadas = {};
+      base[k].forEach(x => { guardadas[x[clave]] = x; });
+      nuevo[k].forEach(x => {
+        const ya = guardadas[x[clave]];
+        if (!ya) { base[k].push(x); return; }
+        /* Solo se rellenan los huecos: un nivel, un turno o un precio que
+           alguien ya puso gana sobre lo que traiga el código. Las existencias
+           en cero se respetan (son un dato, no un hueco). */
+        Object.keys(x).forEach(campo => {
+          if (campo !== 'id' && (ya[campo] === undefined || ya[campo] === '')) ya[campo] = x[campo];
+        });
+      });
+    });
     if (!base.asistencia || typeof base.asistencia !== 'object') base.asistencia = {};
     ['ventas', 'revisar', 'prendas', 'insumos', 'clientes', 'empleados']
       .forEach(k => { if (!Array.isArray(base[k])) base[k] = []; });
@@ -1334,17 +1347,18 @@
           if ((db[t] || []).length) faltantes.push(t);
           return;
         }
-        if (t === 'etiquetas') {
-          /* El catálogo de códigos viene con la app, así que si la nube lo
-             tiene incompleto no se borra lo que falta allá: se toman de la
-             nube las existencias y se conservan los artículos que solo están
-             en el dispositivo, hasta que se suban. */
+        if (t === 'etiquetas' || t === 'escuelas') {
+          /* Estos dos catálogos vienen con la app y crecen con ella, así que
+             si la nube los tiene incompletos no se borra lo que falta allá:
+             gana la nube en lo que ya está (existencias, niveles) y se
+             conserva lo que solo está en el dispositivo, hasta que se suba. */
+          const clave = t === 'etiquetas' ? 'codigo' : 'n';
           const enNube = {};
-          remoto[t].forEach(r => { enNube[r.codigo] = r; });
-          const unidos = (db[t] || []).map(local => enNube[local.codigo] || local);
-          const codigosLocales = {};
-          unidos.forEach(x => { codigosLocales[x.codigo] = true; });
-          remoto[t].forEach(r => { if (!codigosLocales[r.codigo]) unidos.push(r); });
+          remoto[t].forEach(r => { enNube[r[clave]] = r; });
+          const unidos = (db[t] || []).map(local => enNube[local[clave]] || local);
+          const locales = {};
+          unidos.forEach(x => { locales[x[clave]] = true; });
+          remoto[t].forEach(r => { if (!locales[r[clave]]) unidos.push(r); });
           db[t] = unidos;
           if (remoto[t].length < unidos.length) faltantes.push(t);
           return;
