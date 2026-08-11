@@ -64,8 +64,10 @@ const Nube = (() => {
         id: 'id', folio: 'folio', mes: 'mes', fecha: 'fecha', cliente: 'cliente',
         montoTotal: 'monto_total', noTarjeta: 'no_tarjeta', montoTarjeta: 'monto_tarjeta',
         efectivo: 'efectivo', restante: 'restante', formaPago: 'forma_pago',
-        estatus: 'estatus', obs: 'obs', registroDe: 'registro_de', foto: 'foto'
+        estatus: 'estatus', obs: 'obs', registroDe: 'registro_de', foto: 'foto',
+        articulos: 'articulos', descontada: 'descontada'
       },
+      json: ['articulos'],
       numericos: ['montoTotal', 'montoTarjeta', 'efectivo', 'restante'],
       fechas: ['fecha']
     },
@@ -95,6 +97,11 @@ const Nube = (() => {
     empleados: {
       campos: { id: 'id', nombre: 'nombre', puesto: 'puesto', tel: 'tel', turno: 'turno', salario: 'salario', fecha: 'fecha', notas: 'notas' },
       numericos: ['salario'], fechas: ['fecha']
+    },
+    etiquetas: {
+      campos: { id: 'id', codigo: 'codigo', descripcion: 'descripcion', talla: 'talla',
+                sku: 'sku', precio: 'precio', tipo: 'tipo', cantidad: 'cantidad' },
+      numericos: ['precio', 'cantidad'], fechas: []
     }
   };
 
@@ -219,9 +226,11 @@ const Nube = (() => {
   /* ------------------------------------------------- traducción de filas -- */
   function aRemoto(tabla, fila) {
     const def = TABLAS[tabla];
+    const json = def.json || [];
     const out = {};
     Object.entries(def.campos).forEach(([local, remoto]) => {
       let v = fila[local];
+      if (json.includes(local)) { out[remoto] = Array.isArray(v) ? v : []; return; }
       if (def.numericos.includes(local)) v = (v === '' || v === null || v === undefined) ? null : Number(v);
       if (def.fechas.includes(local)) v = v ? v : null;
       if (v === undefined) v = null;
@@ -231,9 +240,11 @@ const Nube = (() => {
   }
   function aLocal(tabla, fila) {
     const def = TABLAS[tabla];
+    const json = def.json || [];
     const out = {};
     Object.entries(def.campos).forEach(([local, remoto]) => {
       let v = fila[remoto];
+      if (json.includes(local)) { out[local] = Array.isArray(v) ? v : []; return; }
       if (def.numericos.includes(local)) v = (v === null || v === undefined) ? '' : Number(v);
       if (v === null || v === undefined) v = '';
       out[local] = v;
