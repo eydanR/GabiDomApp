@@ -833,13 +833,13 @@
           </div>
         </section>
 
-        <!-- ============ CHATGPT ============ -->
-        <section class="page" id="page-chatgpt">
+        <!-- ============ ASISTENTE ============ -->
+        <section class="page" id="page-asistente">
           <div class="assistant">
             <div class="card" style="margin:0">
               <div class="card-head"><div class="card-title"><svg class="ico"><use href="#i-spark"/></svg> Asistente</div></div>
               <div class="chat-log" id="chatLog">
-                <div class="msg bot">Hola. Puedo ayudarte a resumir ventas, detectar prendas o cierres por reabastecer y revisar folios sin datos. Toca "Usar datos actuales" para que analice tu información.</div>
+                <div class="msg bot">Hola. Pregúntame sobre ventas, inventario, clientes o escuelas — consulto la información real de GabiDom antes de responder. Por ejemplo: "¿cuánto falta por cobrar este mes?" o "¿qué tallas de conjunto de primaria se están agotando?"</div>
               </div>
               <div class="card-body" style="border-top:1px solid var(--line)">
                 <div class="filters" style="margin:0">
@@ -851,8 +851,8 @@
             <div class="card" style="margin:0">
               <div class="card-head"><div class="card-title">Conexión segura</div></div>
               <div class="card-body">
-                <p class="hint">Esta pantalla llama a <b>/api/chat</b>. Esa ruta vive en el servidor porque la clave de OpenAI <b>nunca</b> debe ir dentro del navegador.</p>
-                <p class="hint" style="margin-bottom:0">Al subirlo a Vercel, Netlify o Render, se agrega la variable privada <b>OPENAI_API_KEY</b> y el servidor se encarga de hablar con ChatGPT.</p>
+                <p class="hint">Esta pantalla llama a la función <b>asistente</b> de Supabase. La clave de Claude vive ahí como secreto del proyecto — <b>nunca</b> dentro del navegador.</p>
+                <p class="hint" style="margin-bottom:0">El asistente consulta la base con tu propia sesión: cada quien ve lo mismo que ya puede ver dentro de la app, ni más ni menos.</p>
               </div>
             </div>
           </div>
@@ -1783,7 +1783,7 @@ const Nube = (() => {
       ['asistencia','Asistencia','i-cal','Entradas y salidas por semana','dueno']
     ]},
     { group: 'Inteligencia', items: [
-      ['chatgpt','Asistente','i-spark','Consulta tus datos con ChatGPT','dueno']
+      ['asistente','Asistente','i-spark','Pregunta por ventas, inventario y clientes','todos']
     ]}
   ];
   const MESES = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
@@ -1811,6 +1811,7 @@ const Nube = (() => {
   let currentPage = 'inicio';
   let prendaCategoria = null;
   let mostradorCat = '';
+  let chatHistorial = [];
   let semanaOffset = 0;
   let sesion = null;          // { usuario, nombre, rol } — null = sin acceso
   let modoLocal = false;      // true = sin nube, guarda solo en este dispositivo
@@ -2419,7 +2420,7 @@ const Nube = (() => {
       ventas: '<button class="btn accent" onclick="toggleForm(\'Venta\', true)">' + icon('i-plus') + ' Nueva venta</button>',
       clientes: '<button class="btn accent" onclick="toggleForm(\'Cliente\', true)">' + icon('i-plus') + ' Nuevo cliente</button>',
       empleados: '<button class="btn accent" onclick="toggleForm(\'Empleado\', true)">' + icon('i-plus') + ' Nuevo empleado</button>',
-      chatgpt: '<button class="btn primary" onclick="prepararResumenIA()">' + icon('i-spark') + ' Usar datos actuales</button>'
+      asistente: '<button class="btn primary" onclick="prepararResumenIA()">' + icon('i-spark') + ' Preguntar algo</button>'
     };
     let html = map[currentPage] || '';
     // El respaldo y la carga inicial son cosa de la dueña, no del mostrador.
@@ -3518,19 +3519,15 @@ const Nube = (() => {
     toast('Respaldo descargado');
   }
 
-  /* ================= Asistente ================= */
-  function resumenParaIA() {
-    return {
-      ventas: db.ventas.slice(-40),
-      porCobrar: db.ventas.filter(v => v.estatus === 'Pendiente').map(v => ({ folio: v.folio, cliente: v.cliente, restante: restanteDe(v) })),
-      prendasBajas: alertas(db.prendas).map(p => ({ categoria: p.categoria, variante: p.variante, talla: p.talla, cantidad: p.cantidad, minimo: p.stockMinimo })),
-      cierresBajos: alertas(db.insumos).map(i => ({ color: i.color, medida: i.medida, cantidad: i.cantidad, minimo: i.stockMinimo })),
-      foliosPorRevisar: db.revisar.length
-    };
-  }
+  /* ================= Asistente =================
+     El asistente no trabaja con lo que hay guardado en este dispositivo:
+     llama a la función "asistente" de Supabase, que consulta la base con
+     la sesión de quien pregunta (mismas reglas de acceso que ya tiene
+     dentro de la app) y responde con Claude. Por eso hace falta conexión
+     y haber entrado con PIN; en modo solo-local no hay con quién hablar. */
   function prepararResumenIA() {
-    setPage('chatgpt');
-    document.getElementById('chatInput').value = 'Analiza mis datos de GabiDom y dime los 5 pendientes más importantes.';
+    setPage('asistente');
+    document.getElementById('chatInput').value = 'Dame un resumen de lo pendiente más importante hoy.';
     document.getElementById('chatInput').focus();
   }
   async function enviarChat() {
@@ -3539,17 +3536,27 @@ const Nube = (() => {
     if (!text) return;
     addMsg(text, 'user');
     input.value = '';
+    const conf = Nube.cfg();
+    const ses = Nube.sesionActual();
+    if (!conf.SUPABASE_URL || !conf.SUPABASE_ANON_KEY || !ses || !ses.token) {
+      addMsg('El asistente necesita conexión con la nube y tu sesión activa. Revisa tu conexión a internet.', 'bot');
+      return;
+    }
     const pensando = addMsg('Consultando…', 'bot');
+    chatHistorial.push({ rol: 'user', texto: text });
     try {
-      const r = await fetch('/api/chat', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text, data: resumenParaIA() })
+      const r = await fetch(conf.SUPABASE_URL + '/functions/v1/asistente', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: conf.SUPABASE_ANON_KEY, Authorization: 'Bearer ' + ses.token },
+        body: JSON.stringify({ mensaje: text, historial: chatHistorial.slice(0, -1).slice(-16) })
       });
-      if (!r.ok) throw new Error('sin backend');
-      const data = await r.json();
-      pensando.textContent = data.reply || 'Sin respuesta';
+      const datos = await r.json().catch(() => null);
+      if (!r.ok || !datos || !datos.respuesta) throw new Error((datos && datos.error) || ('HTTP ' + r.status));
+      pensando.textContent = datos.respuesta;
+      chatHistorial.push({ rol: 'assistant', texto: datos.respuesta });
     } catch (err) {
-      pensando.textContent = 'Todavía falta conectar el backend seguro de ChatGPT. La app ya está lista para llamar a /api/chat; esa parte se configura en el host con la variable OPENAI_API_KEY.';
+      chatHistorial.pop();
+      pensando.textContent = 'No pude consultar al asistente (' + (err && err.message ? err.message : 'error') + '). Intenta de nuevo en un momento.';
     }
   }
   function addMsg(text, who) {

@@ -19,7 +19,7 @@ dispositivo.
 | `etiquetas.js` | Catálogo de los 438 artículos con código de barras. |
 | `escaner.js` | Lee los códigos de barras con la cámara. |
 | `nube.js` | El código que sincroniza con la base compartida. |
-| `api/chat.js` | Endpoint del asistente (necesita `OPENAI_API_KEY` en el servidor). |
+| `supabase/functions/asistente/` | Función de Supabase del asistente (necesita el secreto `ANTHROPIC_API_KEY`). |
 | `build-movil.py` | Regenera `gabidom-movil.html` cuando cambies la app. |
 
 Sin conectar nada, la app guarda **solo en el dispositivo donde se usa**. Para
@@ -109,6 +109,27 @@ columnas donde cada venta anota lo que se llevó el cliente.
 
 Abre la app, entra como dueña y acepta cuando pregunte si quiere subir los datos.
 También está el botón **Subir datos** arriba a la derecha. Es solo la primera vez.
+
+### 8. Asistente con Claude (opcional)
+
+La sección **Asistente** deja preguntar por ventas, inventario, clientes y
+escuelas en lenguaje natural. Necesita publicar la función de `supabase/functions/asistente`
+y darle una llave de Claude — sin eso, la app funciona igual, solo esa sección
+no responde.
+
+Con la [CLI de Supabase](https://supabase.com/docs/guides/cli) instalada y
+conectada a tu proyecto:
+
+```sh
+supabase functions deploy asistente
+supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
+```
+
+La llave de Claude se consigue en [console.anthropic.com](https://console.anthropic.com).
+Vive solo como secreto de la función — nunca dentro de la app ni del navegador.
+El asistente consulta la base con la sesión de quien pregunta, así que cada
+quien ve exactamente lo que ya puede ver dentro de la app (mismas reglas del
+paso 2): no hay una vía paralela que le dé más acceso.
 
 ## Quién puede hacer qué
 

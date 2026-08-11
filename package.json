@@ -6,8 +6,5 @@
   "type": "module",
   "scripts": {
     "movil": "python3 build-movil.py"
-  },
-  "dependencies": {
-    "openai": "^4.104.0"
   }
 }
