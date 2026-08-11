@@ -37,10 +37,16 @@
       --critical: #c0322f;  --critical-bg: #fbeaea;
       --info: #2a78d6;      --info-bg: #eaf1fc;
 
-      /* Datos: paleta validada (validate_palette.js, light/#ffffff) */
+      /* Datos: paleta validada (validate_palette.js, light/#ffffff).
+         Seis ranuras porque las formas de pago pasaron de tres a cinco, más el
+         histórico; las tres últimas quedan bajo 3:1 contra el fondo claro, por
+         eso la gráfica siempre lleva su leyenda escrita y su tabla. */
       --series-1: #2a78d6;
       --series-2: #eb6834;
       --series-3: #1baf7a;
+      --series-4: #eda100;
+      --series-5: #e87ba4;
+      --series-6: #008300;
       --grid: #e1e0d9;
       --axis: #c3c2b7;
       --muted-ink: #898781;
@@ -62,6 +68,7 @@
         --good: #38c638; --good-bg: #16301a; --warning: #f0b429; --warning-bg: #33280d;
         --critical: #ef6b68; --critical-bg: #331a1a; --info: #6da7ec; --info-bg: #16233a;
         --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70;
+        --series-4: #c98500; --series-5: #d55181; --series-6: #008300;
         --grid: #2c2c2a; --axis: #383835; --muted-ink: #898781;
         --shadow: 0 1px 2px rgba(0,0,0,.4);
       }
@@ -77,6 +84,7 @@
       --good: #38c638; --good-bg: #16301a; --warning: #f0b429; --warning-bg: #33280d;
       --critical: #ef6b68; --critical-bg: #331a1a; --info: #6da7ec; --info-bg: #16233a;
       --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70;
+      --series-4: #c98500; --series-5: #d55181; --series-6: #008300;
       --grid: #2c2c2a; --axis: #383835; --muted-ink: #898781;
       --shadow: 0 1px 2px rgba(0,0,0,.4);
     }
@@ -596,9 +604,10 @@
               <div class="fields">
                 <div class="field"><label for="ventaFolio">Folio</label><input id="ventaFolio" placeholder="A 665"></div>
                 <div class="field"><label for="ventaFecha">Fecha</label><input type="date" id="ventaFecha"></div>
-                <div class="field full"><label for="ventaCliente">Cliente / escuela</label><input id="ventaCliente" list="clientesVentaList" placeholder="Escribe o elige un cliente"><datalist id="clientesVentaList"></datalist></div>
+                <div class="field"><label for="ventaCliente">Cliente</label><input id="ventaCliente" list="clientesVentaList" placeholder="Nombre de quien atiendes"><datalist id="clientesVentaList"></datalist></div>
+                <div class="field"><label for="ventaEscuela">Escuela</label><select id="ventaEscuela"></select></div>
                 <div class="field"><label for="ventaMontoTotal">Monto total ($)</label><input type="number" id="ventaMontoTotal" min="0" step="1"></div>
-                <div class="field"><label for="ventaFormaPago">Forma de pago</label><select id="ventaFormaPago"><option>Efectivo</option><option>Tarjeta/Transferencia</option><option>Mixto</option></select></div>
+                <div class="field"><label for="ventaFormaPago">Forma de pago</label><select id="ventaFormaPago"></select></div>
                 <div class="field"><label for="ventaEfectivo">Efectivo ($)</label><input type="number" id="ventaEfectivo" min="0" step="1"></div>
                 <div class="field"><label for="ventaMontoTarjeta">Tarjeta / transferencia ($)</label><input type="number" id="ventaMontoTarjeta" min="0" step="1"></div>
                 <div class="field"><label for="ventaNoTarjeta">Referencia (tarjeta, TRANS, QR)</label><input id="ventaNoTarjeta"></div>
@@ -643,12 +652,12 @@
             <div class="search"><svg class="ico sm"><use href="#i-search"/></svg><input id="buscarVenta" placeholder="Buscar folio o cliente" oninput="renderVentas()"></div>
             <select id="filtroMesVenta" onchange="renderVentas()"><option value="">Todos los meses</option></select>
             <select id="filtroEstatusVenta" onchange="renderVentas()"><option value="">Todos los estatus</option><option>Pagado y entregado</option><option>Pendiente</option></select>
-            <select id="filtroPagoVenta" onchange="renderVentas()"><option value="">Toda forma de pago</option><option>Efectivo</option><option>Tarjeta/Transferencia</option><option>Mixto</option></select>
+            <select id="filtroPagoVenta" onchange="renderVentas()"><option value="">Toda forma de pago</option></select>
           </div>
           <div class="card">
             <div class="card-head"><div class="card-title">Ventas</div><span class="card-note" id="ventasResumen"></span></div>
             <div class="card-body flush"><div class="t-scroll"><table class="t-min">
-              <thead><tr><th>Folio</th><th>Fecha</th><th>Cliente</th><th class="num">Total</th><th class="num">Tarjeta</th><th class="num">Efectivo</th><th class="num">Restante</th><th>Nota</th><th>Registró</th><th>Estatus</th><th></th></tr></thead>
+              <thead><tr><th>Folio</th><th>Fecha</th><th>Cliente</th><th>Escuela</th><th class="num">Total</th><th class="num">Tarjeta</th><th class="num">Efectivo</th><th class="num">Restante</th><th>Nota</th><th>Registró</th><th>Estatus</th><th></th></tr></thead>
               <tbody id="tablaVentas"></tbody>
             </table></div></div>
           </div>
@@ -677,7 +686,7 @@
             <div class="field"><label for="repMes">Mes</label><input type="month" id="repMes" oninput="renderReportes()"></div>
             <div class="field"><label for="repDia">Día exacto</label><input type="date" id="repDia" oninput="renderReportes()"></div>
             <div class="field"><label for="repEstatus">Estatus</label><select id="repEstatus" onchange="renderReportes()"><option value="">Todos</option><option>Pagado y entregado</option><option>Pendiente</option></select></div>
-            <div class="field"><label for="repPago">Forma de pago</label><select id="repPago" onchange="renderReportes()"><option value="">Todas</option><option>Efectivo</option><option>Tarjeta/Transferencia</option><option>Mixto</option></select></div>
+            <div class="field"><label for="repPago">Forma de pago</label><select id="repPago" onchange="renderReportes()"><option value="">Todas</option></select></div>
             <button class="btn" onclick="limpiarReportes()" style="align-self:flex-end"><svg class="ico sm"><use href="#i-x"/></svg> Limpiar</button>
           </div>
           <div class="kpis" id="reporteKpis"></div>
@@ -732,6 +741,17 @@
           <div class="filters">
             <div class="search"><svg class="ico sm"><use href="#i-search"/></svg><input id="buscarCliente" placeholder="Buscar cliente o escuela" oninput="renderClientes()"></div>
           </div>
+          <div class="card solo-dueno">
+            <div class="card-head">
+              <div class="card-title"><svg class="ico"><use href="#i-cal"/></svg> Escuelas</div>
+              <span class="card-note" id="escuelasNota"></span>
+            </div>
+            <div class="card-body flush"><div class="t-scroll"><table>
+              <thead><tr><th>Escuela</th><th>Turno</th><th>Nivel</th><th class="num">Ventas</th></tr></thead>
+              <tbody id="tablaEscuelas"></tbody>
+            </table></div></div>
+          </div>
+
           <div class="card">
             <div class="card-head"><div class="card-title">Clientes</div><span class="card-note">Se detectan automáticamente desde las ventas</span></div>
             <div class="card-body flush"><div class="t-scroll"><table class="t-min">
@@ -903,6 +923,53 @@ window.GABIDOM_CONFIG = {
    Sale de ETIQUETAS_EXISTENCIAS_1.pdf y ETIQUETAS_CONJUNTOS_2026.pdf.
    c=codigo  d=descripcion  t=talla  s=clave  p=precio  k=tipo  n=piezas etiquetadas */
 const GABIDOM_ETIQUETAS = [{"c":"2010030080000","d":"BLUSA AZUL MARINO LINAJE MAT","t":"8","s":"BLU-003-T8","p":0,"k":"prenda","n":7},{"c":"2010030100005","d":"BLUSA AZUL MARINO LINAJE MAT","t":"10","s":"BLU-003-T10","p":0,"k":"prenda","n":3},{"c":"2010030120003","d":"BLUSA AZUL MARINO LINAJE MAT","t":"12","s":"BLU-003-T12","p":0,"k":"prenda","n":4},{"c":"2010030140001","d":"BLUSA AZUL MARINO LINAJE MAT","t":"14","s":"BLU-003-T14","p":0,"k":"prenda","n":3},{"c":"2010030160009","d":"BLUSA AZUL MARINO LINAJE MAT","t":"16","s":"BLU-003-T16","p":0,"k":"prenda","n":2},{"c":"2010040080007","d":"BLUSA AZUL REY CON GRIS JFM","t":"8","s":"BLU-004-T8","p":0,"k":"prenda","n":4},{"c":"2010040100002","d":"BLUSA AZUL REY CON GRIS JFM","t":"10","s":"BLU-004-T10","p":0,"k":"prenda","n":2},{"c":"2010040120000","d":"BLUSA AZUL REY CON GRIS JFM","t":"12","s":"BLU-004-T12","p":0,"k":"prenda","n":4},{"c":"2010040140008","d":"BLUSA AZUL REY CON GRIS JFM","t":"14","s":"BLU-004-T14","p":0,"k":"prenda","n":2},{"c":"2010040160006","d":"BLUSA AZUL REY CON GRIS JFM","t":"16","s":"BLU-004-T16","p":0,"k":"prenda","n":1},{"c":"2010050040008","d":"BLUSA BLANCA","t":"4","s":"BLU-005-T4","p":0,"k":"prenda","n":1},{"c":"2010050080004","d":"BLUSA BLANCA","t":"8","s":"BLU-005-T8","p":0,"k":"prenda","n":2},{"c":"2010050100009","d":"BLUSA BLANCA","t":"10","s":"BLU-005-T10","p":0,"k":"prenda","n":2},{"c":"2010050160003","d":"BLUSA BLANCA","t":"16","s":"BLU-005-T16","p":0,"k":"prenda","n":2},{"c":"2010060080001","d":"BLUSA CAFE","t":"8","s":"BLU-006-T8","p":0,"k":"prenda","n":1},{"c":"2010060100006","d":"BLUSA CAFE","t":"10","s":"BLU-006-T10","p":0,"k":"prenda","n":1},{"c":"2010060120004","d":"BLUSA CAFE","t":"12","s":"BLU-006-T12","p":0,"k":"prenda","n":3},{"c":"2010060160000","d":"BLUSA CAFE","t":"16","s":"BLU-006-T16","p":0,"k":"prenda","n":1},{"c":"2010070040002","d":"BLUSA CIELO RHV","t":"4","s":"BLU-007-T4","p":0,"k":"prenda","n":1},{"c":"2010110080005","d":"BLUSA RH MAT","t":"8","s":"BLU-011-T8","p":0,"k":"prenda","n":3},{"c":"2010110100000","d":"BLUSA RH MAT","t":"10","s":"BLU-011-T10","p":0,"k":"prenda","n":2},{"c":"2010120100007","d":"BLUSA ROJO RENE MAT","t":"10","s":"BLU-012-T10","p":0,"k":"prenda","n":1},{"c":"2010120120005","d":"BLUSA ROJO RENE MAT","t":"12","s":"BLU-012-T12","p":0,"k":"prenda","n":1},{"c":"2010120140003","d":"BLUSA ROJO RENE MAT","t":"14","s":"BLU-012-T14","p":0,"k":"prenda","n":1},{"c":"2010130100004","d":"BLUSA VERDE BOTELLA JFV","t":"10","s":"BLU-013-T10","p":0,"k":"prenda","n":5},{"c":"2010130120002","d":"BLUSA VERDE BOTELLA JFV","t":"12","s":"BLU-013-T12","p":0,"k":"prenda","n":1},{"c":"2010130140000","d":"BLUSA VERDE BOTELLA JFV","t":"14","s":"BLU-013-T14","p":0,"k":"prenda","n":1},{"c":"2010130160008","d":"BLUSA VERDE BOTELLA JFV","t":"16","s":"BLU-013-T16","p":0,"k":"prenda","n":9},{"c":"2020011020000","d":"DEPORTIVO 205 2DO","t":"M","s":"DEP-001-TM","p":0,"k":"prenda","n":6},{"c":"2020011030009","d":"DEPORTIVO 205 2DO","t":"G","s":"DEP-001-TG","p":0,"k":"prenda","n":5},{"c":"2020020120005","d":"DEPORTIVO 205 3RO","t":"12","s":"DEP-002-T12","p":0,"k":"prenda","n":2},{"c":"2020021020007","d":"DEPORTIVO 205 3RO","t":"M","s":"DEP-002-TM","p":0,"k":"prenda","n":1},{"c":"2020021030006","d":"DEPORTIVO 205 3RO","t":"G","s":"DEP-002-TG","p":0,"k":"prenda","n":3},{"c":"2020030140000","d":"DEPORTIVO 205 VESP","t":"14","s":"DEP-003-T14","p":0,"k":"prenda","n":4},{"c":"2020031030003","d":"DEPORTIVO 205 VESP","t":"G","s":"DEP-003-TG","p":0,"k":"prenda","n":1},{"c":"2020041020001","d":"DEPORTIVO 309 MAT","t":"M","s":"DEP-004-TM","p":0,"k":"prenda","n":1},{"c":"2020050160002","d":"DEPORTIVO 327","t":"16","s":"DEP-005-T16","p":0,"k":"prenda","n":20},{"c":"2020051020008","d":"DEPORTIVO 327","t":"M","s":"DEP-005-TM","p":0,"k":"prenda","n":2},{"c":"2020051030007","d":"DEPORTIVO 327","t":"G","s":"DEP-005-TG","p":0,"k":"prenda","n":9},{"c":"2020060080000","d":"DEPORTIVO BICOLOR","t":"8","s":"DEP-006-T8","p":0,"k":"prenda","n":5},{"c":"2020080080004","d":"DEPORTIVO JFM","t":"8","s":"DEP-008-T8","p":0,"k":"prenda","n":15},{"c":"2020080100009","d":"DEPORTIVO JFM","t":"10","s":"DEP-008-T10","p":0,"k":"prenda","n":19},{"c":"2020080120007","d":"DEPORTIVO JFM","t":"12","s":"DEP-008-T12","p":0,"k":"prenda","n":37},{"c":"2020080140005","d":"DEPORTIVO JFM","t":"14","s":"DEP-008-T14","p":0,"k":"prenda","n":3},{"c":"2020080160003","d":"DEPORTIVO JFM","t":"16","s":"DEP-008-T16","p":0,"k":"prenda","n":14},{"c":"2020090080001","d":"DEPORTIVO JFV","t":"8","s":"DEP-009-T8","p":0,"k":"prenda","n":13},{"c":"2020090100006","d":"DEPORTIVO JFV","t":"10","s":"DEP-009-T10","p":0,"k":"prenda","n":13},{"c":"2020090120004","d":"DEPORTIVO JFV","t":"12","s":"DEP-009-T12","p":0,"k":"prenda","n":1},{"c":"2020090140002","d":"DEPORTIVO JFV","t":"14","s":"DEP-009-T14","p":0,"k":"prenda","n":9},{"c":"2020100080007","d":"DEPORTIVO LINAJE MAT","t":"8","s":"DEP-010-T8","p":0,"k":"prenda","n":21},{"c":"2020100100002","d":"DEPORTIVO LINAJE MAT","t":"10","s":"DEP-010-T10","p":0,"k":"prenda","n":24},{"c":"2020100120000","d":"DEPORTIVO LINAJE MAT","t":"12","s":"DEP-010-T12","p":0,"k":"prenda","n":12},{"c":"2020100140008","d":"DEPORTIVO LINAJE MAT","t":"14","s":"DEP-010-T14","p":0,"k":"prenda","n":11},{"c":"2020100160006","d":"DEPORTIVO LINAJE MAT","t":"16","s":"DEP-010-T16","p":0,"k":"prenda","n":11},{"c":"2020110080004","d":"DEPORTIVO LINAJE VESP","t":"8","s":"DEP-011-T8","p":0,"k":"prenda","n":3},{"c":"2020110100009","d":"DEPORTIVO LINAJE VESP","t":"10","s":"DEP-011-T10","p":0,"k":"prenda","n":5},{"c":"2020120100006","d":"DEPORTIVO RENE MAT","t":"10","s":"DEP-012-T10","p":0,"k":"prenda","n":15},{"c":"2020120120004","d":"DEPORTIVO RENE MAT","t":"12","s":"DEP-012-T12","p":0,"k":"prenda","n":5},{"c":"2020120140002","d":"DEPORTIVO RENE MAT","t":"14","s":"DEP-012-T14","p":0,"k":"prenda","n":6},{"c":"2020120160000","d":"DEPORTIVO RENE MAT","t":"16","s":"DEP-012-T16","p":0,"k":"prenda","n":6},{"c":"2020130040002","d":"DEPORTIVO RH MAT","t":"4","s":"DEP-013-T4","p":0,"k":"prenda","n":8},{"c":"2020130060000","d":"DEPORTIVO RH MAT","t":"6","s":"DEP-013-T6","p":0,"k":"prenda","n":6},{"c":"2020140040009","d":"DEPORTIVO RH VESP","t":"4","s":"DEP-014-T4","p":0,"k":"prenda","n":12},{"c":"2020140060007","d":"DEPORTIVO RH VESP","t":"6","s":"DEP-014-T6","p":0,"k":"prenda","n":17},{"c":"2020140080005","d":"DEPORTIVO RH VESP","t":"8","s":"DEP-014-T8","p":0,"k":"prenda","n":3},{"c":"2020150120005","d":"DEPORTIVO TECNICA","t":"12","s":"DEP-015-T12","p":0,"k":"prenda","n":1},{"c":"2020160040003","d":"DEPORTIVO TEPEYO","t":"4","s":"DEP-016-T4","p":0,"k":"prenda","n":3},{"c":"2020160060001","d":"DEPORTIVO TEPEYO","t":"6","s":"DEP-016-T6","p":0,"k":"prenda","n":5},{"c":"2020170080006","d":"DEPORTIVO TLACAELEL","t":"8","s":"DEP-017-T8","p":0,"k":"prenda","n":4},{"c":"2020170100001","d":"DEPORTIVO TLACAELEL","t":"10","s":"DEP-017-T10","p":0,"k":"prenda","n":3},{"c":"2020180040007","d":"DEPORTIVO VILLA CENTROAMERICANA","t":"4","s":"DEP-018-T4","p":0,"k":"prenda","n":8},{"c":"2020180060005","d":"DEPORTIVO VILLA CENTROAMERICANA","t":"6","s":"DEP-018-T6","p":0,"k":"prenda","n":15},{"c":"2030010140005","d":"FALDA 4 TABLAS GALES VERDE","t":"14","s":"FAL-001-T14","p":0,"k":"prenda","n":3},{"c":"2030010300003","d":"FALDA 4 TABLAS GALES VERDE","t":"30","s":"FAL-001-T30","p":0,"k":"prenda","n":2},{"c":"2030010320001","d":"FALDA 4 TABLAS GALES VERDE","t":"32","s":"FAL-001-T32","p":0,"k":"prenda","n":3},{"c":"2030010380005","d":"FALDA 4 TABLAS GALES VERDE","t":"38","s":"FAL-001-T38","p":0,"k":"prenda","n":2},{"c":"2030020320008","d":"FALDA 4 TABLAS GRIS CLARO","t":"32","s":"FAL-002-T32","p":0,"k":"prenda","n":3},{"c":"2030030280002","d":"FALDA 4 TABLAS GRIS OXFORD","t":"28","s":"FAL-003-T28","p":0,"k":"prenda","n":1},{"c":"2030040280009","d":"FALDA 4 TABLAS PATA DE GALLO CAFE","t":"28","s":"FAL-004-T28","p":0,"k":"prenda","n":2},{"c":"2030040300004","d":"FALDA 4 TABLAS PATA DE GALLO CAFE","t":"30","s":"FAL-004-T30","p":0,"k":"prenda","n":1},{"c":"2030040320002","d":"FALDA 4 TABLAS PATA DE GALLO CAFE","t":"32","s":"FAL-004-T32","p":0,"k":"prenda","n":2},{"c":"2030040340000","d":"FALDA 4 TABLAS PATA DE GALLO CAFE","t":"34","s":"FAL-004-T34","p":0,"k":"prenda","n":5},{"c":"2030040360008","d":"FALDA 4 TABLAS PATA DE GALLO CAFE","t":"36","s":"FAL-004-T36","p":0,"k":"prenda","n":1},{"c":"2030050160001","d":"FALDA CORTE PRINCESA GALES VERDE","t":"16","s":"FAL-005-T16","p":0,"k":"prenda","n":1},{"c":"2030050280006","d":"FALDA CORTE PRINCESA GALES VERDE","t":"28","s":"FAL-005-T28","p":0,"k":"prenda","n":1},{"c":"2030050340007","d":"FALDA CORTE PRINCESA GALES VERDE","t":"34","s":"FAL-005-T34","p":0,"k":"prenda","n":3},{"c":"2030050360005","d":"FALDA CORTE PRINCESA GALES VERDE","t":"36","s":"FAL-005-T36","p":0,"k":"prenda","n":1},{"c":"2030050380003","d":"FALDA CORTE PRINCESA GALES VERDE","t":"38","s":"FAL-005-T38","p":0,"k":"prenda","n":5},{"c":"2030050400008","d":"FALDA CORTE PRINCESA GALES VERDE","t":"40","s":"FAL-005-T40","p":0,"k":"prenda","n":4},{"c":"2030060320006","d":"FALDA CORTE PRINCESA PATA DE GALLO CAFE","t":"32","s":"FAL-006-T32","p":0,"k":"prenda","n":2},{"c":"2030060340004","d":"FALDA CORTE PRINCESA PATA DE GALLO CAFE","t":"34","s":"FAL-006-T34","p":0,"k":"prenda","n":1},{"c":"2030060360002","d":"FALDA CORTE PRINCESA PATA DE GALLO CAFE","t":"36","s":"FAL-006-T36","p":0,"k":"prenda","n":5},{"c":"2040010100008","d":"JUMPER AZUL CARMEN MAT","t":"10","s":"JUM-001-T10","p":0,"k":"prenda","n":2},{"c":"2040020040004","d":"JUMPER AZUL MARINO","t":"4","s":"JUM-002-T4","p":0,"k":"prenda","n":1},{"c":"2040020100005","d":"JUMPER AZUL MARINO","t":"10","s":"JUM-002-T10","p":0,"k":"prenda","n":4},{"c":"2040020120003","d":"JUMPER AZUL MARINO","t":"12","s":"JUM-002-T12","p":0,"k":"prenda","n":6},{"c":"2040030100002","d":"JUMPER AZUL MARINO CARMEN VESP","t":"10","s":"JUM-003-T10","p":0,"k":"prenda","n":2},{"c":"2040040060006","d":"JUMPER AZUL REY ESCOSES RENE VESP","t":"6","s":"JUM-004-T6","p":0,"k":"prenda","n":1},{"c":"2040040100009","d":"JUMPER AZUL REY ESCOSES RENE VESP","t":"10","s":"JUM-004-T10","p":0,"k":"prenda","n":2},{"c":"2040040120007","d":"JUMPER AZUL REY ESCOSES RENE VESP","t":"12","s":"JUM-004-T12","p":0,"k":"prenda","n":1},{"c":"2040040140005","d":"JUMPER AZUL REY ESCOSES RENE VESP","t":"14","s":"JUM-004-T14","p":0,"k":"prenda","n":2},{"c":"2040040160003","d":"JUMPER AZUL REY ESCOSES RENE VESP","t":"16","s":"JUM-004-T16","p":0,"k":"prenda","n":2},{"c":"2040050060003","d":"JUMPER BEIGE CON AZUL MARINO LINAJE MAT","t":"6","s":"JUM-005-T6","p":0,"k":"prenda","n":1},{"c":"2040050100006","d":"JUMPER BEIGE CON AZUL MARINO LINAJE MAT","t":"10","s":"JUM-005-T10","p":0,"k":"prenda","n":4},{"c":"2040050120004","d":"JUMPER BEIGE CON AZUL MARINO LINAJE MAT","t":"12","s":"JUM-005-T12","p":0,"k":"prenda","n":4},{"c":"2040050140002","d":"JUMPER BEIGE CON AZUL MARINO LINAJE MAT","t":"14","s":"JUM-005-T14","p":0,"k":"prenda","n":1},{"c":"2040050160000","d":"JUMPER BEIGE CON AZUL MARINO LINAJE MAT","t":"16","s":"JUM-005-T16","p":0,"k":"prenda","n":5},{"c":"2040060100003","d":"JUMPER BEIGE CON CAFE","t":"10","s":"JUM-006-T10","p":0,"k":"prenda","n":1},{"c":"2040060120001","d":"JUMPER BEIGE CON CAFE","t":"12","s":"JUM-006-T12","p":0,"k":"prenda","n":3},{"c":"2040060140009","d":"JUMPER BEIGE CON CAFE","t":"14","s":"JUM-006-T14","p":0,"k":"prenda","n":2},{"c":"2040060160007","d":"JUMPER BEIGE CON CAFE","t":"16","s":"JUM-006-T16","p":0,"k":"prenda","n":1},{"c":"2040070020001","d":"JUMPER BLANCA","t":"2","s":"JUM-007-T2","p":0,"k":"prenda","n":3},{"c":"2040080100007","d":"JUMPER GRIS CON AZUL","t":"10","s":"JUM-008-T10","p":0,"k":"prenda","n":1},{"c":"2040090060001","d":"JUMPER GRIS CON ROJO RENE MAT","t":"6","s":"JUM-009-T6","p":0,"k":"prenda","n":1},{"c":"2040090080009","d":"JUMPER GRIS CON ROJO RENE MAT","t":"8","s":"JUM-009-T8","p":0,"k":"prenda","n":1},{"c":"2040090100004","d":"JUMPER GRIS CON ROJO RENE MAT","t":"10","s":"JUM-009-T10","p":0,"k":"prenda","n":1},{"c":"2040090120002","d":"JUMPER GRIS CON ROJO RENE MAT","t":"12","s":"JUM-009-T12","p":0,"k":"prenda","n":4},{"c":"2040090160008","d":"JUMPER GRIS CON ROJO RENE MAT","t":"16","s":"JUM-009-T16","p":0,"k":"prenda","n":4},{"c":"2040100020001","d":"JUMPER GRIS JFM","t":"2","s":"JUM-010-T2","p":0,"k":"prenda","n":2},{"c":"2040100030000","d":"JUMPER GRIS JFM","t":"3","s":"JUM-010-T3","p":0,"k":"prenda","n":1},{"c":"2040100060007","d":"JUMPER GRIS JFM","t":"6","s":"JUM-010-T6","p":0,"k":"prenda","n":4},{"c":"2040100080005","d":"JUMPER GRIS JFM","t":"8","s":"JUM-010-T8","p":0,"k":"prenda","n":4},{"c":"2040100120008","d":"JUMPER GRIS JFM","t":"12","s":"JUM-010-T12","p":0,"k":"prenda","n":2},{"c":"2040100140006","d":"JUMPER GRIS JFM","t":"14","s":"JUM-010-T14","p":0,"k":"prenda","n":1},{"c":"2040100160004","d":"JUMPER GRIS JFM","t":"16","s":"JUM-010-T16","p":0,"k":"prenda","n":4},{"c":"2040100360008","d":"JUMPER GRIS JFM","t":"36","s":"JUM-010-T36","p":0,"k":"prenda","n":2},{"c":"2040110030007","d":"JUMPER RHM","t":"3","s":"JUM-011-T3","p":0,"k":"prenda","n":1},{"c":"2040110040006","d":"JUMPER RHM","t":"4","s":"JUM-011-T4","p":0,"k":"prenda","n":4},{"c":"2040120060001","d":"JUMPER RHV","t":"6","s":"JUM-012-T6","p":0,"k":"prenda","n":1},{"c":"2040120080009","d":"JUMPER RHV","t":"8","s":"JUM-012-T8","p":0,"k":"prenda","n":1},{"c":"2040130060008","d":"JUMPER ROJO LINAJE VESP","t":"6","s":"JUM-013-T6","p":0,"k":"prenda","n":1},{"c":"2040130120009","d":"JUMPER ROJO LINAJE VESP","t":"12","s":"JUM-013-T12","p":0,"k":"prenda","n":1},{"c":"2040140080003","d":"JUMPER VERDE JFV","t":"8","s":"JUM-014-T8","p":0,"k":"prenda","n":4},{"c":"2040140100008","d":"JUMPER VERDE JFV","t":"10","s":"JUM-014-T10","p":0,"k":"prenda","n":5},{"c":"2040140120006","d":"JUMPER VERDE JFV","t":"12","s":"JUM-014-T12","p":0,"k":"prenda","n":1},{"c":"2040140140004","d":"JUMPER VERDE JFV","t":"14","s":"JUM-014-T14","p":0,"k":"prenda","n":3},{"c":"2040140160002","d":"JUMPER VERDE JFV","t":"16","s":"JUM-014-T16","p":0,"k":"prenda","n":1},{"c":"2050010060004","d":"PANTALON AZUL MARINO LINAJE MAT","t":"6","s":"PAN-001-T6","p":0,"k":"prenda","n":6},{"c":"2050010080002","d":"PANTALON AZUL MARINO LINAJE MAT","t":"8","s":"PAN-001-T8","p":0,"k":"prenda","n":2},{"c":"2050010100007","d":"PANTALON AZUL MARINO LINAJE MAT","t":"10","s":"PAN-001-T10","p":0,"k":"prenda","n":2},{"c":"2050010120005","d":"PANTALON AZUL MARINO LINAJE MAT","t":"12","s":"PAN-001-T12","p":0,"k":"prenda","n":5},{"c":"2050010140003","d":"PANTALON AZUL MARINO LINAJE MAT","t":"14","s":"PAN-001-T14","p":0,"k":"prenda","n":6},{"c":"2050010160001","d":"PANTALON AZUL MARINO LINAJE MAT","t":"16","s":"PAN-001-T16","p":0,"k":"prenda","n":4},{"c":"2050010180009","d":"PANTALON AZUL MARINO LINAJE MAT","t":"18","s":"PAN-001-T18","p":0,"k":"prenda","n":1},{"c":"2050010340007","d":"PANTALON AZUL MARINO LINAJE MAT","t":"34","s":"PAN-001-T34","p":0,"k":"prenda","n":1},{"c":"2050020060001","d":"PANTALON BEIGE","t":"6","s":"PAN-002-T6","p":0,"k":"prenda","n":2},{"c":"2050020160008","d":"PANTALON BEIGE","t":"16","s":"PAN-002-T16","p":0,"k":"prenda","n":1},{"c":"2050030060008","d":"PANTALON CAFE","t":"6","s":"PAN-003-T6","p":0,"k":"prenda","n":3},{"c":"2050030100001","d":"PANTALON CAFE","t":"10","s":"PAN-003-T10","p":0,"k":"prenda","n":2},{"c":"2050030160005","d":"PANTALON CAFE","t":"16","s":"PAN-003-T16","p":0,"k":"prenda","n":1},{"c":"2050030180003","d":"PANTALON CAFE","t":"18","s":"PAN-003-T18","p":0,"k":"prenda","n":2},{"c":"2050040160002","d":"PANTALON GALES AZUL","t":"16","s":"PAN-004-T16","p":0,"k":"prenda","n":1},{"c":"2050050140001","d":"PANTALON GALES VERDE SECUNDARIA","t":"14","s":"PAN-005-T14","p":0,"k":"prenda","n":3},{"c":"2050050160009","d":"PANTALON GALES VERDE SECUNDARIA","t":"16","s":"PAN-005-T16","p":0,"k":"prenda","n":2},{"c":"2050050180007","d":"PANTALON GALES VERDE SECUNDARIA","t":"18","s":"PAN-005-T18","p":0,"k":"prenda","n":2},{"c":"2050050200002","d":"PANTALON GALES VERDE SECUNDARIA","t":"20","s":"PAN-005-T20","p":0,"k":"prenda","n":1},{"c":"2050050240008","d":"PANTALON GALES VERDE SECUNDARIA","t":"24","s":"PAN-005-T24","p":0,"k":"prenda","n":1},{"c":"2050050280004","d":"PANTALON GALES VERDE SECUNDARIA","t":"28","s":"PAN-005-T28","p":0,"k":"prenda","n":1},{"c":"2050050320007","d":"PANTALON GALES VERDE SECUNDARIA","t":"32","s":"PAN-005-T32","p":0,"k":"prenda","n":1},{"c":"2050050360003","d":"PANTALON GALES VERDE SECUNDARIA","t":"36","s":"PAN-005-T36","p":0,"k":"prenda","n":1},{"c":"2050060080007","d":"PANTALON GRIS CON ROJO RENE MAT","t":"8","s":"PAN-006-T8","p":0,"k":"prenda","n":3},{"c":"2050060120000","d":"PANTALON GRIS CON ROJO RENE MAT","t":"12","s":"PAN-006-T12","p":0,"k":"prenda","n":1},{"c":"2050060140008","d":"PANTALON GRIS CON ROJO RENE MAT","t":"14","s":"PAN-006-T14","p":0,"k":"prenda","n":1},{"c":"2050060160006","d":"PANTALON GRIS CON ROJO RENE MAT","t":"16","s":"PAN-006-T16","p":0,"k":"prenda","n":1},{"c":"2050070060006","d":"PANTALON GRIS JFM","t":"6","s":"PAN-007-T6","p":0,"k":"prenda","n":3},{"c":"2050070120007","d":"PANTALON GRIS JFM","t":"12","s":"PAN-007-T12","p":0,"k":"prenda","n":5},{"c":"2050070140005","d":"PANTALON GRIS JFM","t":"14","s":"PAN-007-T14","p":0,"k":"prenda","n":1},{"c":"2050070280008","d":"PANTALON GRIS JFM","t":"28","s":"PAN-007-T28","p":0,"k":"prenda","n":1},{"c":"2050070340009","d":"PANTALON GRIS JFM","t":"34","s":"PAN-007-T34","p":0,"k":"prenda","n":1},{"c":"2050080340006","d":"PANTALON PATA DE GALLO AZUL MARINO","t":"34","s":"PAN-008-T34","p":0,"k":"prenda","n":1},{"c":"2050090140009","d":"PANTALON PATA DE GALLO CAFE","t":"14","s":"PAN-009-T14","p":0,"k":"prenda","n":2},{"c":"2050090160007","d":"PANTALON PATA DE GALLO CAFE","t":"16","s":"PAN-009-T16","p":0,"k":"prenda","n":3},{"c":"2050090180005","d":"PANTALON PATA DE GALLO CAFE","t":"18","s":"PAN-009-T18","p":0,"k":"prenda","n":1},{"c":"2050090200000","d":"PANTALON PATA DE GALLO CAFE","t":"20","s":"PAN-009-T20","p":0,"k":"prenda","n":3},{"c":"2050090280002","d":"PANTALON PATA DE GALLO CAFE","t":"28","s":"PAN-009-T28","p":0,"k":"prenda","n":2},{"c":"2050090340003","d":"PANTALON PATA DE GALLO CAFE","t":"34","s":"PAN-009-T34","p":0,"k":"prenda","n":1},{"c":"2050090360001","d":"PANTALON PATA DE GALLO CAFE","t":"36","s":"PAN-009-T36","p":0,"k":"prenda","n":1},{"c":"2050090420002","d":"PANTALON PATA DE GALLO CAFE","t":"42","s":"PAN-009-T42","p":0,"k":"prenda","n":1},{"c":"2050100040008","d":"PANTALON RH MAT","t":"4","s":"PAN-010-T4","p":0,"k":"prenda","n":3},{"c":"2050110060003","d":"PANTALON RH VESP","t":"6","s":"PAN-011-T6","p":0,"k":"prenda","n":3},{"c":"2050120060000","d":"PANTALON VERDE JFV","t":"6","s":"PAN-012-T6","p":0,"k":"prenda","n":2},{"c":"2050120080008","d":"PANTALON VERDE JFV","t":"8","s":"PAN-012-T8","p":0,"k":"prenda","n":3},{"c":"2050120100003","d":"PANTALON VERDE JFV","t":"10","s":"PAN-012-T10","p":0,"k":"prenda","n":2},{"c":"2050120120001","d":"PANTALON VERDE JFV","t":"12","s":"PAN-012-T12","p":0,"k":"prenda","n":3},{"c":"2050120140009","d":"PANTALON VERDE JFV","t":"14","s":"PAN-012-T14","p":0,"k":"prenda","n":3},{"c":"2050120160007","d":"PANTALON VERDE JFV","t":"16","s":"PAN-012-T16","p":0,"k":"prenda","n":4},{"c":"2050120200000","d":"PANTALON VERDE JFV","t":"20","s":"PAN-012-T20","p":0,"k":"prenda","n":2},{"c":"2060010140002","d":"PLAYERA 205 2DO","t":"14","s":"PLY-001-T14","p":0,"k":"prenda","n":1},{"c":"2060011020006","d":"PLAYERA 205 2DO","t":"M","s":"PLY-001-TM","p":0,"k":"prenda","n":3},{"c":"2060020160007","d":"PLAYERA 205 3RO","t":"16","s":"PLY-002-T16","p":0,"k":"prenda","n":1},{"c":"2060040140003","d":"PLAYERA 309 MAT","t":"14","s":"PLY-004-T14","p":0,"k":"prenda","n":7},{"c":"2060040160001","d":"PLAYERA 309 MAT","t":"16","s":"PLY-004-T16","p":0,"k":"prenda","n":6},{"c":"2060050140000","d":"PLAYERA 327","t":"14","s":"PLY-005-T14","p":0,"k":"prenda","n":20},{"c":"2060050160008","d":"PLAYERA 327","t":"16","s":"PLY-005-T16","p":0,"k":"prenda","n":15},{"c":"2060051020004","d":"PLAYERA 327","t":"M","s":"PLY-005-TM","p":0,"k":"prenda","n":13},{"c":"2060070160002","d":"PLAYERA CARMEN ANTIGUO","t":"16","s":"PLY-007-T16","p":0,"k":"prenda","n":1},{"c":"2060080060002","d":"PLAYERA JFM","t":"6","s":"PLY-008-T6","p":0,"k":"prenda","n":4},{"c":"2060080080000","d":"PLAYERA JFM","t":"8","s":"PLY-008-T8","p":0,"k":"prenda","n":1},{"c":"2060080100005","d":"PLAYERA JFM","t":"10","s":"PLY-008-T10","p":0,"k":"prenda","n":3},{"c":"2060080120003","d":"PLAYERA JFM","t":"12","s":"PLY-008-T12","p":0,"k":"prenda","n":5},{"c":"2060080140001","d":"PLAYERA JFM","t":"14","s":"PLY-008-T14","p":0,"k":"prenda","n":5},{"c":"2060080160009","d":"PLAYERA JFM","t":"16","s":"PLY-008-T16","p":0,"k":"prenda","n":3},{"c":"2060081020005","d":"PLAYERA JFM","t":"M","s":"PLY-008-TM","p":0,"k":"prenda","n":1},{"c":"2060100120006","d":"PLAYERA JFV (ANTIGUO)","t":"12","s":"PLY-010-T12","p":0,"k":"prenda","n":1},{"c":"2060100160002","d":"PLAYERA JFV (ANTIGUO)","t":"16","s":"PLY-010-T16","p":0,"k":"prenda","n":1},{"c":"2060110100005","d":"PLAYERA LINAJE MAT","t":"10","s":"PLY-011-T10","p":0,"k":"prenda","n":10},{"c":"2060110120003","d":"PLAYERA LINAJE MAT","t":"12","s":"PLY-011-T12","p":0,"k":"prenda","n":1},{"c":"2060110140001","d":"PLAYERA LINAJE MAT","t":"14","s":"PLY-011-T14","p":0,"k":"prenda","n":3},{"c":"2060130060006","d":"PLAYERA RENE MAT","t":"6","s":"PLY-013-T6","p":0,"k":"prenda","n":6},{"c":"2060140040005","d":"PLAYERA RH MAT","t":"4","s":"PLY-014-T4","p":0,"k":"prenda","n":7},{"c":"2060140060003","d":"PLAYERA RH MAT","t":"6","s":"PLY-014-T6","p":0,"k":"prenda","n":2},{"c":"2060150080008","d":"PLAYERA RH VESP","t":"8","s":"PLY-015-T8","p":0,"k":"prenda","n":2},{"c":"2060170120005","d":"PLAYERA TECNICA 101","t":"12","s":"PLY-017-T12","p":0,"k":"prenda","n":5},{"c":"2060191020001","d":"PLAYERA TLACAELEL","t":"M","s":"PLY-019-TM","p":0,"k":"prenda","n":1},{"c":"2070010060002","d":"POLO AMARILLA","t":"6","s":"POL-001-T6","p":0,"k":"prenda","n":2},{"c":"2070020040001","d":"POLO AMARILLA CON NEGRO","t":"4","s":"POL-002-T4","p":0,"k":"prenda","n":7},{"c":"2070030100009","d":"POLO AZUL MARINO CON ROJO CARMEN VESP","t":"10","s":"POL-003-T10","p":0,"k":"prenda","n":3},{"c":"2070030120007","d":"POLO AZUL MARINO CON ROJO CARMEN VESP","t":"12","s":"POL-003-T12","p":0,"k":"prenda","n":2},{"c":"2070030140005","d":"POLO AZUL MARINO CON ROJO CARMEN VESP","t":"14","s":"POL-003-T14","p":0,"k":"prenda","n":2},{"c":"2070030160003","d":"POLO AZUL MARINO CON ROJO CARMEN VESP","t":"16","s":"POL-003-T16","p":0,"k":"prenda","n":2},{"c":"2070040040005","d":"POLO AZUL MARINO LINAJE MAT","t":"4","s":"POL-004-T4","p":0,"k":"prenda","n":3},{"c":"2070040100006","d":"POLO AZUL MARINO LINAJE MAT","t":"10","s":"POL-004-T10","p":0,"k":"prenda","n":2},{"c":"2070040120004","d":"POLO AZUL MARINO LINAJE MAT","t":"12","s":"POL-004-T12","p":0,"k":"prenda","n":7},{"c":"2070040140002","d":"POLO AZUL MARINO LINAJE MAT","t":"14","s":"POL-004-T14","p":0,"k":"prenda","n":2},{"c":"2070040160000","d":"POLO AZUL MARINO LINAJE MAT","t":"16","s":"POL-004-T16","p":0,"k":"prenda","n":2},{"c":"2070050060000","d":"POLO AZUL REY CON GRIS JFM","t":"6","s":"POL-005-T6","p":0,"k":"prenda","n":1},{"c":"2070050100003","d":"POLO AZUL REY CON GRIS JFM","t":"10","s":"POL-005-T10","p":0,"k":"prenda","n":7},{"c":"2070050120001","d":"POLO AZUL REY CON GRIS JFM","t":"12","s":"POL-005-T12","p":0,"k":"prenda","n":6},{"c":"2070050140009","d":"POLO AZUL REY CON GRIS JFM","t":"14","s":"POL-005-T14","p":0,"k":"prenda","n":3},{"c":"2070050160007","d":"POLO AZUL REY CON GRIS JFM","t":"16","s":"POL-005-T16","p":0,"k":"prenda","n":1},{"c":"2070060040009","d":"POLO BLANCA","t":"4","s":"POL-006-T4","p":0,"k":"prenda","n":4},{"c":"2070060100000","d":"POLO BLANCA","t":"10","s":"POL-006-T10","p":0,"k":"prenda","n":5},{"c":"2070060120008","d":"POLO BLANCA","t":"12","s":"POL-006-T12","p":0,"k":"prenda","n":4},{"c":"2070060140006","d":"POLO BLANCA","t":"14","s":"POL-006-T14","p":0,"k":"prenda","n":1},{"c":"2070080060001","d":"POLO CIELO RHV","t":"6","s":"POL-008-T6","p":0,"k":"prenda","n":2},{"c":"2070090160005","d":"POLO DIURNA CHAZARILLA","t":"16","s":"POL-009-T16","p":0,"k":"prenda","n":1},{"c":"2070091020001","d":"POLO DIURNA CHAZARILLA","t":"M","s":"POL-009-TM","p":0,"k":"prenda","n":2},{"c":"2070091030000","d":"POLO DIURNA CHAZARILLA","t":"G","s":"POL-009-TG","p":0,"k":"prenda","n":2},{"c":"2070100040006","d":"POLO GRIS","t":"4","s":"POL-010-T4","p":0,"k":"prenda","n":3},{"c":"2070100060004","d":"POLO GRIS","t":"6","s":"POL-010-T6","p":0,"k":"prenda","n":2},{"c":"2070110040003","d":"POLO NARANJA","t":"4","s":"POL-011-T4","p":0,"k":"prenda","n":9},{"c":"2070110060001","d":"POLO NARANJA","t":"6","s":"POL-011-T6","p":0,"k":"prenda","n":2},{"c":"2070120040000","d":"POLO NEGRO","t":"4","s":"POL-012-T4","p":0,"k":"prenda","n":3},{"c":"2070120100001","d":"POLO NEGRO","t":"10","s":"POL-012-T10","p":0,"k":"prenda","n":3},{"c":"2070130040007","d":"POLO RH MAT","t":"4","s":"POL-013-T4","p":0,"k":"prenda","n":3},{"c":"2070130060005","d":"POLO RH MAT","t":"6","s":"POL-013-T6","p":0,"k":"prenda","n":5},{"c":"2070140100005","d":"POLO ROJO RENE MAT","t":"10","s":"POL-014-T10","p":0,"k":"prenda","n":2},{"c":"2070150160006","d":"POLO TECNICA CHAZARILLA","t":"16","s":"POL-015-T16","p":0,"k":"prenda","n":3},{"c":"2070151020002","d":"POLO TECNICA CHAZARILLA","t":"M","s":"POL-015-TM","p":0,"k":"prenda","n":3},{"c":"2070151030001","d":"POLO TECNICA CHAZARILLA","t":"G","s":"POL-015-TG","p":0,"k":"prenda","n":7},{"c":"2070160080004","d":"POLO VERDE BOTELLA JFV","t":"8","s":"POL-016-T8","p":0,"k":"prenda","n":1},{"c":"2070160120007","d":"POLO VERDE BOTELLA JFV","t":"12","s":"POL-016-T12","p":0,"k":"prenda","n":2},{"c":"2070160140005","d":"POLO VERDE BOTELLA JFV","t":"14","s":"POL-016-T14","p":0,"k":"prenda","n":3},{"c":"2080010040003","d":"SUETER AZUL MARINO","t":"4","s":"SUE-001-T4","p":0,"k":"prenda","n":1},{"c":"2080010060001","d":"SUETER AZUL MARINO","t":"6","s":"SUE-001-T6","p":0,"k":"prenda","n":10},{"c":"2080010080009","d":"SUETER AZUL MARINO","t":"8","s":"SUE-001-T8","p":0,"k":"prenda","n":14},{"c":"2080010100004","d":"SUETER AZUL MARINO","t":"10","s":"SUE-001-T10","p":0,"k":"prenda","n":2},{"c":"2080010120002","d":"SUETER AZUL MARINO","t":"12","s":"SUE-001-T12","p":0,"k":"prenda","n":11},{"c":"2080010140000","d":"SUETER AZUL MARINO","t":"14","s":"SUE-001-T14","p":0,"k":"prenda","n":8},{"c":"2080010160008","d":"SUETER AZUL MARINO","t":"16","s":"SUE-001-T16","p":0,"k":"prenda","n":16},{"c":"2080020100001","d":"SUETER AZUL MARINO CON ROJO","t":"10","s":"SUE-002-T10","p":0,"k":"prenda","n":2},{"c":"2080020120009","d":"SUETER AZUL MARINO CON ROJO","t":"12","s":"SUE-002-T12","p":0,"k":"prenda","n":2},{"c":"2080030040007","d":"SUETER AZUL PETROLEO","t":"4","s":"SUE-003-T4","p":0,"k":"prenda","n":1},{"c":"2080040080000","d":"SUETER AZUL REY","t":"8","s":"SUE-004-T8","p":0,"k":"prenda","n":5},{"c":"2080040160009","d":"SUETER AZUL REY","t":"16","s":"SUE-004-T16","p":0,"k":"prenda","n":5},{"c":"2080050060009","d":"SUETER AZUL REY CERRADO","t":"6","s":"SUE-005-T6","p":0,"k":"prenda","n":4},{"c":"2080050080007","d":"SUETER AZUL REY CERRADO","t":"8","s":"SUE-005-T8","p":0,"k":"prenda","n":2},{"c":"2080050100002","d":"SUETER AZUL REY CERRADO","t":"10","s":"SUE-005-T10","p":0,"k":"prenda","n":2},{"c":"2080050160006","d":"SUETER AZUL REY CERRADO","t":"16","s":"SUE-005-T16","p":0,"k":"prenda","n":2},{"c":"2080060060006","d":"SUETER AZUL REY JFM","t":"6","s":"SUE-006-T6","p":0,"k":"prenda","n":1},{"c":"2080070060003","d":"SUETER AZUL REY TEJIDO JFM","t":"6","s":"SUE-007-T6","p":0,"k":"prenda","n":2},{"c":"2080070080001","d":"SUETER AZUL REY TEJIDO JFM","t":"8","s":"SUE-007-T8","p":0,"k":"prenda","n":1},{"c":"2080070100006","d":"SUETER AZUL REY TEJIDO JFM","t":"10","s":"SUE-007-T10","p":0,"k":"prenda","n":1},{"c":"2080080100003","d":"SUETER CAFE","t":"10","s":"SUE-008-T10","p":0,"k":"prenda","n":1},{"c":"2080080120001","d":"SUETER CAFE","t":"12","s":"SUE-008-T12","p":0,"k":"prenda","n":3},{"c":"2080080140009","d":"SUETER CAFE","t":"14","s":"SUE-008-T14","p":0,"k":"prenda","n":2},{"c":"2080080160007","d":"SUETER CAFE","t":"16","s":"SUE-008-T16","p":0,"k":"prenda","n":1},{"c":"2080090100000","d":"SUETER CAFE CERRADO","t":"10","s":"SUE-009-T10","p":0,"k":"prenda","n":2},{"c":"2080090140006","d":"SUETER CAFE CERRADO","t":"14","s":"SUE-009-T14","p":0,"k":"prenda","n":2},{"c":"2080100140002","d":"SUETER DIURNA","t":"14","s":"SUE-010-T14","p":0,"k":"prenda","n":10},{"c":"2080100160000","d":"SUETER DIURNA","t":"16","s":"SUE-010-T16","p":0,"k":"prenda","n":17},{"c":"2080100340006","d":"SUETER DIURNA","t":"34","s":"SUE-010-T34","p":0,"k":"prenda","n":16},{"c":"2080100360004","d":"SUETER DIURNA","t":"36","s":"SUE-010-T36","p":0,"k":"prenda","n":21},{"c":"2080100380002","d":"SUETER DIURNA","t":"38","s":"SUE-010-T38","p":0,"k":"prenda","n":10},{"c":"2080100400007","d":"SUETER DIURNA","t":"40","s":"SUE-010-T40","p":0,"k":"prenda","n":2},{"c":"2080100420005","d":"SUETER DIURNA","t":"42","s":"SUE-010-T42","p":0,"k":"prenda","n":3},{"c":"2080110400004","d":"SUETER DIURNA CERRADO","t":"40","s":"SUE-011-T40","p":0,"k":"prenda","n":1},{"c":"2080120360008","d":"SUETER DIURNA CON BOTON","t":"36","s":"SUE-012-T36","p":0,"k":"prenda","n":2},{"c":"2080130080002","d":"SUETER GRIS","t":"8","s":"SUE-013-T8","p":0,"k":"prenda","n":1},{"c":"2080140040003","d":"SUETER RH MAT","t":"4","s":"SUE-014-T4","p":0,"k":"prenda","n":14},{"c":"2080140080009","d":"SUETER RH MAT","t":"8","s":"SUE-014-T8","p":0,"k":"prenda","n":1},{"c":"2080150060008","d":"SUETER ROJO","t":"6","s":"SUE-015-T6","p":0,"k":"prenda","n":3},{"c":"2080150080006","d":"SUETER ROJO","t":"8","s":"SUE-015-T8","p":0,"k":"prenda","n":5},{"c":"2080150100001","d":"SUETER ROJO","t":"10","s":"SUE-015-T10","p":0,"k":"prenda","n":6},{"c":"2080150120009","d":"SUETER ROJO","t":"12","s":"SUE-015-T12","p":0,"k":"prenda","n":6},{"c":"2080150140007","d":"SUETER ROJO","t":"14","s":"SUE-015-T14","p":0,"k":"prenda","n":3},{"c":"2080150160005","d":"SUETER ROJO","t":"16","s":"SUE-015-T16","p":0,"k":"prenda","n":3},{"c":"2080150340001","d":"SUETER ROJO","t":"34","s":"SUE-015-T34","p":0,"k":"prenda","n":1},{"c":"2080160120006","d":"SUETER TECNICA","t":"12","s":"SUE-016-T12","p":0,"k":"prenda","n":4},{"c":"2080160140004","d":"SUETER TECNICA","t":"14","s":"SUE-016-T14","p":0,"k":"prenda","n":6},{"c":"2080160160002","d":"SUETER TECNICA","t":"16","s":"SUE-016-T16","p":0,"k":"prenda","n":3},{"c":"2080160340008","d":"SUETER TECNICA","t":"34","s":"SUE-016-T34","p":0,"k":"prenda","n":1},{"c":"2080160360006","d":"SUETER TECNICA","t":"36","s":"SUE-016-T36","p":0,"k":"prenda","n":1},{"c":"2080160380004","d":"SUETER TECNICA","t":"38","s":"SUE-016-T38","p":0,"k":"prenda","n":2},{"c":"2080160400009","d":"SUETER TECNICA","t":"40","s":"SUE-016-T40","p":0,"k":"prenda","n":3},{"c":"2080160420007","d":"SUETER TECNICA","t":"42","s":"SUE-016-T42","p":0,"k":"prenda","n":1},{"c":"2080170060002","d":"SUETER VERDE BOTELLA","t":"6","s":"SUE-017-T6","p":0,"k":"prenda","n":3},{"c":"2080170100005","d":"SUETER VERDE BOTELLA","t":"10","s":"SUE-017-T10","p":0,"k":"prenda","n":4},{"c":"2080170120003","d":"SUETER VERDE BOTELLA","t":"12","s":"SUE-017-T12","p":0,"k":"prenda","n":3},{"c":"2080170160009","d":"SUETER VERDE BOTELLA","t":"16","s":"SUE-017-T16","p":0,"k":"prenda","n":7},{"c":"2080180140008","d":"SUETER VERDE BOTELLA CERRADO","t":"14","s":"SUE-018-T14","p":0,"k":"prenda","n":1},{"c":"2080190060006","d":"SUETER VERDE JADE","t":"6","s":"SUE-019-T6","p":0,"k":"prenda","n":1},{"c":"2090012020002","d":"CONJUNTO GALA MUJER CARMEN MAT","t":"10-12","s":"CGM-001-T10-12","p":660,"k":"conjunto","n":1},{"c":"2090012030001","d":"CONJUNTO GALA MUJER CARMEN MAT","t":"14-16","s":"CGM-001-T14-16","p":690,"k":"conjunto","n":1},{"c":"2090012040000","d":"CONJUNTO GALA MUJER CARMEN MAT","t":"M/G","s":"CGM-001-TM-G","p":750,"k":"conjunto","n":1},{"c":"2090012050009","d":"CONJUNTO GALA MUJER CARMEN VESP","t":"6-8","s":"CGM-002-T6-8","p":660,"k":"conjunto","n":1},{"c":"2090022020009","d":"CONJUNTO GALA MUJER CARMEN VESP","t":"10-12","s":"CGM-002-T10-12","p":660,"k":"conjunto","n":1},{"c":"2090022030008","d":"CONJUNTO GALA MUJER CARMEN VESP","t":"14-16","s":"CGM-002-T14-16","p":690,"k":"conjunto","n":1},{"c":"2090022040007","d":"CONJUNTO GALA MUJER CARMEN VESP","t":"M/G","s":"CGM-002-TM-G","p":750,"k":"conjunto","n":1},{"c":"2090022050006","d":"CONJUNTO GALA MUJER CENDI","t":"4 Y 6","s":"CGM-003-T4-6","p":650,"k":"conjunto","n":1},{"c":"2090032010007","d":"CONJUNTO GALA MUJER DIURNA 205 309 327","t":"12-16","s":"CGM-004-T12-16","p":700,"k":"conjunto","n":1},{"c":"2090042060009","d":"CONJUNTO GALA MUJER DIURNA 205 309 327","t":"28/36","s":"CGM-004-T28-36","p":720,"k":"conjunto","n":1},{"c":"2090042070008","d":"CONJUNTO GALA MUJER DIURNA 205 309 327","t":"38/41","s":"CGM-004-T38-41","p":780,"k":"conjunto","n":1},{"c":"2090042080007","d":"CONJUNTO GALA MUJER JULIO MAT","t":"6-8","s":"CGM-005-T6-8","p":670,"k":"conjunto","n":1},{"c":"2090052020000","d":"CONJUNTO GALA MUJER JULIO MAT","t":"10-12","s":"CGM-005-T10-12","p":670,"k":"conjunto","n":1},{"c":"2090052030009","d":"CONJUNTO GALA MUJER JULIO MAT","t":"14-16","s":"CGM-005-T14-16","p":700,"k":"conjunto","n":1},{"c":"2090052040008","d":"CONJUNTO GALA MUJER JULIO MAT","t":"M/G","s":"CGM-005-TM-G","p":770,"k":"conjunto","n":1},{"c":"2090052050007","d":"CONJUNTO GALA MUJER JULIO VESP","t":"6-8","s":"CGM-006-T6-8","p":660,"k":"conjunto","n":1},{"c":"2090062020007","d":"CONJUNTO GALA MUJER JULIO VESP","t":"10-12","s":"CGM-006-T10-12","p":660,"k":"conjunto","n":1},{"c":"2090062030006","d":"CONJUNTO GALA MUJER JULIO VESP","t":"14-16","s":"CGM-006-T14-16","p":690,"k":"conjunto","n":1},{"c":"2090062040005","d":"CONJUNTO GALA MUJER JULIO VESP","t":"M/G","s":"CGM-006-TM-G","p":750,"k":"conjunto","n":1},{"c":"2090062050004","d":"CONJUNTO GALA MUJER LINAJE MAT","t":"6-8","s":"CGM-007-T6-8","p":660,"k":"conjunto","n":1},{"c":"2090072020004","d":"CONJUNTO GALA MUJER LINAJE MAT","t":"10-12","s":"CGM-007-T10-12","p":660,"k":"conjunto","n":1},{"c":"2090072030003","d":"CONJUNTO GALA MUJER LINAJE MAT","t":"14-16","s":"CGM-007-T14-16","p":690,"k":"conjunto","n":1},{"c":"2090072040002","d":"CONJUNTO GALA MUJER LINAJE MAT","t":"M/G","s":"CGM-007-TM-G","p":750,"k":"conjunto","n":1},{"c":"2090072050001","d":"CONJUNTO GALA MUJER LINAJE VESP","t":"6-8","s":"CGM-008-T6-8","p":660,"k":"conjunto","n":1},{"c":"2090082020001","d":"CONJUNTO GALA MUJER LINAJE VESP","t":"10-12","s":"CGM-008-T10-12","p":660,"k":"conjunto","n":1},{"c":"2090082030000","d":"CONJUNTO GALA MUJER LINAJE VESP","t":"14-16","s":"CGM-008-T14-16","p":690,"k":"conjunto","n":1},{"c":"2090082040009","d":"CONJUNTO GALA MUJER LINAJE VESP","t":"M/G","s":"CGM-008-TM-G","p":750,"k":"conjunto","n":1},{"c":"2090082050008","d":"CONJUNTO GALA MUJER RENE MAT Y VESP","t":"6-8","s":"CGM-009-T6-8","p":660,"k":"conjunto","n":1},{"c":"2090092020008","d":"CONJUNTO GALA MUJER RENE MAT Y VESP","t":"10-12","s":"CGM-009-T10-12","p":660,"k":"conjunto","n":1},{"c":"2090092030007","d":"CONJUNTO GALA MUJER RENE MAT Y VESP","t":"14-16","s":"CGM-009-T14-16","p":690,"k":"conjunto","n":1},{"c":"2090092040006","d":"CONJUNTO GALA MUJER RENE MAT Y VESP","t":"M/G","s":"CGM-009-TM-G","p":750,"k":"conjunto","n":1},{"c":"2090092050005","d":"CONJUNTO GALA MUJER REYES HEROLES MAT","t":"4 Y 6","s":"CGM-010-T4-6","p":650,"k":"conjunto","n":1},{"c":"2090102010005","d":"CONJUNTO GALA MUJER REYES HEROLES VESP","t":"4 Y 6","s":"CGM-011-T4-6","p":650,"k":"conjunto","n":1},{"c":"2090112010002","d":"CONJUNTO GALA MUJER TECNICA","t":"12-16","s":"CGM-012-T12-16","p":700,"k":"conjunto","n":1},{"c":"2090122060004","d":"CONJUNTO GALA MUJER TECNICA","t":"28/36","s":"CGM-012-T28-36","p":720,"k":"conjunto","n":1},{"c":"2090122070003","d":"CONJUNTO GALA MUJER TECNICA","t":"38/41","s":"CGM-012-T38-41","p":750,"k":"conjunto","n":1},{"c":"2090122080002","d":"CONJUNTO GALA MUJER TECNICA","t":"EXT","s":"CGM-012-TEXT","p":800,"k":"conjunto","n":1},{"c":"2090122090001","d":"CONJUNTO GALA MUJER TLACAELEL","t":"6-8","s":"CGM-013-T6-8","p":660,"k":"conjunto","n":1},{"c":"2090132020005","d":"CONJUNTO GALA MUJER TLACAELEL","t":"10-12","s":"CGM-013-T10-12","p":660,"k":"conjunto","n":1},{"c":"2090132030004","d":"CONJUNTO GALA MUJER TLACAELEL","t":"14-16","s":"CGM-013-T14-16","p":690,"k":"conjunto","n":1},{"c":"2090132040003","d":"CONJUNTO GALA MUJER TLACAELEL","t":"M/G","s":"CGM-013-TM-G","p":750,"k":"conjunto","n":1},{"c":"2090132050002","d":"CONJUNTO GALA HOMBRE CARMEN MAT","t":"6-8","s":"CGH-001-T6-8","p":660,"k":"conjunto","n":1},{"c":"2100012020008","d":"CONJUNTO GALA HOMBRE CARMEN MAT","t":"10-12","s":"CGH-001-T10-12","p":660,"k":"conjunto","n":1},{"c":"2100012030007","d":"CONJUNTO GALA HOMBRE CARMEN MAT","t":"14-16","s":"CGH-001-T14-16","p":690,"k":"conjunto","n":1},{"c":"2100012040006","d":"CONJUNTO GALA HOMBRE CARMEN MAT","t":"M/G","s":"CGH-001-TM-G","p":750,"k":"conjunto","n":1},{"c":"2100012050005","d":"CONJUNTO GALA HOMBRE CARMEN VESP","t":"6-8","s":"CGH-002-T6-8","p":660,"k":"conjunto","n":1},{"c":"2100022020005","d":"CONJUNTO GALA HOMBRE CARMEN VESP","t":"10-12","s":"CGH-002-T10-12","p":660,"k":"conjunto","n":1},{"c":"2100022030004","d":"CONJUNTO GALA HOMBRE CARMEN VESP","t":"14-16","s":"CGH-002-T14-16","p":690,"k":"conjunto","n":1},{"c":"2100022040003","d":"CONJUNTO GALA HOMBRE CARMEN VESP","t":"M/G","s":"CGH-002-TM-G","p":750,"k":"conjunto","n":1},{"c":"2100022050002","d":"CONJUNTO GALA HOMBRE CENDI","t":"4 Y 6","s":"CGH-003-T4-6","p":650,"k":"conjunto","n":1},{"c":"2100032010003","d":"CONJUNTO GALA HOMBRE DIURNA 205 309 327","t":"12-16","s":"CGH-004-T12-16","p":700,"k":"conjunto","n":1},{"c":"2100042060005","d":"CONJUNTO GALA HOMBRE DIURNA 205 309 327","t":"18/20","s":"CGH-004-T18-20","p":720,"k":"conjunto","n":1},{"c":"2100042100008","d":"CONJUNTO GALA HOMBRE DIURNA 205 309 327","t":"28/38","s":"CGH-004-T28-38","p":780,"k":"conjunto","n":1},{"c":"2100042110007","d":"CONJUNTO GALA HOMBRE JULIO MAT","t":"6-8","s":"CGH-005-T6-8","p":670,"k":"conjunto","n":1},{"c":"2100052020006","d":"CONJUNTO GALA HOMBRE JULIO MAT","t":"10-12","s":"CGH-005-T10-12","p":670,"k":"conjunto","n":1},{"c":"2100052030005","d":"CONJUNTO GALA HOMBRE JULIO MAT","t":"14-16","s":"CGH-005-T14-16","p":700,"k":"conjunto","n":1},{"c":"2100052040004","d":"CONJUNTO GALA HOMBRE JULIO MAT","t":"M/G","s":"CGH-005-TM-G","p":770,"k":"conjunto","n":1},{"c":"2100052050003","d":"CONJUNTO GALA HOMBRE JULIO VESP","t":"6-8","s":"CGH-006-T6-8","p":660,"k":"conjunto","n":1},{"c":"2100062020003","d":"CONJUNTO GALA HOMBRE JULIO VESP","t":"10-12","s":"CGH-006-T10-12","p":660,"k":"conjunto","n":1},{"c":"2100062030002","d":"CONJUNTO GALA HOMBRE JULIO VESP","t":"14-16","s":"CGH-006-T14-16","p":690,"k":"conjunto","n":1},{"c":"2100062040001","d":"CONJUNTO GALA HOMBRE JULIO VESP","t":"M/G","s":"CGH-006-TM-G","p":750,"k":"conjunto","n":1},{"c":"2100062050000","d":"CONJUNTO GALA HOMBRE LINAJE MAT","t":"6-8","s":"CGH-007-T6-8","p":660,"k":"conjunto","n":1},{"c":"2100072020000","d":"CONJUNTO GALA HOMBRE LINAJE MAT","t":"10-12","s":"CGH-007-T10-12","p":660,"k":"conjunto","n":1},{"c":"2100072030009","d":"CONJUNTO GALA HOMBRE LINAJE MAT","t":"14-16","s":"CGH-007-T14-16","p":690,"k":"conjunto","n":1},{"c":"2100072040008","d":"CONJUNTO GALA HOMBRE LINAJE MAT","t":"M/G","s":"CGH-007-TM-G","p":750,"k":"conjunto","n":1},{"c":"2100072050007","d":"CONJUNTO GALA HOMBRE LINAJE VESP","t":"6-8","s":"CGH-008-T6-8","p":660,"k":"conjunto","n":1},{"c":"2100082020007","d":"CONJUNTO GALA HOMBRE LINAJE VESP","t":"10-12","s":"CGH-008-T10-12","p":660,"k":"conjunto","n":1},{"c":"2100082030006","d":"CONJUNTO GALA HOMBRE LINAJE VESP","t":"14-16","s":"CGH-008-T14-16","p":690,"k":"conjunto","n":1},{"c":"2100082040005","d":"CONJUNTO GALA HOMBRE LINAJE VESP","t":"M/G","s":"CGH-008-TM-G","p":750,"k":"conjunto","n":1},{"c":"2100082050004","d":"CONJUNTO GALA HOMBRE RENE MAT Y VESP","t":"6-8","s":"CGH-009-T6-8","p":660,"k":"conjunto","n":1},{"c":"2100092020004","d":"CONJUNTO GALA HOMBRE RENE MAT Y VESP","t":"10-12","s":"CGH-009-T10-12","p":660,"k":"conjunto","n":1},{"c":"2100092030003","d":"CONJUNTO GALA HOMBRE RENE MAT Y VESP","t":"14-16","s":"CGH-009-T14-16","p":690,"k":"conjunto","n":1},{"c":"2100092040002","d":"CONJUNTO GALA HOMBRE RENE MAT Y VESP","t":"M/G","s":"CGH-009-TM-G","p":750,"k":"conjunto","n":1},{"c":"2100092050001","d":"CONJUNTO GALA HOMBRE REYES HEROLES MAT","t":"4 Y 6","s":"CGH-010-T4-6","p":650,"k":"conjunto","n":1},{"c":"2100102010001","d":"CONJUNTO GALA HOMBRE REYES HEROLES VESP","t":"4 Y 6","s":"CGH-011-T4-6","p":650,"k":"conjunto","n":1},{"c":"2100112010008","d":"CONJUNTO GALA HOMBRE TECNICA","t":"12-16","s":"CGH-012-T12-16","p":700,"k":"conjunto","n":1},{"c":"2100122060000","d":"CONJUNTO GALA HOMBRE TECNICA","t":"18/20","s":"CGH-012-T18-20","p":720,"k":"conjunto","n":1},{"c":"2100122100003","d":"CONJUNTO GALA HOMBRE TECNICA","t":"28/38","s":"CGH-012-T28-38","p":720,"k":"conjunto","n":1},{"c":"2100122110002","d":"CONJUNTO GALA HOMBRE TECNICA","t":"40/42","s":"CGH-012-T40-42","p":770,"k":"conjunto","n":1},{"c":"2100122120001","d":"CONJUNTO GALA HOMBRE TLACAELEL","t":"6-8","s":"CGH-013-T6-8","p":660,"k":"conjunto","n":1},{"c":"2100132020001","d":"CONJUNTO GALA HOMBRE TLACAELEL","t":"10-12","s":"CGH-013-T10-12","p":660,"k":"conjunto","n":1},{"c":"2100132030000","d":"CONJUNTO GALA HOMBRE TLACAELEL","t":"14-16","s":"CGH-013-T14-16","p":690,"k":"conjunto","n":1},{"c":"2100132040009","d":"CONJUNTO GALA HOMBRE TLACAELEL","t":"M/G","s":"CGH-013-TM-G","p":750,"k":"conjunto","n":1},{"c":"2100132050008","d":"CONJUNTO DEPORTIVO CARMEN MAT","t":"6-8","s":"CDU-001-T6-8","p":650,"k":"conjunto","n":1},{"c":"2110012020007","d":"CONJUNTO DEPORTIVO CARMEN MAT","t":"10-12","s":"CDU-001-T10-12","p":650,"k":"conjunto","n":1},{"c":"2110012030006","d":"CONJUNTO DEPORTIVO CARMEN MAT","t":"14-16","s":"CDU-001-T14-16","p":650,"k":"conjunto","n":1},{"c":"2110012040005","d":"CONJUNTO DEPORTIVO CARMEN MAT","t":"M/G","s":"CDU-001-TM-G","p":660,"k":"conjunto","n":1},{"c":"2110012050004","d":"CONJUNTO DEPORTIVO CARMEN VESP","t":"6-8","s":"CDU-002-T6-8","p":670,"k":"conjunto","n":1},{"c":"2110022020004","d":"CONJUNTO DEPORTIVO CARMEN VESP","t":"10-12","s":"CDU-002-T10-12","p":670,"k":"conjunto","n":1},{"c":"2110022030003","d":"CONJUNTO DEPORTIVO CARMEN VESP","t":"14-16","s":"CDU-002-T14-16","p":700,"k":"conjunto","n":1},{"c":"2110022040002","d":"CONJUNTO DEPORTIVO CARMEN VESP","t":"M/G","s":"CDU-002-TM-G","p":750,"k":"conjunto","n":1},{"c":"2110022050001","d":"CONJUNTO DEPORTIVO CENDI","t":"4 Y 6","s":"CDU-003-T4-6","p":710,"k":"conjunto","n":1},{"c":"2110032010002","d":"CONJUNTO DEPORTIVO DIURNA 205 309 327","t":"14-16","s":"CDU-004-T14-16","p":850,"k":"conjunto","n":1},{"c":"2110042040006","d":"CONJUNTO DEPORTIVO DIURNA 205 309 327","t":"M/G","s":"CDU-004-TM-G","p":880,"k":"conjunto","n":1},{"c":"2110042050005","d":"CONJUNTO DEPORTIVO DIURNA 205 309 327","t":"XG","s":"CDU-004-TXG","p":910,"k":"conjunto","n":1},{"c":"2110042130004","d":"CONJUNTO DEPORTIVO JULIO MAT","t":"6-8","s":"CDU-005-T6-8","p":740,"k":"conjunto","n":1},{"c":"2110052020005","d":"CONJUNTO DEPORTIVO JULIO MAT","t":"10-12","s":"CDU-005-T10-12","p":740,"k":"conjunto","n":1},{"c":"2110052030004","d":"CONJUNTO DEPORTIVO JULIO MAT","t":"14-16","s":"CDU-005-T14-16","p":770,"k":"conjunto","n":1},{"c":"2110052040003","d":"CONJUNTO DEPORTIVO JULIO MAT","t":"M/G","s":"CDU-005-TM-G","p":820,"k":"conjunto","n":1},{"c":"2110052050002","d":"CONJUNTO DEPORTIVO JULIO VESP","t":"6-8","s":"CDU-006-T6-8","p":670,"k":"conjunto","n":1},{"c":"2110062020002","d":"CONJUNTO DEPORTIVO JULIO VESP","t":"10-12","s":"CDU-006-T10-12","p":670,"k":"conjunto","n":1},{"c":"2110062030001","d":"CONJUNTO DEPORTIVO JULIO VESP","t":"14-16","s":"CDU-006-T14-16","p":700,"k":"conjunto","n":1},{"c":"2110062040000","d":"CONJUNTO DEPORTIVO JULIO VESP","t":"M/G","s":"CDU-006-TM-G","p":750,"k":"conjunto","n":1},{"c":"2110062050009","d":"CONJUNTO DEPORTIVO LINAJE MAT","t":"6-8","s":"CDU-007-T6-8","p":670,"k":"conjunto","n":1},{"c":"2110072020009","d":"CONJUNTO DEPORTIVO LINAJE MAT","t":"10-12","s":"CDU-007-T10-12","p":670,"k":"conjunto","n":1},{"c":"2110072030008","d":"CONJUNTO DEPORTIVO LINAJE MAT","t":"14-16","s":"CDU-007-T14-16","p":700,"k":"conjunto","n":1},{"c":"2110072040007","d":"CONJUNTO DEPORTIVO LINAJE MAT","t":"M/G","s":"CDU-007-TM-G","p":750,"k":"conjunto","n":1},{"c":"2110072050006","d":"CONJUNTO DEPORTIVO LINAJE VESP","t":"6-8","s":"CDU-008-T6-8","p":670,"k":"conjunto","n":1},{"c":"2110082020006","d":"CONJUNTO DEPORTIVO LINAJE VESP","t":"10-12","s":"CDU-008-T10-12","p":670,"k":"conjunto","n":1},{"c":"2110082030005","d":"CONJUNTO DEPORTIVO LINAJE VESP","t":"14-16","s":"CDU-008-T14-16","p":700,"k":"conjunto","n":1},{"c":"2110082040004","d":"CONJUNTO DEPORTIVO LINAJE VESP","t":"M/G","s":"CDU-008-TM-G","p":750,"k":"conjunto","n":1},{"c":"2110082050003","d":"CONJUNTO DEPORTIVO RENE MAT Y VESP","t":"6-8","s":"CDU-009-T6-8","p":670,"k":"conjunto","n":1},{"c":"2110092020003","d":"CONJUNTO DEPORTIVO RENE MAT Y VESP","t":"10-12","s":"CDU-009-T10-12","p":670,"k":"conjunto","n":1},{"c":"2110092030002","d":"CONJUNTO DEPORTIVO RENE MAT Y VESP","t":"14-16","s":"CDU-009-T14-16","p":700,"k":"conjunto","n":1},{"c":"2110092040001","d":"CONJUNTO DEPORTIVO RENE MAT Y VESP","t":"M/G","s":"CDU-009-TM-G","p":750,"k":"conjunto","n":1},{"c":"2110092050000","d":"CONJUNTO DEPORTIVO REYES HEROLES MAT","t":"4 Y 6","s":"CDU-010-T4-6","p":710,"k":"conjunto","n":1},{"c":"2110102010000","d":"CONJUNTO DEPORTIVO REYES HEROLES VESP","t":"4 Y 6","s":"CDU-011-T4-6","p":710,"k":"conjunto","n":1},{"c":"2110112010007","d":"CONJUNTO DEPORTIVO TECNICA","t":"14-16","s":"CDU-012-T14-16","p":850,"k":"conjunto","n":1},{"c":"2110122040001","d":"CONJUNTO DEPORTIVO TECNICA","t":"M/G","s":"CDU-012-TM-G","p":880,"k":"conjunto","n":1},{"c":"2110122050000","d":"CONJUNTO DEPORTIVO TECNICA","t":"XG","s":"CDU-012-TXG","p":910,"k":"conjunto","n":1},{"c":"2110122130009","d":"CONJUNTO DEPORTIVO TEPEYO","t":"4 Y 6","s":"CDU-013-T4-6","p":710,"k":"conjunto","n":1},{"c":"2110132010001","d":"CONJUNTO DEPORTIVO TLACAELEL","t":"6-8","s":"CDU-014-T6-8","p":740,"k":"conjunto","n":1},{"c":"2110142020007","d":"CONJUNTO DEPORTIVO TLACAELEL","t":"10-12","s":"CDU-014-T10-12","p":740,"k":"conjunto","n":1},{"c":"2110142030006","d":"CONJUNTO DEPORTIVO TLACAELEL","t":"14-16","s":"CDU-014-T14-16","p":770,"k":"conjunto","n":1},{"c":"2110142040005","d":"CONJUNTO DEPORTIVO TLACAELEL","t":"M/G","s":"CDU-014-TM-G","p":820,"k":"conjunto","n":1},{"c":"2110142050004","d":"CONJUNTO DEPORTIVO VILLA CTO. AME","t":"4 Y 6","s":"CDU-015-T4-6","p":710,"k":"conjunto","n":1}];
+  </script>
+  <script>
+/* ============================================================================
+   Catálogo de escuelas.
+
+   Los nombres salen de las 117 ventas del Excel y de las etiquetas de los PDF,
+   así que son los que GabiDom usa de verdad, con sus abreviaturas y turnos.
+
+   El NIVEL está por confirmar en casi todas: en los datos originales no venía,
+   y clasificar una escuela por suposición sería peor que dejarlo en blanco.
+   La única con respaldo es CENDI, que por definición es preescolar.
+
+   Se puede corregir aquí, o desde la app en Clientes y escuelas: el nivel que
+   se guarde en la base gana sobre lo que diga este archivo.
+
+   n = nombre corto (como se captura)   nombre = nombre completo
+   nivel = Kinder | Primaria | Secundaria | ''   turno = Matutino | Vespertino | ''
+   ========================================================================= */
+window.GABIDOM_ESCUELAS = [
+  { n: 'CENDI',       nombre: 'CENDI',                       nivel: 'Kinder',     turno: '' },
+
+  { n: '205 MAT',     nombre: 'Escuela 205 · matutino',      nivel: '', turno: 'Matutino' },
+  { n: '205 VESP',    nombre: 'Escuela 205 · vespertino',    nivel: '', turno: 'Vespertino' },
+  { n: '206',         nombre: 'Escuela 206',                 nivel: '', turno: '' },
+  { n: '207',         nombre: 'Escuela 207',                 nivel: '', turno: '' },
+  { n: '309 MAT',     nombre: 'Escuela 309 · matutino',      nivel: '', turno: 'Matutino' },
+  { n: '309 VESP',    nombre: 'Escuela 309 · vespertino',    nivel: '', turno: 'Vespertino' },
+  { n: '327',         nombre: 'Escuela 327',                 nivel: '', turno: '' },
+
+  { n: 'LINAJE MAT',  nombre: 'Linaje · matutino',           nivel: '', turno: 'Matutino' },
+  { n: 'LINAJE VESP', nombre: 'Linaje · vespertino',         nivel: '', turno: 'Vespertino' },
+  { n: 'JFM',         nombre: 'Julio Franco · matutino',     nivel: '', turno: 'Matutino' },
+  { n: 'JFV',         nombre: 'Julio Franco · vespertino',   nivel: '', turno: 'Vespertino' },
+  { n: 'CARMEN MAT',  nombre: 'Carmen · matutino',           nivel: '', turno: 'Matutino' },
+  { n: 'CARMEN VESP', nombre: 'Carmen · vespertino',         nivel: '', turno: 'Vespertino' },
+  { n: 'REYES VESP',  nombre: 'Reyes · vespertino',          nivel: '', turno: 'Vespertino' },
+  { n: 'RENE VESP',   nombre: 'René · vespertino',           nivel: '', turno: 'Vespertino' },
+  { n: 'TLAHUAC',     nombre: 'Tláhuac',                     nivel: '', turno: '' },
+  { n: 'TLACAELEL',   nombre: 'Tlacaélel',                   nivel: '', turno: '' },
+  { n: 'TEPEYO',      nombre: 'Tepeyo',                      nivel: '', turno: '' },
+  { n: 'VILLA',       nombre: 'Villa',                       nivel: '', turno: '' },
+  { n: 'YAXCHE',      nombre: 'Yaxché',                      nivel: '', turno: '' },
+  { n: 'POLITECNICO', nombre: 'Politécnico',                 nivel: '', turno: '' },
+  { n: 'UIN',         nombre: 'UIN',                         nivel: '', turno: '' },
+  { n: 'FEDERICO',    nombre: 'Federico',                    nivel: '', turno: '' },
+  { n: 'DIURNA',      nombre: 'Diurna',                      nivel: '', turno: '' }
+];
   </script>
   <script>
 /* ============================================================================
@@ -1189,7 +1256,7 @@ const Nube = (() => {
         montoTotal: 'monto_total', noTarjeta: 'no_tarjeta', montoTarjeta: 'monto_tarjeta',
         efectivo: 'efectivo', restante: 'restante', formaPago: 'forma_pago',
         estatus: 'estatus', obs: 'obs', registroDe: 'registro_de', foto: 'foto',
-        articulos: 'articulos', descontada: 'descontada'
+        articulos: 'articulos', descontada: 'descontada', escuela: 'escuela'
       },
       json: ['articulos'],
       numericos: ['montoTotal', 'montoTarjeta', 'efectivo', 'restante'],
@@ -1226,6 +1293,10 @@ const Nube = (() => {
       campos: { id: 'id', codigo: 'codigo', descripcion: 'descripcion', talla: 'talla',
                 sku: 'sku', precio: 'precio', tipo: 'tipo', cantidad: 'cantidad' },
       numericos: ['precio', 'cantidad'], fechas: []
+    },
+    escuelas: {
+      campos: { id: 'id', n: 'clave', nombre: 'nombre', nivel: 'nivel', turno: 'turno' },
+      numericos: [], fechas: []
     }
   };
 
@@ -1509,11 +1580,21 @@ const Nube = (() => {
   async function subirFila(tabla, fila) {
     return escribir(tabla, [aRemoto(tabla, fila)]);
   }
+  /** Sube una tabla entera. Devuelve false si esa tabla todavía no existe en la
+      base, para que la primera importación siga con las demás en vez de
+      quedarse a medias por un paso del esquema sin correr. */
   async function subirLote(tabla, filas) {
     const paso = 400;
     for (let i = 0; i < filas.length; i += paso) {
-      await escribir(tabla, filas.slice(i, i + paso).map(f => aRemoto(tabla, f)));
+      try {
+        await escribir(tabla, filas.slice(i, i + paso).map(f => aRemoto(tabla, f)));
+      } catch (e) {
+        if (!faltaLaTabla(e)) throw e;
+        anotarQueFalta(tabla, '(tabla)');
+        return false;
+      }
     }
+    return true;
   }
   async function borrarFila(tabla, id) {
     return pedir('/rest/v1/' + nombreRemoto(tabla) + '?id=eq.' + encodeURIComponent(id), {
@@ -1699,7 +1780,18 @@ const Nube = (() => {
   const FOLIO_REINICIO = '2026-08-07';
   const MESES_CORTO = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
   const ESTATUS = ['Pagado y entregado','Pendiente'];
-  const PAGOS = ['Efectivo','Tarjeta/Transferencia','Mixto'];
+  const PAGOS = ['Efectivo','QR','Transferencia','Tarjeta bienestar','Mixto'];
+  const NIVELES = ['Kinder', 'Primaria', 'Secundaria'];
+  /* Las 117 ventas del Excel traen 'Tarjeta/Transferencia', que ya no se ofrece
+     al capturar. Se mantiene disponible en los filtros para poder consultar el
+     histórico sin tener que tocar esos registros. */
+  function pagosParaFiltrar() {
+    const usados = Array.from(new Set(db.ventas.map(v => v.formaPago).filter(Boolean)));
+    return PAGOS.concat(usados.filter(p => PAGOS.indexOf(p) < 0).sort());
+  }
+  function opcionesPago(seleccionada) {
+    return PAGOS.map(p => '<option' + (p === seleccionada ? ' selected' : '') + '>' + p + '</option>').join('');
+  }
   const DIAS = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
   const TURNOS = ['Entrada','Almuerzo','Salida'];
 
@@ -1849,6 +1941,9 @@ const Nube = (() => {
       insumos: s.insumos.map(i => ({
         id: uid(), insumo: i.insumo, color: i.color, talla: i.talla, medida: i.medida,
         cantidad: Number(i.cantidad || 0), stockMinimo: i.stockMinimo === '' ? 10 : Number(i.stockMinimo)
+      })),
+      escuelas: (typeof GABIDOM_ESCUELAS !== 'undefined' ? GABIDOM_ESCUELAS : []).map(e => ({
+        id: uid(), n: e.n, nombre: e.nombre || e.n, nivel: e.nivel || '', turno: e.turno || ''
       })),
       /* Catálogo de etiquetas con su existencia: sale de los PDF de etiquetas
          y se lleva aparte del inventario del Excel, que tiene otro origen. */
@@ -2007,7 +2102,8 @@ const Nube = (() => {
   /* ================= Sincronización ================= */
   /* Si la base va atrás de la app, se avisa qué parte del esquema falta en vez
      de dejar los datos atascados sin explicación. */
-  const PASO_DE = { articulos: 5, descontada: 5, foto: 3, etiquetas: 5, movimientos: 5 };
+  const PASO_DE = { articulos: 5, descontada: 5, foto: 3, etiquetas: 5, movimientos: 5,
+                    escuela: 6, escuelas: 6 };
   let avisadoEsquema = false;
   let pasoQueFalta = null;      // se muestra fijo en el indicador, no solo un instante
   Nube.alFaltarEsquema((tabla, columna) => {
@@ -2065,7 +2161,7 @@ const Nube = (() => {
          Sin esto, tener ventas en la nube pero no el inventario hacía
          desaparecer las prendas de la pantalla. */
       const faltantes = [];
-      ['ventas', 'prendas', 'insumos', 'revisar', 'clientes', 'empleados', 'etiquetas'].forEach(t => {
+      ['ventas', 'prendas', 'insumos', 'revisar', 'clientes', 'empleados', 'etiquetas', 'escuelas'].forEach(t => {
         if (!remoto[t] || !remoto[t].length) {
           if ((db[t] || []).length) faltantes.push(t);
           return;
@@ -2173,9 +2269,9 @@ const Nube = (() => {
   /** Primera carga: sube a la nube las tablas que allá todavía están vacías. */
   async function ofrecerImportacion(tablas) {
     const NOMBRES = { ventas: 'ventas', prendas: 'prendas', insumos: 'cierres',
-                      etiquetas: 'artículos con código de barras',
+                      etiquetas: 'artículos con código de barras', escuelas: 'escuelas',
                       revisar: 'folios por revisar', clientes: 'clientes', empleados: 'empleados' };
-    const lista = (tablas && tablas.length ? tablas : ['prendas','insumos','etiquetas','ventas','revisar','clientes','empleados'])
+    const lista = (tablas && tablas.length ? tablas : ['prendas','insumos','etiquetas','escuelas','ventas','revisar','clientes','empleados'])
       .filter(t => (db[t] || []).length);
     if (!lista.length) { toast('No hay nada nuevo que subir'); return; }
 
@@ -2186,11 +2282,21 @@ const Nube = (() => {
       return;
     }
     sincronizando = true; actualizarSync();
+    /* Una tabla que todavía no existe en la base —porque falta correr ese paso
+       del esquema— no puede frenar la subida de las demás. Se anota cuál quedó
+       pendiente y se avisa al final, con nombre entendible. */
+    const pendientes = [];
+    let fallo = null;
     try {
-      for (const t of lista) await Nube.subirLote(t, db[t]);
-      toast('Datos subidos. Ya se ven desde cualquier dispositivo.');
-    } catch (e) {
-      toast('No se pudieron subir todos los datos: ' + (e.message || 'error'));
+      for (const t of lista) {
+        try {
+          if (!await Nube.subirLote(t, db[t])) pendientes.push(NOMBRES[t] || t);
+        } catch (e) { pendientes.push(NOMBRES[t] || t); fallo = fallo || e; }
+      }
+      if (!pendientes.length) toast('Datos subidos. Ya se ven desde cualquier dispositivo.');
+      else if (fallo) toast('No se pudieron subir todos los datos: ' + (fallo.message || 'error'));
+      else toast('Falta subir ' + pendientes.join(' y ')
+                 + ': para eso hay que correr supabase/esquema.sql en la base.');
     } finally {
       sincronizando = false; actualizarSync();
     }
@@ -2287,6 +2393,7 @@ const Nube = (() => {
       if (!folio.value) folio.value = siguienteFolio();
       articulosVenta = [];
       renderArticulos();
+      populateEscuelas();
       quitarFoto();
       document.getElementById('ventaCliente').focus();
     }
@@ -2299,9 +2406,9 @@ const Nube = (() => {
   }
 
   function renderAll() {
-    renderInicio(); renderMostrador(); renderVentas(); renderRevisar(); renderClientes(); populateClientes();
+    renderInicio(); renderMostrador(); renderVentas(); renderRevisar(); renderClientes(); renderEscuelas(); populateClientes();
     renderPrendas(); renderInsumos(); renderEmpleados(); renderAsistencia(); renderReportes();
-    populateMesesFiltro(); renderCounts();
+    populateMesesFiltro(); populatePagos(); populateEscuelas(); renderCounts();
   }
   function renderCounts() {
     /* Solo "por revisar" lleva contador: los mínimos de inventario aún vienen en 10 por
@@ -2732,6 +2839,43 @@ const Nube = (() => {
     document.getElementById('visorImg').removeAttribute('src');
   }
 
+  /* ================= Escuelas ================= */
+  /** El desplegable agrupa por nivel; lo que aún no tiene nivel va al final,
+      visible, para que se note que falta clasificarlo y no se pierda. */
+  function populateEscuelas() {
+    const sel = document.getElementById('ventaEscuela');
+    if (!sel) return;
+    const actual = sel.value;
+    const lista = db.escuelas || [];
+    let html = '<option value="">Sin escuela (venta a particular)</option>';
+    NIVELES.forEach(nivel => {
+      const dentro = lista.filter(e => e.nivel === nivel);
+      if (!dentro.length) return;
+      html += '<optgroup label="' + esc(nivel) + '">'
+        + dentro.map(e => '<option value="' + esc(e.n) + '"' + (e.n === actual ? ' selected' : '') + '>'
+            + esc(e.nombre || e.n) + '</option>').join('') + '</optgroup>';
+    });
+    const sinNivel = lista.filter(e => !e.nivel);
+    if (sinNivel.length) {
+      html += '<optgroup label="Por clasificar (' + sinNivel.length + ')">'
+        + sinNivel.map(e => '<option value="' + esc(e.n) + '"' + (e.n === actual ? ' selected' : '') + '>'
+            + esc(e.nombre || e.n) + '</option>').join('') + '</optgroup>';
+    }
+    sel.innerHTML = html;
+  }
+  function nombreEscuela(clave) {
+    const e = (db.escuelas || []).find(x => x.n === clave);
+    return e ? (e.nombre || e.n) : (clave || '');
+  }
+  function cambiarNivelEscuela(clave, nivel) {
+    const e = (db.escuelas || []).find(x => x.n === clave);
+    if (!e) return;
+    e.nivel = nivel;
+    subir('escuelas', e);
+    renderClientes(); populateEscuelas();
+    toast(nivel ? nombreEscuela(clave) + ' → ' + nivel : 'Nivel quitado');
+  }
+
   /* ================= Ventas ================= */
   /** Siguiente número de nota, contando solo las emitidas desde el reinicio. */
   function siguienteFolio() {
@@ -2762,6 +2906,18 @@ const Nube = (() => {
     document.getElementById('clientesVentaList').innerHTML =
       clientesUnicos().map(c => '<option value="' + esc(c.nombre) + '"></option>').join('');
   }
+  /** Llena los desplegables de forma de pago, con lo nuevo y lo del histórico. */
+  function populatePagos() {
+    const form = document.getElementById('ventaFormaPago');
+    if (form && !form.options.length) form.innerHTML = opcionesPago('Efectivo');
+    [['filtroPagoVenta','Toda forma de pago'], ['repPago','Todas']].forEach(([id, vacio]) => {
+      const sel = document.getElementById(id);
+      if (!sel) return;
+      const actual = sel.value;
+      sel.innerHTML = '<option value="">' + vacio + '</option>'
+        + pagosParaFiltrar().map(p => '<option' + (p === actual ? ' selected' : '') + '>' + esc(p) + '</option>').join('');
+    });
+  }
   function populateMesesFiltro() {
     const sel = document.getElementById('filtroMesVenta');
     const actual = sel.value;
@@ -2776,7 +2932,7 @@ const Nube = (() => {
     const est = document.getElementById('filtroEstatusVenta').value;
     const pago = document.getElementById('filtroPagoVenta').value;
     return db.ventas.filter(v =>
-      (!q || (v.folio + ' ' + v.cliente).toLowerCase().includes(q)) &&
+      (!q || (v.folio + ' ' + v.cliente + ' ' + nombreEscuela(v.escuela)).toLowerCase().includes(q)) &&
       (!mes || v.mes === mes) && (!est || v.estatus === est) && (!pago || v.formaPago === pago));
   }
   function renderVentas() {
@@ -2785,6 +2941,7 @@ const Nube = (() => {
     document.getElementById('ventasResumen').textContent = rows.length + ' de ' + db.ventas.length + ' · ' + money(total);
     document.getElementById('tablaVentas').innerHTML = rows.slice().reverse().map(v =>
       '<tr><td style="white-space:nowrap"><b>' + esc(v.folio) + '</b>' + avisoVenta(v) + '</td><td>' + dateFmt(v.fecha) + '</td><td>' + (esc(v.cliente) || '—') + '</td>'
+      + '<td>' + (esc(nombreEscuela(v.escuela)) || '—') + '</td>'
       + '<td class="num">' + moneyOr(v.montoTotal) + '</td>'
       + '<td class="num">' + (v.montoTarjeta !== '' ? money(v.montoTarjeta) : '—') + '</td>'
       + '<td class="num">' + (v.efectivo !== '' ? money(v.efectivo) : '—') + '</td>'
@@ -2794,11 +2951,16 @@ const Nube = (() => {
       + '<td><select onchange="cambiarEstatus(\'' + v.id + '\', this.value)" aria-label="Estatus de ' + esc(v.folio) + '">'
       + ESTATUS.map(e => '<option' + (e === v.estatus ? ' selected' : '') + '>' + e + '</option>').join('') + '</select></td>'
       + '<td>' + (esDueno() ? '<button class="btn small danger" onclick="borrar(\'ventas\',\'' + v.id + '\')" aria-label="Borrar venta">' + icon('i-trash') + '</button>' : '') + '</td></tr>'
-    ).join('') || emptyRow(11, 'Ninguna venta coincide con los filtros', 'i-search');
+    ).join('') || emptyRow(12, 'Ninguna venta coincide con los filtros', 'i-search');
   }
   async function guardarVenta() {
     const cliente = val('ventaCliente');
-    if (!cliente) { toast('Escribe el cliente o escuela'); document.getElementById('ventaCliente').focus(); return; }
+    const escuela = val('ventaEscuela');
+    if (!cliente && !escuela) {
+      toast('Escribe el cliente o elige la escuela');
+      document.getElementById('ventaCliente').focus();
+      return;
+    }
     const fecha = val('ventaFecha') || iso(new Date());
     const mesIdx = Number(String(fecha).split('-')[1]) - 1;
 
@@ -2820,7 +2982,7 @@ const Nube = (() => {
     const venta = {
       id: uid(),
       folio,
-      mes: MESES[mesIdx] || '', fecha, cliente,
+      mes: MESES[mesIdx] || '', fecha, cliente, escuela,
       montoTotal: num('ventaMontoTotal'), noTarjeta: val('ventaNoTarjeta'),
       montoTarjeta: num('ventaMontoTarjeta'), efectivo: num('ventaEfectivo'), restante: num('ventaRestante'),
       formaPago: val('ventaFormaPago'), estatus: val('ventaEstatus'), obs: val('ventaObs'),
@@ -2859,6 +3021,7 @@ const Nube = (() => {
     }
     subir('ventas', venta);
     clearIds(['ventaFolio','ventaCliente','ventaMontoTotal','ventaMontoTarjeta','ventaEfectivo','ventaNoTarjeta','ventaRestante','ventaObs']);
+    document.getElementById('ventaEscuela').value = '';
     articulosVenta = []; renderArticulos(); quitarFoto();
     toggleForm('Venta', false); renderAll();
     toast('Nota ' + venta.folio + ' guardada' + avisoStock + avisoFoto);
@@ -2905,6 +3068,24 @@ const Nube = (() => {
   }
 
   /* ================= Clientes ================= */
+  function renderEscuelas() {
+    const cuerpo = document.getElementById('tablaEscuelas');
+    if (!cuerpo) return;
+    const lista = db.escuelas || [];
+    const sinNivel = lista.filter(e => !e.nivel).length;
+    document.getElementById('escuelasNota').textContent = sinNivel
+      ? sinNivel + ' por clasificar de ' + lista.length
+      : lista.length + ' escuelas, todas clasificadas';
+    cuerpo.innerHTML = lista.map(e => {
+      const ventas = db.ventas.filter(v => v.escuela === e.n).length;
+      return '<tr><td><b>' + esc(e.nombre || e.n) + '</b><div class="hint">' + esc(e.n) + '</div></td>'
+        + '<td>' + (esc(e.turno) || '—') + '</td>'
+        + '<td><select onchange="cambiarNivelEscuela(\'' + esc(e.n) + '\', this.value)" aria-label="Nivel de ' + esc(e.nombre || e.n) + '">'
+        + '<option value=""' + (!e.nivel ? ' selected' : '') + '>Por clasificar</option>'
+        + NIVELES.map(n => '<option' + (n === e.nivel ? ' selected' : '') + '>' + n + '</option>').join('')
+        + '</select></td><td class="num">' + ventas + '</td></tr>';
+    }).join('') || emptyRow(4, 'Sin escuelas en el catálogo', 'i-cal');
+  }
   function renderClientes() {
     const q = (document.getElementById('buscarCliente').value || '').toLowerCase();
     const lista = clientesUnicos().filter(c => !q || c.nombre.toLowerCase().includes(q));
@@ -3161,8 +3342,9 @@ const Nube = (() => {
   /** Barra apilada horizontal: parte-del-total por forma de pago. Leyenda siempre + tabla. */
   function renderChartPago(rows) {
     const mount = document.getElementById('chartPago');
-    const colores = ['var(--series-1)','var(--series-2)','var(--series-3)'];
-    const totales = PAGOS.map(p => ({
+    const colores = ['var(--series-1)','var(--series-2)','var(--series-3)',
+                     'var(--series-4)','var(--series-5)','var(--series-6)'];
+    const totales = pagosParaFiltrar().map(p => ({
       nombre: p,
       total: rows.filter(v => v.formaPago === p).reduce((s,v) => s + Number(v.montoTotal || 0), 0),
       n: rows.filter(v => v.formaPago === p).length

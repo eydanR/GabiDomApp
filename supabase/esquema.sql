@@ -388,3 +388,34 @@ create index if not exists etiquetas_busca_idx  on public.etiquetas (descripcion
 alter table public.movimientos drop constraint if exists movimientos_tabla_check;
 alter table public.movimientos add constraint movimientos_tabla_check
   check (tabla in ('prendas','insumos','etiquetas'));
+
+-- ============================================================================
+-- PASO 6 — escuelas y separación de cliente
+--
+-- Cada venta pasa a guardar por separado a quién se atendió (cliente) y para
+-- qué escuela fue. El catálogo de escuelas se llena desde la app; el nivel se
+-- asigna en Clientes y escuelas.
+-- ============================================================================
+
+create table if not exists public.escuelas (
+  id     uuid primary key default gen_random_uuid(),
+  clave  text not null unique,          -- como se captura: '205 VESP', 'JFM'…
+  nombre text not null,
+  nivel  text default '' check (nivel in ('', 'Kinder', 'Primaria', 'Secundaria')),
+  turno  text default ''
+);
+
+alter table public.ventas add column if not exists escuela text;
+
+alter table public.escuelas enable row level security;
+
+-- Todos consultan el catálogo; solo la dueña lo cambia.
+drop policy if exists escuelas_leer on public.escuelas;
+create policy escuelas_leer on public.escuelas for select to authenticated using (true);
+
+drop policy if exists escuelas_dueno on public.escuelas;
+create policy escuelas_dueno on public.escuelas
+  for all to authenticated using (public.es_dueno()) with check (public.es_dueno());
+
+create index if not exists escuelas_clave_idx on public.escuelas (clave);
+create index if not exists ventas_escuela_idx on public.ventas (escuela);
