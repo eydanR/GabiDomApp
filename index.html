@@ -1212,6 +1212,19 @@
   }
 
   /* ================= Sincronización ================= */
+  /* Si la base va atrás de la app, se avisa qué parte del esquema falta en vez
+     de dejar los datos atascados sin explicación. */
+  const PASO_DE = { articulos: 5, descontada: 5, foto: 3 };
+  let avisadoEsquema = false;
+  Nube.alFaltarEsquema((tabla, columna) => {
+    if (avisadoEsquema) return;
+    avisadoEsquema = true;
+    const paso = PASO_DE[columna];
+    toast('La base necesita actualizarse: corre '
+      + (paso ? 'el PASO ' + paso + ' de ' : '') + 'supabase/esquema.sql'
+      + (paso ? '' : ' (falta la columna ' + columna + ')'));
+  });
+
   function actualizarSync() {
     const btn = document.getElementById('syncBtn');
     const txt = document.getElementById('syncTxt');
@@ -1247,8 +1260,26 @@
          desaparecer las prendas de la pantalla. */
       const faltantes = [];
       ['ventas', 'prendas', 'insumos', 'revisar', 'clientes', 'empleados', 'etiquetas'].forEach(t => {
-        if (remoto[t] && remoto[t].length) db[t] = remoto[t];
-        else if ((db[t] || []).length) faltantes.push(t);
+        if (!remoto[t] || !remoto[t].length) {
+          if ((db[t] || []).length) faltantes.push(t);
+          return;
+        }
+        if (t === 'etiquetas') {
+          /* El catálogo de códigos viene con la app, así que si la nube lo
+             tiene incompleto no se borra lo que falta allá: se toman de la
+             nube las existencias y se conservan los artículos que solo están
+             en el dispositivo, hasta que se suban. */
+          const enNube = {};
+          remoto[t].forEach(r => { enNube[r.codigo] = r; });
+          const unidos = (db[t] || []).map(local => enNube[local.codigo] || local);
+          const codigosLocales = {};
+          unidos.forEach(x => { codigosLocales[x.codigo] = true; });
+          remoto[t].forEach(r => { if (!codigosLocales[r.codigo]) unidos.push(r); });
+          db[t] = unidos;
+          if (remoto[t].length < unidos.length) faltantes.push(t);
+          return;
+        }
+        db[t] = remoto[t];
       });
       if (remoto.asistencia && Object.keys(remoto.asistencia).length) db.asistencia = remoto.asistencia;
       save(); renderAll();

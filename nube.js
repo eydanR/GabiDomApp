@@ -255,13 +255,26 @@ const Nube = (() => {
   /* ------------------------------------------------------------ lectura --- */
   /** Trae una tabla completa, paginando: Supabase entrega 1000 filas por llamada. */
   async function traerTabla(tabla) {
-    const cols = Object.values(TABLAS[tabla].campos).join(',');
+    let columnas = Object.values(TABLAS[tabla].campos)
+      .filter(c => !(columnasQueFaltan[tabla] || {})[c]);
     const filas = [];
     const paso = 1000;
     for (let desde = 0; ; desde += paso) {
-      const lote = await pedir('/rest/v1/' + nombreRemoto(tabla) + '?select=' + cols, {
-        headers: { Range: desde + '-' + (desde + paso - 1) }
-      });
+      let lote = null;
+      // Leer una columna que la base no tiene también da 400: se aparta igual.
+      for (let intento = 0; intento < 4; intento++) {
+        try {
+          lote = await pedir('/rest/v1/' + nombreRemoto(tabla) + '?select=' + columnas.join(','), {
+            headers: { Range: desde + '-' + (desde + paso - 1) }
+          });
+          break;
+        } catch (e) {
+          const col = e.status === 400 && columnaDelError(e.message);
+          if (!col || columnas.indexOf(col) < 0) throw e;
+          anotarQueFalta(tabla, col);
+          columnas = columnas.filter(c => c !== col);
+        }
+      }
       if (!lote || !lote.length) break;
       lote.forEach(f => filas.push(aLocal(tabla, f)));
       if (lote.length < paso) break;
@@ -287,21 +300,62 @@ const Nube = (() => {
   }
 
   /* ------------------------------------------------------------ escritura -- */
+  /* Si la base va un paso atrás de la app —falta correr una parte del
+     esquema—, mandar una columna que allá no existe hace que Supabase rechace
+     TODA la fila con un error 400. El dato se quedaba en el dispositivo y
+     parecía que cada quien veía solo sus propias ventas. Cuando eso pasa se
+     aparta esa columna y se reintenta, para que lo demás sí llegue. */
+  const columnasQueFaltan = {};        // tabla -> { columna: true }
+  let avisoEsquema = null;             // se llama una vez para avisar
+
+  function alFaltarEsquema(fn) { avisoEsquema = fn; }
+
+  function columnaDelError(mensaje) {
+    const m = String(mensaje || '').match(/'([a-z_]+)'\s+column/i)
+           || String(mensaje || '').match(/column\s+\S*?\.?"?([a-z_]+)"?\s+does not exist/i);
+    return m ? m[1] : null;
+  }
+  function sinLasQueFaltan(tabla, cuerpo) {
+    const faltan = columnasQueFaltan[tabla];
+    if (!faltan) return cuerpo;
+    const out = {};
+    Object.keys(cuerpo).forEach(k => { if (!faltan[k]) out[k] = cuerpo[k]; });
+    return out;
+  }
+  function anotarQueFalta(tabla, columna) {
+    if (!columnasQueFaltan[tabla]) columnasQueFaltan[tabla] = {};
+    if (!columnasQueFaltan[tabla][columna]) {
+      columnasQueFaltan[tabla][columna] = true;
+      if (avisoEsquema) avisoEsquema(tabla, columna);
+    }
+  }
+
+  async function escribir(tabla, cuerpos) {
+    let datos = cuerpos.map(c => sinLasQueFaltan(tabla, c));
+    for (let intento = 0; intento < 4; intento++) {
+      try {
+        return await pedir('/rest/v1/' + nombreRemoto(tabla), {
+          method: 'POST',
+          headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+          body: JSON.stringify(datos.length === 1 ? datos[0] : datos)
+        });
+      } catch (e) {
+        const col = e.status === 400 && columnaDelError(e.message);
+        if (!col || !datos.some(d => col in d)) throw e;
+        anotarQueFalta(tabla, col);
+        datos = datos.map(d => sinLasQueFaltan(tabla, d));
+      }
+    }
+    throw new Error('La base no acepta estos datos; revisa supabase/esquema.sql');
+  }
+
   async function subirFila(tabla, fila) {
-    return pedir('/rest/v1/' + nombreRemoto(tabla), {
-      method: 'POST',
-      headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
-      body: JSON.stringify(aRemoto(tabla, fila))
-    });
+    return escribir(tabla, [aRemoto(tabla, fila)]);
   }
   async function subirLote(tabla, filas) {
     const paso = 400;
     for (let i = 0; i < filas.length; i += paso) {
-      await pedir('/rest/v1/' + nombreRemoto(tabla), {
-        method: 'POST',
-        headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
-        body: JSON.stringify(filas.slice(i, i + paso).map(f => aRemoto(tabla, f)))
-      });
+      await escribir(tabla, filas.slice(i, i + paso).map(f => aRemoto(tabla, f)));
     }
   }
   async function borrarFila(tabla, id) {
@@ -426,7 +480,7 @@ const Nube = (() => {
   }
 
   return {
-    configurada, guardarConexion, olvidarConexion, probarConexion, cfg,
+    configurada, guardarConexion, olvidarConexion, probarConexion, cfg, alFaltarEsquema,
     sesionActual, listaAcceso, entrar, salir, refrescar, refrescarPerfil,
     traerTodo, traerTabla, traerAsistencia,
     subirFila, subirLote, borrarFila, guardarAsistencia, anotarMovimiento, contarFilas,
