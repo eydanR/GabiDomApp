@@ -279,6 +279,42 @@
     .visor img { max-width: 100%; max-height: 82vh; border-radius: 10px; object-fit: contain; }
     .visor-barra { display: flex; gap: 8px; align-items: center; color: #eaf6f8; font-size: 13.5px; font-weight: 650; }
 
+    /* ---------- Escáner de códigos de barras ---------- */
+    .scan { position: fixed; inset: 0; z-index: 95; background: #000; display: none; flex-direction: column; }
+    .scan.show { display: flex; }
+    .scan-video { flex: 1; min-height: 0; position: relative; overflow: hidden; }
+    .scan-video video { width: 100%; height: 100%; object-fit: cover; display: block; }
+    /* La mira: ventana clara con la línea roja justo donde se lee el código */
+    .mira { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
+    .mira-caja { width: min(88%, 460px); height: 32vh; max-height: 230px; border-radius: 14px;
+                 box-shadow: 0 0 0 2000px rgba(0,0,0,.55); border: 2px solid rgba(255,255,255,.85); position: relative; }
+    .mira-linea { position: absolute; left: 6%; right: 6%; top: 50%; height: 3px; background: #ff3b30;
+                  border-radius: 3px; box-shadow: 0 0 12px rgba(255,59,48,.9); transform: translateY(-50%); }
+    @media (prefers-reduced-motion: no-preference) {
+      .mira-linea { animation: latido 1.4s ease-in-out infinite; }
+      @keyframes latido { 50% { opacity: .35; } }
+    }
+    .mira-ayuda { position: absolute; left: 0; right: 0; bottom: -42px; text-align: center; color: #fff;
+                  font-size: 13px; font-weight: 600; text-shadow: 0 1px 4px rgba(0,0,0,.8); }
+    .scan-barra { padding: 14px 16px calc(14px + env(safe-area-inset-bottom)); background: var(--brand-900); color: #eaf6f8;
+                  display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .scan-estado { flex: 1; min-width: 140px; font-size: 13.5px; font-weight: 650; }
+    .scan-top { padding: calc(12px + env(safe-area-inset-top)) 16px 12px; background: var(--brand-900); color: #eaf6f8;
+                display: flex; align-items: center; gap: 10px; font-weight: 700; }
+    .scan-top .cuenta { margin-left: auto; background: var(--accent-500); color: #3a2a00; border-radius: 999px;
+                        padding: 2px 10px; font-size: 12.5px; font-weight: 750; }
+
+    /* ---------- Artículos escaneados en la venta ---------- */
+    .articulos { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+    .articulo { display: flex; align-items: center; gap: 10px; background: var(--surface-2); border: 1px solid var(--line);
+                border-radius: var(--radius); padding: 9px 11px; }
+    .articulo-info { flex: 1; min-width: 0; }
+    .articulo-nom { font-size: 13.5px; font-weight: 650; }
+    .articulo-meta { color: var(--ink-3); font-size: 12px; margin-top: 2px; font-variant-numeric: tabular-nums; }
+    .articulo-cant { font-weight: 750; font-variant-numeric: tabular-nums; min-width: 26px; text-align: center; }
+    .articulos-total { display: flex; justify-content: space-between; align-items: center; padding: 9px 11px;
+                       font-size: 13.5px; font-weight: 700; border-top: 1px dashed var(--line-2); margin-top: 2px; }
+
     .overlay { display: none; position: fixed; inset: 0; background: rgba(7,20,22,.5); z-index: 29; }
     .overlay.show { display: block; }
 
@@ -370,6 +406,7 @@
     <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.4 15.4 21 21"/></symbol>
     <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
     <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+    <symbol id="i-barras" viewBox="0 0 24 24"><path d="M3 5.5v13M6 5.5v13M9.5 5.5v13M13 5.5v13M16.5 5.5v13M21 5.5v13"/></symbol>
     <symbol id="i-camara" viewBox="0 0 24 24"><path d="M3 8.5h3.4L8 6h8l1.6 2.5H21v11H3v-11Z"/><circle cx="12" cy="13.5" r="3.4"/></symbol>
     <symbol id="i-imagen" viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="15" rx="2.2"/><circle cx="8.5" cy="10" r="1.7"/><path d="M4 17.5 9.5 12l3.5 3.2 3-2.4 4 4.7"/></symbol>
     <symbol id="i-ojo" viewBox="0 0 24 24"><path d="M2.5 12S6 5.8 12 5.8 21.5 12 21.5 12 18 18.2 12 18.2 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3.1"/></symbol>
@@ -564,6 +601,14 @@
                 <div class="field"><label for="ventaRestante">Restante por cobrar ($)</label><input type="number" id="ventaRestante" min="0" step="1"></div>
                 <div class="field"><label for="ventaEstatus">Estatus</label><select id="ventaEstatus"><option>Pagado y entregado</option><option>Pendiente</option></select></div>
                 <div class="field full"><label for="ventaObs">Observaciones</label><textarea id="ventaObs"></textarea></div>
+                <div class="field full">
+                  <label>Artículos de la venta</label>
+                  <div class="foto-acciones">
+                    <button type="button" class="btn primary" onclick="abrirEscaner()"><svg class="ico sm"><use href="#i-barras"/></svg> Escanear código de barras</button>
+                    <button type="button" class="btn" onclick="escribirCodigo()"><svg class="ico sm"><use href="#i-edit"/></svg> Escribir código</button>
+                  </div>
+                  <div id="ventaArticulos" class="articulos"></div>
+                </div>
                 <div class="field full">
                   <label>Foto de la nota o comprobante</label>
                   <!-- capture pide la cámara trasera en el celular; sin capture se
@@ -792,6 +837,25 @@
     </main>
   </div>
 
+  <div class="scan" id="scan">
+    <div class="scan-top">
+      <svg class="ico"><use href="#i-barras"/></svg> Escanear artículos
+      <span class="cuenta" id="scanCuenta">0</span>
+    </div>
+    <div class="scan-video">
+      <video id="scanVideo" playsinline muted autoplay></video>
+      <div class="mira"><div class="mira-caja">
+        <div class="mira-linea"></div>
+        <div class="mira-ayuda">Pon el código de barras sobre la línea roja</div>
+      </div></div>
+    </div>
+    <div class="scan-barra">
+      <span class="scan-estado" id="scanEstado">Buscando código…</span>
+      <button class="btn small" onclick="escribirCodigo()"><svg class="ico sm"><use href="#i-edit"/></svg> Escribir código</button>
+      <button class="btn accent small" onclick="cerrarEscaner()"><svg class="ico sm"><use href="#i-check"/></svg> Listo</button>
+    </div>
+  </div>
+
   <div class="visor" id="visorFoto" onclick="cerrarVisor(event)">
     <div class="visor-barra"><span id="visorTitulo"></span>
       <button class="btn small" onclick="cerrarVisor(event, true)"><svg class="ico sm"><use href="#i-x"/></svg> Cerrar</button>
@@ -803,6 +867,8 @@
   <div id="toast"><svg class="ico sm"><use href="#i-check"/></svg><span id="toastText"></span></div>
 
   <script src="config.js"></script>
+  <script src="etiquetas.js"></script>
+  <script src="escaner.js"></script>
   <script src="data.js"></script>
   <script src="nube.js"></script>
   <script>
@@ -991,6 +1057,12 @@
         id: uid(), insumo: i.insumo, color: i.color, talla: i.talla, medida: i.medida,
         cantidad: Number(i.cantidad || 0), stockMinimo: i.stockMinimo === '' ? 10 : Number(i.stockMinimo)
       })),
+      /* Catálogo de etiquetas con su existencia: sale de los PDF de etiquetas
+         y se lleva aparte del inventario del Excel, que tiene otro origen. */
+      etiquetas: (typeof GABIDOM_ETIQUETAS !== 'undefined' ? GABIDOM_ETIQUETAS : []).map(e => ({
+        id: uid(), codigo: e.c, descripcion: e.d, talla: e.t, sku: e.s,
+        precio: e.p || 0, tipo: e.k, cantidad: Number(e.n) || 0
+      })),
       empleados: [
         { id: uid(), nombre:'Gabriela Domínguez Becerril', puesto:'Jefa / Gerente', tel:'', turno:'Completo', salario:0, fecha:hoy, notas:'' },
         { id: uid(), nombre:'Eydan Ramírez Domínguez', puesto:'Costurero / Técnico / Ventas', tel:'', turno:'Completo', salario:0, fecha:hoy, notas:'' },
@@ -1174,7 +1246,7 @@
          Sin esto, tener ventas en la nube pero no el inventario hacía
          desaparecer las prendas de la pantalla. */
       const faltantes = [];
-      ['ventas', 'prendas', 'insumos', 'revisar', 'clientes', 'empleados'].forEach(t => {
+      ['ventas', 'prendas', 'insumos', 'revisar', 'clientes', 'empleados', 'etiquetas'].forEach(t => {
         if (remoto[t] && remoto[t].length) db[t] = remoto[t];
         else if ((db[t] || []).length) faltantes.push(t);
       });
@@ -1244,8 +1316,9 @@
   /** Primera carga: sube a la nube las tablas que allá todavía están vacías. */
   async function ofrecerImportacion(tablas) {
     const NOMBRES = { ventas: 'ventas', prendas: 'prendas', insumos: 'cierres',
+                      etiquetas: 'artículos con código de barras',
                       revisar: 'folios por revisar', clientes: 'clientes', empleados: 'empleados' };
-    const lista = (tablas && tablas.length ? tablas : ['prendas','insumos','ventas','revisar','clientes','empleados'])
+    const lista = (tablas && tablas.length ? tablas : ['prendas','insumos','etiquetas','ventas','revisar','clientes','empleados'])
       .filter(t => (db[t] || []).length);
     if (!lista.length) { toast('No hay nada nuevo que subir'); return; }
 
@@ -1355,6 +1428,8 @@
       if (!fecha.value) fecha.value = iso(new Date());
       const folio = document.getElementById('ventaFolio');
       if (!folio.value) folio.value = siguienteFolio();
+      articulosVenta = [];
+      renderArticulos();
       quitarFoto();
       document.getElementById('ventaCliente').focus();
     }
@@ -1515,6 +1590,196 @@
     renderMostrador(); renderInicio(); renderCounts();
     if (fuente === 'prendas') renderPrendas(); else renderInsumos();
     toast(et.nombre + ': ' + antes + ' → ' + despues);
+  }
+
+  /* ================= Escáner de códigos de barras =================
+     Las etiquetas de GabiDom son EAN-13 con prefijo 2 (uso interno). Se leen
+     con el lector del navegador cuando existe, y si no —iPhone— con el
+     decodificador propio de escaner.js, que mira la franja del centro: la
+     misma línea roja que se ve en pantalla.                              */
+  let articulosVenta = [];      // lo escaneado para la venta que se captura
+  let scanStream = null;
+  let scanTimer = null;
+  let scanDetector = null;
+  /* Un código dejado frente a la cámara no debe contarse una y otra vez: se
+     cuenta al aparecer, y no vuelve a contar hasta que sale del cuadro. */
+  let scanUltimo = '';
+  let scanSinVer = 0;
+
+  /** Busca un código en el catálogo de etiquetas. */
+  function buscarEtiqueta(codigo) {
+    const c = String(codigo).trim();
+    return (typeof GABIDOM_ETIQUETAS !== 'undefined')
+      ? GABIDOM_ETIQUETAS.find(e => e.c === c) || null : null;
+  }
+  function nombreEtiqueta(e) {
+    return e.d + (e.t ? ' · talla ' + e.t : '');
+  }
+
+  /** Suma un artículo a la venta que se está capturando. */
+  function agregarArticulo(codigo, silencioso) {
+    const e = buscarEtiqueta(codigo);
+    if (!e) {
+      if (!silencioso) toast('Ese código no está en el catálogo: ' + codigo);
+      return false;
+    }
+    const ya = articulosVenta.find(a => a.codigo === e.c);
+    if (ya) ya.cantidad++;
+    else articulosVenta.push({ codigo: e.c, nombre: e.d, talla: e.t, sku: e.s,
+                               precio: e.p || 0, tipo: e.k, cantidad: 1 });
+    renderArticulos();
+    return true;
+  }
+  function quitarArticulo(codigo) {
+    const i = articulosVenta.findIndex(a => a.codigo === codigo);
+    if (i < 0) return;
+    if (articulosVenta[i].cantidad > 1) articulosVenta[i].cantidad--;
+    else articulosVenta.splice(i, 1);
+    renderArticulos();
+  }
+  function renderArticulos() {
+    const cont = document.getElementById('ventaArticulos');
+    const cuenta = document.getElementById('scanCuenta');
+    const piezas = articulosVenta.reduce((n, a) => n + a.cantidad, 0);
+    if (cuenta) cuenta.textContent = piezas;
+    if (!cont) return;
+    if (!articulosVenta.length) { cont.innerHTML = ''; return; }
+
+    const suma = articulosVenta.reduce((n, a) => n + a.precio * a.cantidad, 0);
+    cont.innerHTML = articulosVenta.map(a =>
+      '<div class="articulo">'
+      + '<div class="articulo-info"><div class="articulo-nom">' + esc(a.nombre) + '</div>'
+      + '<div class="articulo-meta">' + (a.talla ? 'Talla ' + esc(a.talla) + ' · ' : '')
+      + esc(a.sku || a.codigo) + (a.precio ? ' · ' + money(a.precio) : '') + '</div></div>'
+      + '<span class="articulo-cant">' + a.cantidad + '</span>'
+      + '<button type="button" class="paso" style="width:34px;height:34px;border-radius:9px"'
+      + ' onclick="quitarArticulo(\'' + a.codigo + '\')" aria-label="Quitar uno">' + icon('i-minus') + '</button>'
+      + '<button type="button" class="paso mas" style="width:34px;height:34px;border-radius:9px"'
+      + ' onclick="agregarArticulo(\'' + a.codigo + '\')" aria-label="Agregar uno">' + icon('i-plus') + '</button>'
+      + '</div>').join('')
+      + (suma ? '<div class="articulos-total"><span>' + piezas + ' piezas</span><span>' + money(suma) + '</span></div>' : '');
+  }
+  /** Copia al total de la venta lo que suman los artículos, si aún está vacío. */
+  function sugerirTotal() {
+    const suma = articulosVenta.reduce((n, a) => n + a.precio * a.cantidad, 0);
+    const campo = document.getElementById('ventaMontoTotal');
+    if (suma && campo && !campo.value) campo.value = suma;
+  }
+
+  async function abrirEscaner() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      toast('Este navegador no da acceso a la cámara; usa "Escribir código"');
+      return;
+    }
+    const pantalla = document.getElementById('scan');
+    const video = document.getElementById('scanVideo');
+    pantalla.classList.add('show');
+    estadoScan('Encendiendo la cámara…');
+    renderArticulos();
+    try {
+      scanStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false
+      });
+      video.srcObject = scanStream;
+      await video.play();
+      if (Escaner.hayLectorDelNavegador() && !scanDetector) {
+        try { scanDetector = new window.BarcodeDetector({ formats: ['ean_13'] }); }
+        catch (e) { scanDetector = null; }
+      }
+      estadoScan('Buscando código…');
+      scanTimer = setInterval(leerFrame, 180);
+    } catch (e) {
+      cerrarEscaner();
+      toast(e && e.name === 'NotAllowedError'
+        ? 'Falta dar permiso a la cámara en el navegador'
+        : 'No se pudo abrir la cámara; usa "Escribir código"');
+    }
+  }
+  function estadoScan(txt) {
+    const el = document.getElementById('scanEstado');
+    if (el) el.textContent = txt;
+  }
+  function cerrarEscaner() {
+    clearInterval(scanTimer); scanTimer = null;
+    if (scanStream) { scanStream.getTracks().forEach(t => t.stop()); scanStream = null; }
+    const v = document.getElementById('scanVideo');
+    if (v) v.srcObject = null;
+    document.getElementById('scan').classList.remove('show');
+    sugerirTotal();
+  }
+
+  /** Un frame: primero el lector del navegador; si no, el decodificador propio. */
+  async function leerFrame() {
+    const video = document.getElementById('scanVideo');
+    if (!video || !video.videoWidth) return;
+
+    let codigo = null;
+    if (scanDetector) {
+      try {
+        const encontrados = await scanDetector.detect(video);
+        if (encontrados && encontrados.length) codigo = encontrados[0].rawValue;
+      } catch (e) { scanDetector = null; }   // si falla, se sigue con el propio
+    }
+    if (!codigo) {
+      // Solo se recorta la franja de la mira: menos píxeles y más rápido.
+      const ancho = Math.min(960, video.videoWidth);
+      const escala = ancho / video.videoWidth;
+      const altoBanda = Math.max(40, Math.round(video.videoHeight * 0.22 * escala));
+      const lienzo = leerFrame._lienzo || (leerFrame._lienzo = document.createElement('canvas'));
+      lienzo.width = ancho; lienzo.height = altoBanda;
+      const ctx = lienzo.getContext('2d', { willReadFrequently: true });
+      const origenY = (video.videoHeight - altoBanda / escala) / 2;
+      ctx.drawImage(video, 0, origenY, video.videoWidth, altoBanda / escala, 0, 0, ancho, altoBanda);
+      const img = ctx.getImageData(0, 0, ancho, altoBanda);
+      codigo = Escaner.decodificarImagen(img.data, ancho, altoBanda);
+    }
+    if (!codigo) {
+      // tres lecturas seguidas sin ver nada: el código ya salió del cuadro
+      if (++scanSinVer >= 3) scanUltimo = '';
+      return;
+    }
+    scanSinVer = 0;
+    if (codigo === scanUltimo) return;      // sigue siendo la misma etiqueta
+    scanUltimo = codigo;
+
+    const e = buscarEtiqueta(codigo);
+    if (e) {
+      agregarArticulo(codigo, true);
+      estadoScan('✓ ' + nombreEtiqueta(e));
+      if (navigator.vibrate) navigator.vibrate(60);
+    } else {
+      estadoScan('Código ' + codigo + ': no está en el catálogo');
+    }
+  }
+  function escribirCodigo() {
+    const c = prompt('Escribe el código de barras (13 dígitos):');
+    if (!c) return;
+    const limpio = String(c).replace(/\D/g, '');
+    if (!Escaner.digitoOk(limpio)) { toast('Ese código no es válido (revisa los 13 dígitos)'); return; }
+    if (agregarArticulo(limpio)) {
+      const e = buscarEtiqueta(limpio);
+      toast('Agregado: ' + nombreEtiqueta(e));
+    }
+  }
+
+  /** Descuenta del catálogo lo que salió con una venta ya entregada. */
+  function descontarArticulos(venta) {
+    if (!venta.articulos || !venta.articulos.length) return 0;
+    if (venta.descontada) return 0;                 // nunca se descuenta dos veces
+    let piezas = 0;
+    venta.articulos.forEach(a => {
+      const inv = db.etiquetas.find(x => x.codigo === a.codigo);
+      if (!inv) return;
+      const antes = Number(inv.cantidad) || 0;
+      inv.cantidad = Math.max(0, antes - a.cantidad);
+      piezas += antes - inv.cantidad;
+      anotarMovimiento('etiquetas', inv, antes, inv.cantidad,
+        a.nombre + (a.talla ? ' talla ' + a.talla : '') + ' — nota ' + (venta.folio || ''));
+      subir('etiquetas', inv);
+    });
+    venta.descontada = true;
+    return piezas;
   }
 
   /* ================= Foto de la nota =================
@@ -1702,7 +1967,9 @@
       montoTotal: num('ventaMontoTotal'), noTarjeta: val('ventaNoTarjeta'),
       montoTarjeta: num('ventaMontoTarjeta'), efectivo: num('ventaEfectivo'), restante: num('ventaRestante'),
       formaPago: val('ventaFormaPago'), estatus: val('ventaEstatus'), obs: val('ventaObs'),
-      registroDe: quienSoy(), foto: ''
+      registroDe: quienSoy(), foto: '',
+      articulos: articulosVenta.map(a => Object.assign({}, a)),
+      descontada: false
     };
 
     let avisoFoto = '';
@@ -1727,15 +1994,32 @@
     }
 
     db.ventas.push(venta);
+    // Si la venta ya sale entregada, los artículos salen del inventario ahora.
+    let avisoStock = '';
+    if (venta.estatus === 'Pagado y entregado') {
+      const piezas = descontarArticulos(venta);
+      if (piezas) avisoStock = ' · ' + piezas + (piezas === 1 ? ' pieza descontada' : ' piezas descontadas');
+    }
     subir('ventas', venta);
     clearIds(['ventaFolio','ventaCliente','ventaMontoTotal','ventaMontoTarjeta','ventaEfectivo','ventaNoTarjeta','ventaRestante','ventaObs']);
-    quitarFoto();
+    articulosVenta = []; renderArticulos(); quitarFoto();
     toggleForm('Venta', false); renderAll();
-    toast('Nota ' + venta.folio + ' guardada' + avisoFoto);
+    toast('Nota ' + venta.folio + ' guardada' + avisoStock + avisoFoto);
   }
   function cambiarEstatus(id, estatus) {
     const v = db.ventas.find(x => x.id === id);
-    if (v) { v.estatus = estatus; subir('ventas', v); renderInicio(); renderVentas(); renderReportes(); }
+    if (!v) return;
+    v.estatus = estatus;
+    /* Los artículos salen del inventario al entregarse, no al capturarse:
+       hasta ese momento la mercancía sigue en la tienda. */
+    let aviso = 'Estatus actualizado';
+    if (estatus === 'Pagado y entregado') {
+      const piezas = descontarArticulos(v);
+      if (piezas) aviso = piezas + (piezas === 1 ? ' pieza descontada' : ' piezas descontadas') + ' del inventario';
+    }
+    subir('ventas', v);
+    renderInicio(); renderVentas(); renderReportes();
+    toast(aviso);
   }
 
   /* ================= Por revisar ================= */

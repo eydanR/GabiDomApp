@@ -16,6 +16,8 @@ dispositivo.
 | `config.js` | Donde pones la conexión a la base compartida. |
 | `supabase/esquema.sql` | Se pega en Supabase para crear las tablas y los permisos. |
 | `data.js` | Los datos que salieron del Excel original. |
+| `etiquetas.js` | Catálogo de los 438 artículos con código de barras. |
+| `escaner.js` | Lee los códigos de barras con la cámara. |
 | `nube.js` | El código que sincroniza con la base compartida. |
 | `api/chat.js` | Endpoint del asistente (necesita `OPENAI_API_KEY` en el servidor). |
 | `build-movil.py` | Regenera `gabidom-movil.html` cuando cambies la app. |
@@ -97,7 +99,13 @@ cómo crearlo a mano desde el menú **Storage**. No es un error tuyo.
 Si te saltas este paso la app funciona, pero al guardar una venta con foto
 avisará que falta crearlo.
 
-### 6. Subir los datos que ya existen
+### 6. Artículos con código de barras
+
+En el **SQL Editor** corre también el **PASO 5** del final de
+`supabase/esquema.sql`. Crea el catálogo de artículos etiquetados y las dos
+columnas donde cada venta anota lo que se llevó el cliente.
+
+### 7. Subir los datos que ya existen
 
 Abre la app, entra como dueña y acepta cuando pregunte si quiere subir los datos.
 También está el botón **Subir datos** arriba a la derecha. Es solo la primera vez.
@@ -145,6 +153,30 @@ avisa y ofrece el siguiente libre, para no terminar con dos notas 0007.
 
 Los folios anteriores (`A 665`, `22467`…) **se conservan tal cual**: el reinicio
 solo afecta a las notas nuevas.
+
+## Escanear artículos al vender
+
+Al registrar una venta, **Escanear código de barras** abre la cámara con una
+mira y una línea roja: se pone el código sobre la línea y el artículo se suma
+solo, con su nombre, talla y precio. Escaneado todo, la app propone el total.
+
+Un código que se queda frente a la cámara **se cuenta una sola vez**: para
+sumar otra pieza igual, se aparta y se vuelve a acercar, o se usa el **+** de
+la lista. Si la cámara no está disponible, **Escribir código** acepta los 13
+dígitos a mano.
+
+Las etiquetas son EAN-13 y salen de `ETIQUETAS_EXISTENCIAS_1.pdf` y
+`ETIQUETAS_CONJUNTOS_2026.pdf`: **438 artículos**, 312 prendas (1,236 piezas)
+y 126 conjuntos.
+
+### Cuándo sale la mercancía del inventario
+
+**Al marcar la venta como entregada**, no al capturarla: hasta ese momento la
+mercancía sigue en la tienda. Si la venta se guarda ya entregada, se descuenta
+en ese mismo momento.
+
+Cada descuento queda anotado en `movimientos` con quién lo hizo, y una venta
+**nunca descuenta dos veces**, aunque se le cambie el estatus de ida y vuelta.
 
 ## El Mostrador
 

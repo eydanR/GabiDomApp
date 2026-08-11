@@ -341,3 +341,50 @@ insert into public.ajustes (clave, valor, nota) values
   ('folio_reinicio_desde', '2026-08-07',
    'Desde esta fecha las notas se numeran desde 0001. Los folios anteriores se conservan.')
 on conflict (clave) do nothing;
+
+-- ============================================================================
+-- PASO 5 — artículos con código de barras
+--
+-- Las etiquetas de GabiDom son EAN-13 con prefijo 2 (uso interno). Esta tabla
+-- guarda el catálogo y cuántas piezas quedan de cada una; las ventas anotan
+-- lo que se llevó el cliente y se descuenta al entregar.
+-- ============================================================================
+
+create table if not exists public.etiquetas (
+  id          uuid primary key default gen_random_uuid(),
+  codigo      text not null unique,
+  descripcion text not null,
+  talla       text,
+  sku         text,
+  precio      numeric default 0,
+  tipo        text default 'prenda' check (tipo in ('prenda','conjunto')),
+  cantidad    integer not null default 0,
+  actualizado timestamptz not null default now()
+);
+
+-- Lo que se llevó el cliente en cada venta, y si ya salió del inventario.
+alter table public.ventas add column if not exists articulos jsonb default '[]'::jsonb;
+alter table public.ventas add column if not exists descontada boolean default false;
+
+alter table public.etiquetas enable row level security;
+
+-- Ver y ajustar existencias sí; dar de alta o borrar artículos, solo la dueña.
+drop policy if exists etiquetas_leer on public.etiquetas;
+create policy etiquetas_leer on public.etiquetas for select to authenticated using (true);
+
+drop policy if exists etiquetas_editar on public.etiquetas;
+create policy etiquetas_editar on public.etiquetas for update to authenticated using (true) with check (true);
+
+drop policy if exists etiquetas_crear on public.etiquetas;
+create policy etiquetas_crear on public.etiquetas for insert to authenticated with check (public.es_dueno());
+
+drop policy if exists etiquetas_borrar on public.etiquetas;
+create policy etiquetas_borrar on public.etiquetas for delete to authenticated using (public.es_dueno());
+
+create index if not exists etiquetas_codigo_idx on public.etiquetas (codigo);
+create index if not exists etiquetas_busca_idx  on public.etiquetas (descripcion);
+
+-- La bitácora ahora también admite movimientos de artículos etiquetados.
+alter table public.movimientos drop constraint if exists movimientos_tabla_check;
+alter table public.movimientos add constraint movimientos_tabla_check
+  check (tabla in ('prendas','insumos','etiquetas'));
