@@ -1214,15 +1214,19 @@
   /* ================= Sincronización ================= */
   /* Si la base va atrás de la app, se avisa qué parte del esquema falta en vez
      de dejar los datos atascados sin explicación. */
-  const PASO_DE = { articulos: 5, descontada: 5, foto: 3 };
+  const PASO_DE = { articulos: 5, descontada: 5, foto: 3, etiquetas: 5, movimientos: 5 };
   let avisadoEsquema = false;
+  let pasoQueFalta = null;      // se muestra fijo en el indicador, no solo un instante
   Nube.alFaltarEsquema((tabla, columna) => {
     if (avisadoEsquema) return;
     avisadoEsquema = true;
-    const paso = PASO_DE[columna];
-    toast('La base necesita actualizarse: corre '
-      + (paso ? 'el PASO ' + paso + ' de ' : '') + 'supabase/esquema.sql'
-      + (paso ? '' : ' (falta la columna ' + columna + ')'));
+    const paso = PASO_DE[columna] || PASO_DE[tabla];
+    pasoQueFalta = paso || '?';
+    actualizarSync();
+    // Se explica qué hacer, en vez de repetir el error crudo de la base.
+    toast(paso
+      ? 'Falta correr el PASO ' + paso + ' de supabase/esquema.sql. Mientras tanto la app sigue funcionando sin eso.'
+      : 'La base necesita actualizarse (falta ' + columna + ' en ' + tabla + '). Corre supabase/esquema.sql.');
   });
 
   function actualizarSync() {
@@ -1235,6 +1239,15 @@
       return;
     }
     if (sincronizando) { btn.classList.add('trabajando'); txt.textContent = 'Sincronizando…'; return; }
+    if (pasoQueFalta) {
+      /* Un aviso que dura tres segundos se pierde entre los demás: esto queda
+         a la vista hasta que la base se actualice. */
+      btn.classList.add('pend');
+      txt.textContent = pasoQueFalta === '?' ? 'Falta esquema' : 'Falta PASO ' + pasoQueFalta;
+      btn.title = 'La base va atrás de la app: corre supabase/esquema.sql en Supabase. '
+                + 'Mientras tanto todo funciona, menos lo que dependa de esa parte.';
+      return;
+    }
     const p = Nube.pendientes();
     if (p > 0) {
       btn.classList.add('pend'); txt.textContent = p + ' por subir';
@@ -1290,16 +1303,36 @@
         return;
       }
       if (manual) {
-        const partes = [];
-        if (r.subidas) partes.push(r.subidas + ' cambios');
-        if (fotos) partes.push(fotos + (fotos === 1 ? ' foto' : ' fotos'));
-        toast(partes.length ? 'Listo: ' + partes.join(' y ') + ' al día' : 'Datos al día');
+        const rechazo = Nube.rechazoReciente();
+        if (rechazo) {
+          toast('Algunos cambios no los aceptó la base y se apartaron para no frenar el resto. '
+              + 'Revisa que supabase/esquema.sql esté completo.');
+        } else {
+          const partes = [];
+          if (r.subidas) partes.push(r.subidas + ' cambios');
+          if (fotos) partes.push(fotos + (fotos === 1 ? ' foto' : ' fotos'));
+          toast(partes.length ? 'Listo: ' + partes.join(' y ') + ' al día' : 'Datos al día');
+        }
       }
     } catch (e) {
-      if (manual) toast('No se pudo sincronizar: ' + (e.message || 'sin conexión'));
+      if (manual) toast(mensajeDeError(e));
     } finally {
       sincronizando = false; actualizarSync();
     }
+  }
+
+  /** Traduce el error técnico de la base a algo que se pueda accionar. */
+  function mensajeDeError(e) {
+    const texto = String((e && e.message) || '');
+    if (/does not exist|schema cache|has no field/i.test(texto)) {
+      return 'La base necesita actualizarse: corre supabase/esquema.sql completo en Supabase.';
+    }
+    if (/violates check constraint|violates foreign key/i.test(texto)) {
+      return 'La base rechazó un dato por una regla vieja; corre supabase/esquema.sql completo.';
+    }
+    if (/JWT|token/i.test(texto)) return 'Tu sesión caducó: vuelve a entrar con tu PIN.';
+    if (!texto || /fetch|network|Failed/i.test(texto)) return 'Sin conexión ahora mismo; se reintenta solo.';
+    return 'No se pudo sincronizar: ' + texto;
   }
 
   /** Sube las fotos que quedaron guardadas en el dispositivo por falta de señal. */

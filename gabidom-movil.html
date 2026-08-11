@@ -1408,8 +1408,20 @@ const Nube = (() => {
 
   async function traerTodo() {
     const datos = {};
-    for (const tabla of Object.keys(TABLAS)) datos[tabla] = await traerTabla(tabla);
-    datos.asistencia = await traerAsistencia();
+    for (const tabla of Object.keys(TABLAS)) {
+      try {
+        datos[tabla] = await traerTabla(tabla);
+      } catch (e) {
+        /* Que falte una tabla —porque no se ha corrido esa parte del esquema—
+           no puede impedir que baje todo lo demás. Antes, sin la tabla de
+           artículos, no se sincronizaba ni una sola venta. */
+        if (!faltaLaTabla(e)) throw e;
+        anotarQueFalta(tabla, '(tabla)');
+        datos[tabla] = [];
+      }
+    }
+    try { datos.asistencia = await traerAsistencia(); }
+    catch (e) { if (!faltaLaTabla(e)) throw e; datos.asistencia = {}; }
     return datos;
   }
 
@@ -1434,10 +1446,31 @@ const Nube = (() => {
 
   function alFaltarEsquema(fn) { avisoEsquema = fn; }
 
+  /* Postgres y PostgREST dicen lo mismo de cuatro maneras distintas; hay que
+     reconocerlas todas o el aviso se convierte en un error sin salida. */
+  const PATRONES_COLUMNA = [
+    /'([a-z_]+)'\s+column/i,                                   // '...' column of '...'
+    /column\s+"([a-z_]+)"\s+of\s+relation/i,                   // column "x" of relation "y"
+    /column\s+[a-z_]*\.([a-z_]+)\s+does not exist/i,           // column tabla.x does not exist
+    /column\s+"?([a-z_]+)"?\s+does not exist/i,                // column x does not exist
+    /has no field\s+"([a-z_]+)"/i                              // record "new" has no field "x"
+  ];
   function columnaDelError(mensaje) {
-    const m = String(mensaje || '').match(/'([a-z_]+)'\s+column/i)
-           || String(mensaje || '').match(/column\s+\S*?\.?"?([a-z_]+)"?\s+does not exist/i);
-    return m ? m[1] : null;
+    const texto = String(mensaje || '');
+    for (const re of PATRONES_COLUMNA) {
+      const m = texto.match(re);
+      if (m) return m[1];
+    }
+    return null;
+  }
+  /** ¿El problema es que la tabla entera todavía no existe? */
+  function faltaLaTabla(e) {
+    const texto = String((e && e.message) || '');
+    return e && (e.status === 404 || e.status === 400) && (
+      /relation\s+"?[a-z_.]*"?\s+does not exist/i.test(texto) ||
+      /Could not find the table/i.test(texto) ||
+      /schema cache/i.test(texto) && /table/i.test(texto)
+    );
   }
   function sinLasQueFaltan(tabla, cuerpo) {
     const faltan = columnasQueFaltan[tabla];
@@ -1574,9 +1607,12 @@ const Nube = (() => {
   }
   function pendientes() { return cola().length; }
 
+  let ultimoRechazo = null;
+  function rechazoReciente() { const r = ultimoRechazo; ultimoRechazo = null; return r; }
+
   async function vaciarCola() {
-    if (!configurada() || !sesion) return { subidas: 0, pendientes: pendientes() };
-    let subidas = 0;
+    if (!configurada() || !sesion) return { subidas: 0, pendientes: pendientes(), descartadas: 0 };
+    let subidas = 0, descartadas = 0;
     let c = cola();
     while (c.length) {
       const op = c[0];
@@ -1594,13 +1630,28 @@ const Nube = (() => {
         // para que no bloquee al resto de la cola.
         if (e.status === 401 || e.status === 403) {
           c = cola(); c.shift(); guardarCola(c);
+          descartadas++;
           continue;
         }
-        break;
+        /* Sin status es que no hay señal: se reintenta luego, tal cual.
+           Con status es que el servidor rechazó ese dato en concreto; se le dan
+           unos intentos y si sigue igual se aparta, porque si no bloquea a todos
+           los demás cambios que sí podrían subir. */
+        if (!e.status) break;
+        c = cola();
+        c[0].intentos = (c[0].intentos || 0) + 1;
+        if (c[0].intentos >= 3) {
+          ultimoRechazo = e.message || 'dato rechazado por la base';
+          c.shift();
+          descartadas++;
+        } else {
+          c.push(c.shift());          // al final, para no frenar a los demás
+        }
+        guardarCola(c);
       }
       c = cola();
     }
-    return { subidas, pendientes: pendientes() };
+    return { subidas, pendientes: pendientes(), descartadas };
   }
 
   return {
@@ -1609,7 +1660,7 @@ const Nube = (() => {
     traerTodo, traerTabla, traerAsistencia,
     subirFila, subirLote, borrarFila, guardarAsistencia, anotarMovimiento, contarFilas,
     subirFoto, urlFoto, borrarFoto,
-    encolar, vaciarCola, pendientes, TABLAS
+    encolar, vaciarCola, pendientes, rechazoReciente, TABLAS
   };
 })();
   </script>
@@ -1956,15 +2007,19 @@ const Nube = (() => {
   /* ================= Sincronización ================= */
   /* Si la base va atrás de la app, se avisa qué parte del esquema falta en vez
      de dejar los datos atascados sin explicación. */
-  const PASO_DE = { articulos: 5, descontada: 5, foto: 3 };
+  const PASO_DE = { articulos: 5, descontada: 5, foto: 3, etiquetas: 5, movimientos: 5 };
   let avisadoEsquema = false;
+  let pasoQueFalta = null;      // se muestra fijo en el indicador, no solo un instante
   Nube.alFaltarEsquema((tabla, columna) => {
     if (avisadoEsquema) return;
     avisadoEsquema = true;
-    const paso = PASO_DE[columna];
-    toast('La base necesita actualizarse: corre '
-      + (paso ? 'el PASO ' + paso + ' de ' : '') + 'supabase/esquema.sql'
-      + (paso ? '' : ' (falta la columna ' + columna + ')'));
+    const paso = PASO_DE[columna] || PASO_DE[tabla];
+    pasoQueFalta = paso || '?';
+    actualizarSync();
+    // Se explica qué hacer, en vez de repetir el error crudo de la base.
+    toast(paso
+      ? 'Falta correr el PASO ' + paso + ' de supabase/esquema.sql. Mientras tanto la app sigue funcionando sin eso.'
+      : 'La base necesita actualizarse (falta ' + columna + ' en ' + tabla + '). Corre supabase/esquema.sql.');
   });
 
   function actualizarSync() {
@@ -1977,6 +2032,15 @@ const Nube = (() => {
       return;
     }
     if (sincronizando) { btn.classList.add('trabajando'); txt.textContent = 'Sincronizando…'; return; }
+    if (pasoQueFalta) {
+      /* Un aviso que dura tres segundos se pierde entre los demás: esto queda
+         a la vista hasta que la base se actualice. */
+      btn.classList.add('pend');
+      txt.textContent = pasoQueFalta === '?' ? 'Falta esquema' : 'Falta PASO ' + pasoQueFalta;
+      btn.title = 'La base va atrás de la app: corre supabase/esquema.sql en Supabase. '
+                + 'Mientras tanto todo funciona, menos lo que dependa de esa parte.';
+      return;
+    }
     const p = Nube.pendientes();
     if (p > 0) {
       btn.classList.add('pend'); txt.textContent = p + ' por subir';
@@ -2032,16 +2096,36 @@ const Nube = (() => {
         return;
       }
       if (manual) {
-        const partes = [];
-        if (r.subidas) partes.push(r.subidas + ' cambios');
-        if (fotos) partes.push(fotos + (fotos === 1 ? ' foto' : ' fotos'));
-        toast(partes.length ? 'Listo: ' + partes.join(' y ') + ' al día' : 'Datos al día');
+        const rechazo = Nube.rechazoReciente();
+        if (rechazo) {
+          toast('Algunos cambios no los aceptó la base y se apartaron para no frenar el resto. '
+              + 'Revisa que supabase/esquema.sql esté completo.');
+        } else {
+          const partes = [];
+          if (r.subidas) partes.push(r.subidas + ' cambios');
+          if (fotos) partes.push(fotos + (fotos === 1 ? ' foto' : ' fotos'));
+          toast(partes.length ? 'Listo: ' + partes.join(' y ') + ' al día' : 'Datos al día');
+        }
       }
     } catch (e) {
-      if (manual) toast('No se pudo sincronizar: ' + (e.message || 'sin conexión'));
+      if (manual) toast(mensajeDeError(e));
     } finally {
       sincronizando = false; actualizarSync();
     }
+  }
+
+  /** Traduce el error técnico de la base a algo que se pueda accionar. */
+  function mensajeDeError(e) {
+    const texto = String((e && e.message) || '');
+    if (/does not exist|schema cache|has no field/i.test(texto)) {
+      return 'La base necesita actualizarse: corre supabase/esquema.sql completo en Supabase.';
+    }
+    if (/violates check constraint|violates foreign key/i.test(texto)) {
+      return 'La base rechazó un dato por una regla vieja; corre supabase/esquema.sql completo.';
+    }
+    if (/JWT|token/i.test(texto)) return 'Tu sesión caducó: vuelve a entrar con tu PIN.';
+    if (!texto || /fetch|network|Failed/i.test(texto)) return 'Sin conexión ahora mismo; se reintenta solo.';
+    return 'No se pudo sincronizar: ' + texto;
   }
 
   /** Sube las fotos que quedaron guardadas en el dispositivo por falta de señal. */

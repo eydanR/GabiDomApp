@@ -284,8 +284,20 @@ const Nube = (() => {
 
   async function traerTodo() {
     const datos = {};
-    for (const tabla of Object.keys(TABLAS)) datos[tabla] = await traerTabla(tabla);
-    datos.asistencia = await traerAsistencia();
+    for (const tabla of Object.keys(TABLAS)) {
+      try {
+        datos[tabla] = await traerTabla(tabla);
+      } catch (e) {
+        /* Que falte una tabla —porque no se ha corrido esa parte del esquema—
+           no puede impedir que baje todo lo demás. Antes, sin la tabla de
+           artículos, no se sincronizaba ni una sola venta. */
+        if (!faltaLaTabla(e)) throw e;
+        anotarQueFalta(tabla, '(tabla)');
+        datos[tabla] = [];
+      }
+    }
+    try { datos.asistencia = await traerAsistencia(); }
+    catch (e) { if (!faltaLaTabla(e)) throw e; datos.asistencia = {}; }
     return datos;
   }
 
@@ -310,10 +322,31 @@ const Nube = (() => {
 
   function alFaltarEsquema(fn) { avisoEsquema = fn; }
 
+  /* Postgres y PostgREST dicen lo mismo de cuatro maneras distintas; hay que
+     reconocerlas todas o el aviso se convierte en un error sin salida. */
+  const PATRONES_COLUMNA = [
+    /'([a-z_]+)'\s+column/i,                                   // '...' column of '...'
+    /column\s+"([a-z_]+)"\s+of\s+relation/i,                   // column "x" of relation "y"
+    /column\s+[a-z_]*\.([a-z_]+)\s+does not exist/i,           // column tabla.x does not exist
+    /column\s+"?([a-z_]+)"?\s+does not exist/i,                // column x does not exist
+    /has no field\s+"([a-z_]+)"/i                              // record "new" has no field "x"
+  ];
   function columnaDelError(mensaje) {
-    const m = String(mensaje || '').match(/'([a-z_]+)'\s+column/i)
-           || String(mensaje || '').match(/column\s+\S*?\.?"?([a-z_]+)"?\s+does not exist/i);
-    return m ? m[1] : null;
+    const texto = String(mensaje || '');
+    for (const re of PATRONES_COLUMNA) {
+      const m = texto.match(re);
+      if (m) return m[1];
+    }
+    return null;
+  }
+  /** ¿El problema es que la tabla entera todavía no existe? */
+  function faltaLaTabla(e) {
+    const texto = String((e && e.message) || '');
+    return e && (e.status === 404 || e.status === 400) && (
+      /relation\s+"?[a-z_.]*"?\s+does not exist/i.test(texto) ||
+      /Could not find the table/i.test(texto) ||
+      /schema cache/i.test(texto) && /table/i.test(texto)
+    );
   }
   function sinLasQueFaltan(tabla, cuerpo) {
     const faltan = columnasQueFaltan[tabla];
@@ -450,9 +483,12 @@ const Nube = (() => {
   }
   function pendientes() { return cola().length; }
 
+  let ultimoRechazo = null;
+  function rechazoReciente() { const r = ultimoRechazo; ultimoRechazo = null; return r; }
+
   async function vaciarCola() {
-    if (!configurada() || !sesion) return { subidas: 0, pendientes: pendientes() };
-    let subidas = 0;
+    if (!configurada() || !sesion) return { subidas: 0, pendientes: pendientes(), descartadas: 0 };
+    let subidas = 0, descartadas = 0;
     let c = cola();
     while (c.length) {
       const op = c[0];
@@ -470,13 +506,28 @@ const Nube = (() => {
         // para que no bloquee al resto de la cola.
         if (e.status === 401 || e.status === 403) {
           c = cola(); c.shift(); guardarCola(c);
+          descartadas++;
           continue;
         }
-        break;
+        /* Sin status es que no hay señal: se reintenta luego, tal cual.
+           Con status es que el servidor rechazó ese dato en concreto; se le dan
+           unos intentos y si sigue igual se aparta, porque si no bloquea a todos
+           los demás cambios que sí podrían subir. */
+        if (!e.status) break;
+        c = cola();
+        c[0].intentos = (c[0].intentos || 0) + 1;
+        if (c[0].intentos >= 3) {
+          ultimoRechazo = e.message || 'dato rechazado por la base';
+          c.shift();
+          descartadas++;
+        } else {
+          c.push(c.shift());          // al final, para no frenar a los demás
+        }
+        guardarCola(c);
       }
       c = cola();
     }
-    return { subidas, pendientes: pendientes() };
+    return { subidas, pendientes: pendientes(), descartadas };
   }
 
   return {
@@ -485,6 +536,6 @@ const Nube = (() => {
     traerTodo, traerTabla, traerAsistencia,
     subirFila, subirLote, borrarFila, guardarAsistencia, anotarMovimiento, contarFilas,
     subirFoto, urlFoto, borrarFoto,
-    encolar, vaciarCola, pendientes, TABLAS
+    encolar, vaciarCola, pendientes, rechazoReciente, TABLAS
   };
 })();
