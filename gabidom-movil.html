@@ -286,6 +286,22 @@
     .foto-info { flex: 1; min-width: 0; }
     .foto-nombre { font-size: 13px; font-weight: 650; word-break: break-all; }
     .miniatura { width: 34px; height: 34px; border-radius: 7px; object-fit: cover; border: 1px solid var(--line); cursor: pointer; display: block; }
+    /* Buscador global: se abre encima de cualquier pantalla y lleva al lugar
+       donde vive cada resultado, en vez de obligar a recordar en qué sección
+       estaba cada cosa. */
+    .buscador { position: fixed; inset: 0; z-index: 95; background: rgba(7,20,22,.55); display: none; align-items: flex-start; justify-content: center; padding: 10vh 16px 16px; }
+    .buscador.show { display: flex; }
+    .buscador-caja { width: 100%; max-width: 640px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 20px 60px rgba(0,0,0,.3); overflow: hidden; display: flex; flex-direction: column; max-height: 76vh; }
+    .buscador-top { display: flex; align-items: center; gap: 9px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+    .buscador-top .ico { color: var(--ink-3); flex: none; }
+    .buscador-top input { flex: 1; border: 0; background: transparent; font-size: 15px; color: var(--ink-1); outline: none; padding: 4px 0; }
+    .buscador-lista { overflow-y: auto; padding: 6px; }
+    .buscador-grupo { font-size: 11px; font-weight: 750; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-3); padding: 10px 10px 4px; }
+    .buscador-item { width: 100%; text-align: left; border: 0; background: transparent; border-radius: 9px; padding: 9px 10px; cursor: pointer; display: flex; align-items: center; gap: 10px; color: var(--ink-1); font-size: 13.5px; }
+    .buscador-item:hover, .buscador-item:focus-visible { background: var(--surface-2); outline: none; }
+    .buscador-item .ico { color: var(--ink-3); flex: none; }
+    .buscador-item .bi-txt { flex: 1; min-width: 0; }
+    .buscador-item .bi-sub { display: block; font-size: 12px; color: var(--ink-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .visor { position: fixed; inset: 0; z-index: 90; background: rgba(7,20,22,.92); display: none; align-items: center; justify-content: center; padding: 18px; flex-direction: column; gap: 12px; }
     .visor.show { display: flex; }
     .visor img { max-width: 100%; max-height: 82vh; border-radius: 10px; object-fit: contain; }
@@ -528,6 +544,7 @@
           <div class="subtitle" id="pageSubtitle"></div>
         </div>
         <div class="actions" id="pageActions"></div>
+        <button class="icon-btn" id="buscarBtn" onclick="abrirBuscador()" title="Buscar en todo (/)" aria-label="Buscar en todo"><svg class="ico"><use href="#i-search"/></svg></button>
         <button class="sync" id="syncBtn" onclick="sincronizar(true)" title="Sincronizar ahora"><span class="dot"></span><span id="syncTxt">Local</span></button>
         <button class="icon-btn" id="themeBtn" onclick="toggleTheme()" aria-label="Cambiar tema"><svg class="ico"><use href="#i-moon" id="themeIcon"/></svg></button>
       </header>
@@ -888,6 +905,18 @@
       <button class="btn small" onclick="cerrarVisor(event, true)"><svg class="ico sm"><use href="#i-x"/></svg> Cerrar</button>
     </div>
     <img id="visorImg" alt="Foto de la nota">
+  </div>
+
+  <div class="buscador" id="buscador" onclick="if(event.target===this) cerrarBuscador()">
+    <div class="buscador-caja" role="dialog" aria-label="Buscar en todo">
+      <div class="buscador-top">
+        <svg class="ico"><use href="#i-search"/></svg>
+        <input id="buscadorInput" placeholder="Folio, cliente, escuela, prenda o código…" autocomplete="off"
+               oninput="buscarGlobal()" onkeydown="if(event.key==='Escape') cerrarBuscador()">
+        <button class="btn small" onclick="cerrarBuscador()">Cerrar</button>
+      </div>
+      <div class="buscador-lista" id="buscadorResultados"></div>
+    </div>
   </div>
 
   <div id="vizTip" role="status" aria-live="polite"></div>
@@ -3631,6 +3660,92 @@ const Nube = (() => {
     toast('Respaldo descargado');
   }
 
+  /* ================= Buscador global =================
+     Busca en lo que la persona ya puede ver: si no es dueña, sus resultados
+     nunca incluyen empleados, igual que su menú. Cada resultado lleva a la
+     pantalla donde vive y deja ahí la búsqueda aplicada. */
+  function abrirBuscador() {
+    document.getElementById('buscador').classList.add('show');
+    const i = document.getElementById('buscadorInput');
+    i.value = ''; i.focus();
+    buscarGlobal();
+  }
+  function cerrarBuscador() { document.getElementById('buscador').classList.remove('show'); }
+
+  function resultadosGlobales(q) {
+    const grupos = [];
+    const cabe = (...partes) => partes.filter(Boolean).join(' ').toLowerCase().includes(q);
+    const corta = (lista) => lista.slice(0, 6);
+
+    const ventas = corta(db.ventas.filter(v => cabe(v.folio, v.cliente, nombreEscuela(v.escuela))));
+    if (ventas.length) grupos.push({ titulo: 'Ventas', ico: 'i-cart', items: ventas.map(v => ({
+      texto: 'Nota ' + (v.folio || 'sin folio'),
+      sub: [v.cliente, nombreEscuela(v.escuela), dateFmt(v.fecha), moneyOr(v.montoTotal)].filter(Boolean).join(' · '),
+      ir: () => { setPage('ventas'); const b = document.getElementById('buscarVenta'); b.value = v.folio || v.cliente || ''; renderVentas(); }
+    })) });
+
+    const prendas = corta(db.prendas.filter(p => cabe(p.categoria, p.variante, p.talla)));
+    if (prendas.length) grupos.push({ titulo: 'Prendas', ico: 'i-shirt', items: prendas.map(p => ({
+      texto: p.variante + ' · talla ' + p.talla,
+      sub: p.categoria + ' · ' + p.cantidad + ' en existencia',
+      ir: () => { setPage('prendas'); const b = document.getElementById('buscarPrenda'); b.value = p.variante; renderPrendas(); }
+    })) });
+
+    const insumos = corta(db.insumos.filter(i => cabe(i.insumo, i.color, i.talla, i.medida)));
+    if (insumos.length) grupos.push({ titulo: 'Cierres', ico: 'i-zip', items: insumos.map(i => ({
+      texto: i.color + (i.medida ? ' · ' + i.medida : ''),
+      sub: (i.insumo || 'Cierre') + ' · ' + i.cantidad + ' en existencia',
+      ir: () => { setPage('insumos'); const b = document.getElementById('buscarInsumo'); b.value = i.color; renderInsumos(); }
+    })) });
+
+    const arts = corta((db.etiquetas || []).filter(e => cabe(e.codigo, e.descripcion, e.sku, e.talla)));
+    if (arts.length) grupos.push({ titulo: 'Artículos con código', ico: 'i-barras', items: arts.map(e => ({
+      texto: e.descripcion + (e.talla ? ' · talla ' + e.talla : ''),
+      sub: e.codigo + (e.sku ? ' · ' + e.sku : '') + ' · ' + (Number(e.cantidad) || 0) + ' en existencia',
+      ir: () => { setPage('mostrador'); const b = document.getElementById('mostradorBuscar'); b.value = e.descripcion; renderMostrador(); }
+    })) });
+
+    if (esDueno()) {
+      const gente = corta(clientesUnicos().filter(c => cabe(c.nombre, c.tipo, c.tel)));
+      if (gente.length) grupos.push({ titulo: 'Clientes y escuelas', ico: 'i-users', items: gente.map(c => ({
+        texto: c.nombre, sub: c.tipo + (c.tel ? ' · ' + c.tel : ''),
+        ir: () => { setPage('clientes'); const b = document.getElementById('buscarCliente'); b.value = c.nombre; renderClientes(); }
+      })) });
+
+      const emps = corta(db.empleados.filter(e => cabe(e.nombre, e.puesto, e.turno)));
+      if (emps.length) grupos.push({ titulo: 'Empleados', ico: 'i-team', items: emps.map(e => ({
+        texto: e.nombre, sub: [e.puesto, e.turno].filter(Boolean).join(' · '),
+        ir: () => setPage('empleados')
+      })) });
+    }
+    return grupos;
+  }
+
+  let accionesBuscador = [];
+  function buscarGlobal() {
+    const q = (document.getElementById('buscadorInput').value || '').trim().toLowerCase();
+    const caja = document.getElementById('buscadorResultados');
+    accionesBuscador = [];
+    if (q.length < 2) {
+      caja.innerHTML = '<div class="buscador-grupo">Escribe al menos dos letras</div>';
+      return;
+    }
+    const grupos = resultadosGlobales(q);
+    if (!grupos.length) {
+      caja.innerHTML = '<div class="empty" style="padding:26px">' + icon('i-search','lg') + '<p>Nada coincide con “' + esc(q) + '”</p></div>';
+      return;
+    }
+    caja.innerHTML = grupos.map(g =>
+      '<div class="buscador-grupo">' + esc(g.titulo) + '</div>'
+      + g.items.map(it => {
+          const i = accionesBuscador.push(it.ir) - 1;
+          return '<button class="buscador-item" type="button" data-i="' + i + '">'
+            + icon(g.ico) + '<span class="bi-txt">' + esc(it.texto)
+            + '<span class="bi-sub">' + esc(it.sub || '') + '</span></span></button>';
+        }).join('')
+    ).join('');
+  }
+
   /* ================= Asistente =================
      El asistente no trabaja con lo que hay guardado en este dispositivo:
      llama a la función "asistente" de Supabase, que consulta la base con
@@ -3692,8 +3807,23 @@ const Nube = (() => {
     prendaCategoria = chip.dataset.cat;
     renderPrendas();
   });
+  document.getElementById('buscadorResultados').addEventListener('click', ev => {
+    const btn = ev.target.closest('.buscador-item');
+    if (!btn) return;
+    const ir = accionesBuscador[Number(btn.dataset.i)];
+    cerrarBuscador();
+    if (ir) ir();
+  });
   document.addEventListener('keydown', ev => {
-    if (ev.key === 'Escape') { closeNav(); tipHide(); }
+    if (ev.key === 'Escape') { closeNav(); tipHide(); cerrarBuscador(); }
+    /* "/" y Ctrl+K abren el buscador, pero no mientras se escribe en un campo
+       ni con la pantalla de acceso puesta (ahí todavía no hay datos que ver). */
+    const escribiendo = /^(INPUT|TEXTAREA|SELECT)$/.test((ev.target.tagName || '').toUpperCase());
+    const dentro = document.getElementById('gate').hidden;
+    if (!dentro || escribiendo) return;
+    if (ev.key === '/' || ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === 'k')) {
+      ev.preventDefault(); abrirBuscador();
+    }
   });
   window.addEventListener('resize', () => { if (window.innerWidth > 820) closeNav(); });
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
