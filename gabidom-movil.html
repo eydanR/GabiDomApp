@@ -420,6 +420,25 @@
       .kpi-value { font-size: 21px; }
       .msg { max-width: 92%; }
     }
+    /* En el celular, las acciones principales ("Nueva venta", "Escanear") vivían
+       arriba del todo, que es justo donde el pulgar no llega sosteniendo el
+       teléfono con una mano. Se bajan a una barra fija al pie, dentro del
+       alcance, respetando el borde inferior de los teléfonos con muesca.
+       Debajo del toast (z 80) y del escáner (z 95), para no taparlos. */
+    @media (max-width: 640px) {
+      .actions {
+        position: fixed; left: 0; right: 0; bottom: 0; z-index: 25; margin: 0;
+        padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+        background: var(--surface); border-top: 1px solid var(--line);
+        box-shadow: 0 -6px 20px rgba(0,0,0,.10);
+      }
+      .actions:empty { display: none; }
+      .actions .btn { min-height: 46px; }
+      /* Sitio para que la barra no tape el final de la lista. */
+      .content { padding-bottom: 88px; }
+      #toast { bottom: calc(76px + env(safe-area-inset-bottom)); }
+    }
+
     @media (max-width: 520px) {
       .kpis { grid-template-columns: 1fr; }
       th, td { padding: 9px 11px; }

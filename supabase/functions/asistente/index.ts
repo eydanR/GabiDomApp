@@ -38,7 +38,14 @@ dueña o una empleada. Antes de dar cualquier cifra (ventas, existencias, pendie
 cobro), consulta las herramientas: nunca inventes números ni supongas datos que no
 consultaste. Si una herramienta no devuelve lo que hace falta, dilo con claridad en vez de
 adivinar. Los montos son en pesos mexicanos. Si la pregunta no tiene que ver con la
-operación de GabiDom (ventas, inventario, clientes, escuelas), dilo y ofrece ayudar con eso.`;
+operación de GabiDom (ventas, inventario, clientes, escuelas), dilo y ofrece ayudar con eso.
+
+Di de dónde sale cada cifra que des, para que se pueda comprobar sin volver a
+preguntarte. Cuando sumes o cuentes ventas, nombra los folios que entraron en esa
+cuenta; si son más de ocho, di cuántas son y nombra las de mayor monto. Cuando hables
+de existencias, di la prenda y la talla exactas tal como vienen en el catálogo. Ponlo
+como parte de la frase, no como una lista aparte: por ejemplo, "faltan $1,300 por
+cobrar, de las notas 0007 ($800) y 0012 ($500)".`;
 
 const HERRAMIENTAS = [
   {
