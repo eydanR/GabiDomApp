@@ -498,6 +498,9 @@ const Nube = (() => {
   function pendientes() { return cola().length; }
 
   let ultimoRechazo = null;
+  /** Último cambio que la base no aceptó y se apartó, con su tabla y el motivo,
+      para que la app pueda decir en concreto qué no se guardó en vez de dar
+      por bueno un "datos al día" que esconde un cambio perdido. */
   function rechazoReciente() { const r = ultimoRechazo; ultimoRechazo = null; return r; }
 
   async function vaciarCola() {
@@ -517,8 +520,10 @@ const Nube = (() => {
         subidas++;
       } catch (e) {
         // Un rechazo por permisos nunca se va a resolver reintentando: se descarta
-        // para que no bloquee al resto de la cola.
+        // para que no bloquee al resto de la cola, pero se anota — si no, el
+        // cambio se pierde en silencio y la app dice que todo quedó al día.
         if (e.status === 401 || e.status === 403) {
+          ultimoRechazo = { tabla: op.tabla, status: e.status, mensaje: e.message || '' };
           c = cola(); c.shift(); guardarCola(c);
           descartadas++;
           continue;
@@ -531,7 +536,7 @@ const Nube = (() => {
         c = cola();
         c[0].intentos = (c[0].intentos || 0) + 1;
         if (c[0].intentos >= 3) {
-          ultimoRechazo = e.message || 'dato rechazado por la base';
+          ultimoRechazo = { tabla: c[0].tabla, status: e.status, mensaje: e.message || '' };
           c.shift();
           descartadas++;
         } else {

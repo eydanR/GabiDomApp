@@ -1702,6 +1702,9 @@ const Nube = (() => {
   function pendientes() { return cola().length; }
 
   let ultimoRechazo = null;
+  /** Último cambio que la base no aceptó y se apartó, con su tabla y el motivo,
+      para que la app pueda decir en concreto qué no se guardó en vez de dar
+      por bueno un "datos al día" que esconde un cambio perdido. */
   function rechazoReciente() { const r = ultimoRechazo; ultimoRechazo = null; return r; }
 
   async function vaciarCola() {
@@ -1721,8 +1724,10 @@ const Nube = (() => {
         subidas++;
       } catch (e) {
         // Un rechazo por permisos nunca se va a resolver reintentando: se descarta
-        // para que no bloquee al resto de la cola.
+        // para que no bloquee al resto de la cola, pero se anota — si no, el
+        // cambio se pierde en silencio y la app dice que todo quedó al día.
         if (e.status === 401 || e.status === 403) {
+          ultimoRechazo = { tabla: op.tabla, status: e.status, mensaje: e.message || '' };
           c = cola(); c.shift(); guardarCola(c);
           descartadas++;
           continue;
@@ -1735,7 +1740,7 @@ const Nube = (() => {
         c = cola();
         c[0].intentos = (c[0].intentos || 0) + 1;
         if (c[0].intentos >= 3) {
-          ultimoRechazo = e.message || 'dato rechazado por la base';
+          ultimoRechazo = { tabla: c[0].tabla, status: e.status, mensaje: e.message || '' };
           c.shift();
           descartadas++;
         } else {
@@ -2243,10 +2248,7 @@ const Nube = (() => {
       if (manual) {
         const rechazo = Nube.rechazoReciente();
         if (rechazo) {
-          toast(/row-level security|permission denied/i.test(rechazo)
-            ? 'Algunos cambios no se guardaron: eran de una venta que no registraste tú, y solo quien la registró o la dueña pueden editarla.'
-            : 'Algunos cambios no los aceptó la base y se apartaron para no frenar el resto. '
-              + 'Revisa que supabase/esquema.sql esté completo.');
+          toast(textoDeRechazo(rechazo));
         } else {
           const partes = [];
           if (r.subidas) partes.push(r.subidas + ' cambios');
@@ -2261,6 +2263,28 @@ const Nube = (() => {
     }
   }
 
+  /** Un cambio que la base apartó no se puede dar por bueno: dice qué se
+      perdió y por qué, sin mandar a revisar el esquema cuando el motivo real
+      fue de permisos o de sesión vencida. */
+  const NOMBRE_TABLA = {
+    ventas: 'una venta', prendas: 'el inventario de prendas', insumos: 'el inventario de cierres',
+    etiquetas: 'un artículo etiquetado', clientes: 'un cliente', escuelas: 'una escuela',
+    empleados: 'un empleado', asistencia: 'la asistencia', revisar: 'un folio por revisar'
+  };
+  function textoDeRechazo(r) {
+    const donde = NOMBRE_TABLA[r.tabla] || 'algunos datos';
+    if (r.status === 401) {
+      return 'Tu sesión venció y no se guardó un cambio en ' + donde + '. Vuelve a entrar con tu PIN e inténtalo otra vez.';
+    }
+    if (r.status === 403 || /row-level security|permission denied/i.test(r.mensaje || '')) {
+      return r.tabla === 'ventas'
+        ? 'No se guardó un cambio en una venta que no registraste tú: solo quien la registró o la dueña pueden editarla.'
+        : 'No se guardó un cambio en ' + donde + ': tu cuenta no tiene permiso para eso.';
+    }
+    return 'La base no aceptó un cambio en ' + donde + ' y se apartó para no frenar el resto. '
+      + 'Revisa que supabase/esquema.sql esté completo.';
+  }
+
   /** Traduce el error técnico de la base a algo que se pueda accionar. */
   function mensajeDeError(e) {
     const texto = String((e && e.message) || '');
@@ -2272,7 +2296,7 @@ const Nube = (() => {
     }
     if (/JWT|token/i.test(texto)) return 'Tu sesión caducó: vuelve a entrar con tu PIN.';
     if (/row-level security|permission denied/i.test(texto)) {
-      return 'No tenías permiso para ese cambio: solo quien registró la venta o la dueña pueden editarla.';
+      return 'Tu cuenta no tiene permiso para ese cambio.';
     }
     if (!texto || /fetch|network|Failed/i.test(texto)) return 'Sin conexión ahora mismo; se reintenta solo.';
     return 'No se pudo sincronizar: ' + texto;
@@ -2800,6 +2824,27 @@ const Nube = (() => {
     return piezas;
   }
 
+  /** Devuelve al catálogo lo que se había descontado, cuando una venta deja de
+      estar entregada. Sin esto, marcar "entregado" por error y corregirlo dejaba
+      el inventario bajo para siempre: la mercancía seguía en la tienda pero ya
+      estaba restada, y al entregarla de verdad ya no se volvía a descontar. */
+  function reponerArticulos(venta) {
+    if (!venta.descontada || !venta.articulos || !venta.articulos.length) return 0;
+    let piezas = 0;
+    venta.articulos.forEach(a => {
+      const inv = db.etiquetas.find(x => x.codigo === a.codigo);
+      if (!inv) return;
+      const antes = Number(inv.cantidad) || 0;
+      inv.cantidad = antes + (Number(a.cantidad) || 0);
+      piezas += inv.cantidad - antes;
+      anotarMovimiento('etiquetas', inv, antes, inv.cantidad,
+        'Devuelto al cancelar la entrega — nota ' + (venta.folio || ''));
+      subir('etiquetas', inv);
+    });
+    venta.descontada = false;
+    return piezas;
+  }
+
   /* ================= Foto de la nota =================
      Una foto de celular pesa 3-5 MB. Se reescala y recomprime antes de subir
      para no gastar los datos de quien está en el mostrador ni llenar el
@@ -3100,6 +3145,9 @@ const Nube = (() => {
     if (estatus === 'Pagado y entregado') {
       const piezas = descontarArticulos(v);
       if (piezas) aviso = piezas + (piezas === 1 ? ' pieza descontada' : ' piezas descontadas') + ' del inventario';
+    } else {
+      const piezas = reponerArticulos(v);
+      if (piezas) aviso = piezas + (piezas === 1 ? ' pieza devuelta' : ' piezas devueltas') + ' al inventario';
     }
     subir('ventas', v);
     renderInicio(); renderVentas(); renderReportes();
