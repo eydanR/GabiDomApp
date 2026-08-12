@@ -226,9 +226,11 @@ Deno.serve(async (req) => {
 
   try {
     for (let vuelta = 0; vuelta < MAX_VUELTAS; vuelta++) {
+      // max_tokens cubre el razonamiento y la respuesta juntos: si queda corto,
+      // la vuelta se corta a media herramienta y se devolvería media respuesta.
       const respuesta = await anthropic.messages.create({
         model: MODELO,
-        max_tokens: 4096,
+        max_tokens: 16000,
         system: SISTEMA + "\n\nHoy es " + new Date().toISOString().slice(0, 10) + ".",
         tools: HERRAMIENTAS,
         output_config: { effort: "medium" },
@@ -237,6 +239,12 @@ Deno.serve(async (req) => {
 
       if (respuesta.stop_reason === "refusal") {
         return json({ respuesta: "No puedo responder eso. ¿Puedes reformular la pregunta?" });
+      }
+
+      if (respuesta.stop_reason === "max_tokens") {
+        return json({
+          error: "La respuesta salió demasiado larga. Pregunta algo más puntual (por ejemplo, acotando el mes o la escuela).",
+        }, 502);
       }
 
       const usosHerramienta = respuesta.content.filter((b) => b.type === "tool_use");

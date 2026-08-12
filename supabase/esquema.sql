@@ -431,6 +431,8 @@ create index if not exists ventas_escuela_idx on public.ventas (escuela);
 -- ============================================================================
 
 -- security definer: lee el nombre propio sin caer en la recursión de RLS.
+-- Filtra por activo igual que es_dueno(): si no, dar de baja a alguien no le
+-- quita el permiso de seguir editando sus ventas mientras su sesión siga viva.
 create or replace function public.mi_nombre()
 returns text
 language sql
@@ -438,7 +440,7 @@ stable
 security definer
 set search_path = public
 as $$
-  select nombre from public.perfiles where id = auth.uid();
+  select nombre from public.perfiles where id = auth.uid() and activo;
 $$;
 
 drop policy if exists ventas_editar on public.ventas;
