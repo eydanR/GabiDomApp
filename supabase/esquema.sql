@@ -482,3 +482,57 @@ end $$;
 -- ============================================================================
 
 alter table public.ventas add column if not exists tipo_uniforme text;
+
+-- ============================================================================
+-- PASO 10 — órdenes de producción
+--
+-- GabiDom no solo vende: fabrica. Una orden anota qué se va a confeccionar,
+-- cuántas piezas, para qué escuela y para cuándo. Al marcarla "Terminada" las
+-- piezas entran al catálogo de artículos, que es el mismo del que descuentan
+-- las ventas: así una sola cifra sube al producir y baja al vender.
+--
+-- Los permisos van igual que en ventas: todas ven y registran, cada quien
+-- corrige lo suyo, la dueña corrige todo y solo ella borra.
+-- ============================================================================
+
+create table if not exists public.produccion (
+  id           uuid primary key default gen_random_uuid(),
+  folio        text,
+  fecha        date,                    -- cuándo se ordenó
+  entrega      date,                    -- para cuándo se necesita
+  escuela      text,
+  articulos    jsonb not null default '[]'::jsonb,
+  estatus      text not null default 'Pendiente'
+               check (estatus in ('Pendiente','En proceso','Terminada')),
+  notas        text,
+  registro_de  text,                    -- nombre de quien la capturó
+  sumada       boolean not null default false,   -- si ya entró al inventario
+  actualizado  timestamptz not null default now()
+);
+
+alter table public.produccion enable row level security;
+
+drop policy if exists produccion_leer on public.produccion;
+create policy produccion_leer on public.produccion for select to authenticated using (true);
+
+drop policy if exists produccion_crear on public.produccion;
+create policy produccion_crear on public.produccion for insert to authenticated with check (true);
+
+-- Corregir: la suya cada quien, todas la dueña. Mismo criterio que ventas_editar.
+drop policy if exists produccion_editar on public.produccion;
+create policy produccion_editar on public.produccion
+  for update to authenticated
+  using (public.es_dueno() or registro_de = public.mi_nombre())
+  with check (public.es_dueno() or registro_de = public.mi_nombre());
+
+drop policy if exists produccion_borrar on public.produccion;
+create policy produccion_borrar on public.produccion for delete to authenticated using (public.es_dueno());
+
+create index if not exists produccion_estatus_idx on public.produccion (estatus);
+create index if not exists produccion_entrega_idx on public.produccion (entrega);
+
+-- La bitácora de inventario ya admitía prendas, insumos y etiquetas; ahora
+-- también deja constancia de lo que entra por producción.
+alter table public.movimientos drop constraint if exists movimientos_tabla_check;
+alter table public.movimientos add constraint movimientos_tabla_check
+  check (tabla in ('prendas','insumos','etiquetas'));
