@@ -682,7 +682,9 @@
             <select id="filtroPagoVenta" onchange="renderVentas()"><option value="">Toda forma de pago</option></select>
           </div>
           <div class="card">
-            <div class="card-head"><div class="card-title">Ventas</div><span class="card-note" id="ventasResumen"></span></div>
+            <div class="card-head"><div class="card-title">Ventas</div><span class="card-note" id="ventasResumen"></span>
+              <button class="btn small" onclick="exportarVentas()" title="Descargar lo que se ve, en Excel"><svg class="ico sm"><use href="#i-down"/></svg> Excel</button>
+            </div>
             <div class="card-body flush"><div class="t-scroll"><table class="t-min">
               <thead><tr><th>Folio</th><th>Fecha</th><th>Cliente</th><th>Escuela</th><th class="num">Total</th><th class="num">Tarjeta</th><th class="num">Efectivo</th><th class="num">Restante</th><th>Nota</th><th>Registró</th><th>Estatus</th><th></th></tr></thead>
               <tbody id="tablaVentas"></tbody>
@@ -738,7 +740,9 @@
             </div>
           </div>
           <div class="card">
-            <div class="card-head"><div class="card-title">Detalle de ventas filtradas</div><span class="card-note" id="repDetalleNota"></span></div>
+            <div class="card-head"><div class="card-title">Detalle de ventas filtradas</div><span class="card-note" id="repDetalleNota"></span>
+              <button class="btn small" onclick="exportarReporte()" title="Descargar lo que se ve, en Excel"><svg class="ico sm"><use href="#i-down"/></svg> Excel</button>
+            </div>
             <div class="card-body flush"><div class="t-scroll"><table class="t-min">
               <thead><tr><th>Folio</th><th>Fecha</th><th>Cliente</th><th class="num">Total</th><th>Forma de pago</th><th>Estatus</th><th>Observaciones</th></tr></thead>
               <tbody id="repDetalle"></tbody>
@@ -3723,6 +3727,41 @@ const Nube = (() => {
     db[tipo] = lista.filter(x => x.id !== id);
     subirBorrado(tipo, id);
     renderAll(); toast('Registro borrado');
+  }
+  /* Exportar a Excel: se baja un CSV con la marca de orden de bytes y la línea
+     "sep=;" delante. Sin eso, Excel abre el archivo con los acentos rotos y
+     todo amontonado en una sola columna, que es justo lo que hace inservible
+     un CSV a secas. Se exporta lo que se está viendo, con sus filtros. */
+  function descargarCSV(nombre, encabezados, filas) {
+    const escapa = v => {
+      const s = (v === null || v === undefined) ? '' : String(v);
+      return /[";\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    };
+    const cuerpo = [encabezados].concat(filas).map(f => f.map(escapa).join(';')).join('\r\n');
+    const blob = new Blob(['﻿sep=;\r\n' + cuerpo], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = nombre;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+  function exportarVentas() {
+    const rows = ventasFiltradas();
+    if (!rows.length) { toast('No hay ventas que exportar con esos filtros'); return; }
+    descargarCSV('ventas-gabidom-' + iso(new Date()) + '.csv',
+      ['Folio','Fecha','Cliente','Escuela','Total','Tarjeta','Efectivo','Restante','Forma de pago','Estatus','Registró','Observaciones'],
+      rows.map(v => [v.folio, v.fecha, v.cliente, nombreEscuela(v.escuela), v.montoTotal,
+                     v.montoTarjeta, v.efectivo, restanteDe(v), v.formaPago, v.estatus, v.registroDe, v.obs]));
+    toast(rows.length + (rows.length === 1 ? ' venta descargada' : ' ventas descargadas'));
+  }
+  function exportarReporte() {
+    const rows = reportesFiltrados();
+    if (!rows.length) { toast('No hay ventas que exportar con esos filtros'); return; }
+    descargarCSV('reporte-gabidom-' + iso(new Date()) + '.csv',
+      ['Folio','Fecha','Cliente','Escuela','Total','Restante','Forma de pago','Estatus','Observaciones'],
+      rows.map(v => [v.folio, v.fecha, v.cliente, nombreEscuela(v.escuela), v.montoTotal,
+                     restanteDe(v), v.formaPago, v.estatus, v.obs]));
+    toast(rows.length + (rows.length === 1 ? ' venta descargada' : ' ventas descargadas'));
   }
   function exportarDatos() {
     const blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' });
