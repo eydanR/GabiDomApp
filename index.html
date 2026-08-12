@@ -298,6 +298,14 @@
     .buscador-item .ico { color: var(--ink-3); flex: none; }
     .buscador-item .bi-txt { flex: 1; min-width: 0; }
     .buscador-item .bi-sub { display: block; font-size: 12px; color: var(--ink-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .glo { padding: 11px 12px; border-radius: 9px; }
+    .glo + .glo { margin-top: 2px; }
+    .glo.destacado { background: var(--accent-050, var(--surface-2)); box-shadow: inset 0 0 0 1.5px var(--accent-500); }
+    .glo-t { font-weight: 750; font-size: 13.5px; margin-bottom: 3px; }
+    .glo-d { font-size: 13px; color: var(--ink-2); line-height: 1.55; }
+    /* El "?" junto a una etiqueta: se toca fácil con el pulgar sin robar sitio. */
+    .ayuda { width: 17px; height: 17px; border-radius: 50%; border: 1px solid var(--line-2, var(--line)); background: var(--surface-2); color: var(--ink-3); font-size: 11px; font-weight: 750; line-height: 1; cursor: pointer; padding: 0; margin-left: 5px; vertical-align: middle; }
+    .ayuda:hover { color: var(--ink-1); border-color: var(--ink-3); }
     .visor { position: fixed; inset: 0; z-index: 90; background: rgba(7,20,22,.92); display: none; align-items: center; justify-content: center; padding: 18px; flex-direction: column; gap: 12px; }
     .visor.show { display: flex; }
     .visor img { max-width: 100%; max-height: 82vh; border-radius: 10px; object-fit: contain; }
@@ -434,6 +442,7 @@
     <symbol id="i-camara" viewBox="0 0 24 24"><path d="M3 8.5h3.4L8 6h8l1.6 2.5H21v11H3v-11Z"/><circle cx="12" cy="13.5" r="3.4"/></symbol>
     <symbol id="i-imagen" viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="15" rx="2.2"/><circle cx="8.5" cy="10" r="1.7"/><path d="M4 17.5 9.5 12l3.5 3.2 3-2.4 4 4.7"/></symbol>
     <symbol id="i-ojo" viewBox="0 0 24 24"><path d="M2.5 12S6 5.8 12 5.8 21.5 12 21.5 12 18 18.2 12 18.2 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3.1"/></symbol>
+    <symbol id="i-libro" viewBox="0 0 24 24"><path d="M4 4.5h6a2.5 2.5 0 0 1 2 2.5v13a2 2 0 0 0-2-1.5H4Z"/><path d="M20 4.5h-6a2.5 2.5 0 0 0-2 2.5v13a2 2 0 0 1 2-1.5h6Z"/></symbol>
     <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 3.5v12"/><path d="M7.5 11 12 15.5 16.5 11"/><path d="M4.5 20.5h15"/></symbol>
     <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M9.5 7V4.5h5V7"/><path d="M6 7l1 13.5h10L18 7"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><path d="M4.5 12.5 9.5 17.5 19.5 6.5"/></symbol>
@@ -541,6 +550,7 @@
         </div>
         <div class="actions" id="pageActions"></div>
         <button class="icon-btn" id="buscarBtn" onclick="abrirBuscador()" title="Buscar en todo (/)" aria-label="Buscar en todo"><svg class="ico"><use href="#i-search"/></svg></button>
+        <button class="icon-btn" id="glosarioBtn" onclick="abrirGlosario()" title="Qué significa cada palabra" aria-label="Glosario">?</button>
         <button class="sync" id="syncBtn" onclick="sincronizar(true)" title="Sincronizar ahora"><span class="dot"></span><span id="syncTxt">Local</span></button>
         <button class="icon-btn" id="themeBtn" onclick="toggleTheme()" aria-label="Cambiar tema"><svg class="ico"><use href="#i-moon" id="themeIcon"/></svg></button>
       </header>
@@ -622,7 +632,7 @@
             <div class="card-head"><div class="card-title"><svg class="ico"><use href="#i-plus"/></svg> Registrar venta</div></div>
             <div class="card-body">
               <div class="fields">
-                <div class="field"><label for="ventaFolio">Folio</label><input id="ventaFolio" placeholder="A 665"></div>
+                <div class="field"><label for="ventaFolio">Folio<span data-ayuda="folio"></span></label><input id="ventaFolio" placeholder="A 665"></div>
                 <div class="field"><label for="ventaFecha">Fecha</label><input type="date" id="ventaFecha"></div>
                 <div class="field"><label for="ventaCliente">Cliente</label><input id="ventaCliente" list="clientesVentaList" placeholder="Nombre de quien atiendes"><datalist id="clientesVentaList"></datalist></div>
                 <div class="field"><label for="ventaEscuela">Escuela</label><select id="ventaEscuela"></select></div>
@@ -631,7 +641,7 @@
                 <div class="field"><label for="ventaEfectivo">Efectivo ($)</label><input type="number" id="ventaEfectivo" min="0" step="1" oninput="recalcularVenta()"></div>
                 <div class="field"><label for="ventaMontoTarjeta">Tarjeta / transferencia ($)</label><input type="number" id="ventaMontoTarjeta" min="0" step="1" oninput="recalcularVenta()"></div>
                 <div class="field"><label for="ventaNoTarjeta">Referencia (tarjeta, TRANS, QR)</label><input id="ventaNoTarjeta"></div>
-                <div class="field"><label for="ventaRestante">Restante por cobrar ($)</label>
+                <div class="field"><label for="ventaRestante">Restante por cobrar ($)<span data-ayuda="restante"></span></label>
                   <input type="number" id="ventaRestante" min="0" step="1" readonly>
                   <div class="hint" id="ventaRestanteNota" style="margin:4px 0 0">Se calcula solo: total − efectivo − tarjeta.</div>
                 </div>
@@ -691,7 +701,7 @@
         <!-- ============ VENTAS POR REVISAR ============ -->
         <section class="page" id="page-revisar">
           <div class="card"><div class="card-body">
-            <p class="hint" style="margin:0">Estos folios venían en la plantilla original <b>sin datos completos</b> (probablemente renglones sin usar). Complétalos como venta o descártalos para dejar limpia la base.</p>
+            <p class="hint" style="margin:0">Estos folios venían en la plantilla original <b>sin datos completos</b> (probablemente renglones sin usar)<span data-ayuda="revisar"></span>. Complétalos como venta o descártalos para dejar limpia la base.</p>
           </div></div>
           <div class="filters">
             <div class="search"><svg class="ico sm"><use href="#i-search"/></svg><input id="buscarRevisar" placeholder="Buscar folio o mes" oninput="renderRevisar()"></div>
@@ -801,7 +811,7 @@
           <div class="card">
             <div class="card-head"><div class="card-title" id="prendasTitulo">Prendas</div><span class="card-note">Edita cantidad y mínimo directamente; se guarda solo</span></div>
             <div class="card-body flush"><div class="t-scroll"><table class="t-min">
-              <thead><tr><th>Variante</th><th>Talla</th><th class="num">Cantidad</th><th class="num">Mínimo</th><th>Nivel de stock</th><th></th></tr></thead>
+              <thead><tr><th>Variante</th><th>Talla</th><th class="num">Cantidad</th><th class="num">Mínimo<span data-ayuda="minimo"></span></th><th>Nivel de stock<span data-ayuda="nivel"></span></th><th></th></tr></thead>
               <tbody id="tablaPrendas"></tbody>
             </table></div></div>
           </div>
@@ -816,7 +826,7 @@
           <div class="card">
             <div class="card-head"><div class="card-title">Cierres</div><span class="card-note" id="insumosResumen"></span></div>
             <div class="card-body flush"><div class="t-scroll"><table class="t-min">
-              <thead><tr><th>Color</th><th>Talla</th><th>Medida</th><th class="num">Cantidad</th><th class="num">Mínimo</th><th>Nivel de stock</th><th></th></tr></thead>
+              <thead><tr><th>Color</th><th>Talla</th><th>Medida</th><th class="num">Cantidad</th><th class="num">Mínimo<span data-ayuda="minimo"></span></th><th>Nivel de stock<span data-ayuda="nivel"></span></th><th></th></tr></thead>
               <tbody id="tablaInsumos"></tbody>
             </table></div></div>
           </div>
@@ -912,6 +922,17 @@
       <button class="btn small" onclick="cerrarVisor(event, true)"><svg class="ico sm"><use href="#i-x"/></svg> Cerrar</button>
     </div>
     <img id="visorImg" alt="Foto de la nota">
+  </div>
+
+  <div class="buscador" id="glosario" onclick="if(event.target===this) cerrarGlosario()">
+    <div class="buscador-caja" role="dialog" aria-label="Glosario">
+      <div class="buscador-top">
+        <svg class="ico"><use href="#i-libro"/></svg>
+        <b style="flex:1; font-size:14.5px">Qué significa cada palabra</b>
+        <button class="btn small" onclick="cerrarGlosario()">Cerrar</button>
+      </div>
+      <div class="buscador-lista" id="glosarioLista"></div>
+    </div>
   </div>
 
   <div class="buscador" id="buscador" onclick="if(event.target===this) cerrarBuscador()">
@@ -1979,9 +2000,35 @@
       agregarArticulo(codigo, true);
       estadoScan('✓ ' + nombreEtiqueta(e));
       if (navigator.vibrate) navigator.vibrate(60);
+      pitido(true);
     } else {
       estadoScan('Código ' + codigo + ': no está en el catálogo');
+      if (navigator.vibrate) navigator.vibrate([70, 60, 70]);
+      pitido(false);
     }
+  }
+  /* Un pitido corto al leer: en el mostrador, con ruido y el cliente enfrente,
+     la vibración sola se siente poco y obliga a mirar la pantalla para saber
+     si contó. Se genera al vuelo, sin archivos de sonido, para que el archivo
+     único del celular siga siendo uno solo. */
+  let audioScan = null;
+  function pitido(ok) {
+    try {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      audioScan = audioScan || new Ctx();
+      if (audioScan.state === 'suspended') audioScan.resume();
+      const t = audioScan.currentTime, dur = ok ? 0.12 : 0.3;
+      const osc = audioScan.createOscillator();
+      const vol = audioScan.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(ok ? 880 : 240, t);
+      vol.gain.setValueAtTime(0.0001, t);
+      vol.gain.exponentialRampToValueAtTime(0.22, t + 0.012);
+      vol.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      osc.connect(vol); vol.connect(audioScan.destination);
+      osc.start(t); osc.stop(t + dur + 0.02);
+    } catch (err) { /* sin audio: la vibración y el texto en pantalla siguen ahí */ }
   }
   function escribirCodigo() {
     const c = prompt('Escribe el código de barras (13 dígitos):');
@@ -2902,6 +2949,56 @@
     toast('Respaldo descargado');
   }
 
+  /* ================= Glosario y ayuda =================
+     Las palabras del negocio no son obvias para quien acaba de entrar, y
+     preguntar cada vez cuesta. El botón "?" de la barra abre la lista
+     completa; los "?" pequeños que hay junto a algunos campos abren esa
+     misma lista ya puesta en el término que toca. */
+  const GLOSARIO = [
+    ['folio', 'Folio', 'El número de la nota de venta. Identifica esa venta para siempre: si el cliente vuelve a preguntar por su pedido, se busca por folio. Los folios viejos traen letra (A 665); los nuevos van de 0001 en adelante.'],
+    ['minimo', 'Mínimo', 'Cuántas piezas quieres tener siempre de esa prenda o cierre. No es lo que hay, es el aviso: cuando la existencia baja hasta ese número, la app la marca como "por reabastecer". Se pone por producto, así que un artículo que se vende mucho puede tener un mínimo más alto.'],
+    ['nivel', 'Nivel de stock', 'La barra de color que acompaña al número. Verde es que hay de sobra, amarillo que ya vas llegando al mínimo, y rojo que estás por debajo. El color nunca va solo: al lado siempre está el número exacto (por ejemplo 8/10).'],
+    ['revisar', 'Folios por revisar', 'Ventas que quedaron sin fecha o sin monto cuando se pasaron del Excel viejo. No están perdidas: están apartadas para que alguien las complete. Al completarlas se convierten en una venta normal y salen de esa lista.'],
+    ['restante', 'Restante por cobrar', 'Lo que el cliente todavía debe: el total menos lo que pagó en efectivo y lo que pagó con tarjeta o transferencia. La app lo calcula sola, no se captura.'],
+    ['sku', 'SKU', 'La clave interna de un artículo, la que viene impresa en la etiqueta junto al código de barras. Sirve para distinguir dos prendas que se llaman casi igual pero no son la misma.'],
+    ['conjunto', 'Conjunto', 'Un juego completo, no una pieza suelta: por ejemplo pantalón y chamarra que se venden juntos como uno solo. Al descontar del inventario, un conjunto se descuenta como una unidad de su propia etiqueta.'],
+    ['gala', 'Gala', 'El uniforme formal, el de ceremonias y actos: el que la escuela pide para eventos, no para el día a día.'],
+    ['deportivo', 'Deportivo', 'El uniforme de educación física: pants, short, playera. Es el que más se repone porque se usa y se lava más.'],
+    ['entregado', 'Pagado y entregado', 'La venta está cerrada: el cliente ya pagó todo y ya se llevó la mercancía. Solo al marcarla así se descuentan las piezas del inventario, porque hasta ese momento siguen en la tienda.']
+  ];
+  function abrirGlosario(clave) {
+    document.getElementById('glosarioLista').innerHTML = GLOSARIO.map(([k, termino, texto]) =>
+      '<div class="glo' + (k === clave ? ' destacado' : '') + '" id="glo-' + k + '">'
+      + '<div class="glo-t">' + esc(termino) + '</div>'
+      + '<div class="glo-d">' + esc(texto) + '</div></div>'
+    ).join('');
+    document.getElementById('glosario').classList.add('show');
+    if (clave) {
+      const el = document.getElementById('glo-' + clave);
+      if (el) el.scrollIntoView({ block: 'center' });
+    }
+  }
+  function cerrarGlosario() { document.getElementById('glosario').classList.remove('show'); }
+  /** Rellena los "?" marcados en el HTML con data-ayuda="clave". Se hace una
+      vez al arrancar: así el texto de cada término vive solo en GLOSARIO y no
+      repetido en cada etiqueta. */
+  function pintarAyudas() {
+    document.querySelectorAll('[data-ayuda]').forEach(span => {
+      if (span.firstChild) return;
+      const clave = span.dataset.ayuda;
+      const item = GLOSARIO.find(g => g[0] === clave);
+      if (!item) return;
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'ayuda';
+      b.textContent = '?';
+      b.title = item[1];
+      b.setAttribute('aria-label', 'Qué es ' + item[1]);
+      b.addEventListener('click', () => abrirGlosario(clave));
+      span.appendChild(b);
+    });
+  }
+
   /* ================= Buscador global =================
      Busca en lo que la persona ya puede ver: si no es dueña, sus resultados
      nunca incluyen empleados, igual que su menú. Cada resultado lleva a la
@@ -3057,7 +3154,7 @@
     if (ir) ir();
   });
   document.addEventListener('keydown', ev => {
-    if (ev.key === 'Escape') { closeNav(); tipHide(); cerrarBuscador(); }
+    if (ev.key === 'Escape') { closeNav(); tipHide(); cerrarBuscador(); cerrarGlosario(); }
     /* "/" y Ctrl+K abren el buscador, pero no mientras se escribe en un campo
        ni con la pantalla de acceso puesta (ahí todavía no hay datos que ver). */
     const escribiendo = /^(INPUT|TEXTAREA|SELECT)$/.test((ev.target.tagName || '').toUpperCase());
@@ -3092,6 +3189,7 @@
   window.addEventListener('online', () => sincronizar(false));
 
   applyTheme(localStorage.getItem(THEME_KEY));
+  pintarAyudas();
   arrancarAcceso();
   </script>
 </body>
