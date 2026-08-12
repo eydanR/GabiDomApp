@@ -472,3 +472,13 @@ begin
     execute format('create policy %I_leer on public.%I for select to authenticated using (public.es_dueno())', t, t);
   end loop;
 end $$;
+
+-- ============================================================================
+-- PASO 9 — tipo de uniforme en la venta (deportivo o gala)
+--
+-- Al elegir la escuela, la app pregunta si lo que se lleva es el uniforme
+-- deportivo o el de gala, y con eso ofrece las prendas de esa escuela. Aquí se
+-- guarda esa respuesta junto con la venta.
+-- ============================================================================
+
+alter table public.ventas add column if not exists tipo_uniforme text;

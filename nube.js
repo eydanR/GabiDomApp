@@ -65,7 +65,8 @@ const Nube = (() => {
         montoTotal: 'monto_total', noTarjeta: 'no_tarjeta', montoTarjeta: 'monto_tarjeta',
         efectivo: 'efectivo', restante: 'restante', formaPago: 'forma_pago',
         estatus: 'estatus', obs: 'obs', registroDe: 'registro_de', foto: 'foto',
-        articulos: 'articulos', descontada: 'descontada', escuela: 'escuela'
+        articulos: 'articulos', descontada: 'descontada', escuela: 'escuela',
+        tipoUniforme: 'tipo_uniforme'
       },
       json: ['articulos'],
       numericos: ['montoTotal', 'montoTarjeta', 'efectivo', 'restante'],
