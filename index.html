@@ -1269,7 +1269,20 @@
   }
 
   /** Arranca la app ya con sesión: pinta todo y trae lo que haya en la nube. */
+  /** Un dispositivo que sincronizó antes de que empleados y asistencia
+      quedaran reservados a la dueña puede tener esa información guardada de
+      cuando sí se la mandaban. La base ya no se la va a volver a mandar, pero
+      lo viejo no se borra solo: al entrar sin ser dueña se limpia de aquí. */
+  function limpiarDatosReservados() {
+    if (!sesion || sesion.rol === 'dueno') return;
+    const tenia = (db.empleados || []).length || Object.keys(db.asistencia || {}).length;
+    if (!tenia) return;
+    db.empleados = [];
+    db.asistencia = {};
+    save();
+  }
   async function iniciarApp() {
+    limpiarDatosReservados();
     renderNav();
     pintarSesion();
     setPage(esDueno() ? 'inicio' : 'mostrador');
