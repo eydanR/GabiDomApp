@@ -648,7 +648,9 @@
         <!-- ============ VENTAS ============ -->
         <section class="page" id="page-ventas">
           <div class="card form" id="formVenta">
-            <div class="card-head"><div class="card-title"><svg class="ico"><use href="#i-plus"/></svg> Registrar venta</div></div>
+            <div class="card-head"><div class="card-title"><svg class="ico"><use href="#i-plus" id="ventaFormIco"/></svg> <span id="ventaFormTitulo">Registrar venta</span></div>
+              <span class="card-note" id="ventaFormNota"></span>
+            </div>
             <div class="card-body">
               <div class="fields">
                 <div class="field"><label for="ventaFolio">Folio<span data-ayuda="folio"></span></label><input id="ventaFolio" placeholder="A 665"></div>
@@ -696,7 +698,7 @@
               </div>
               <div class="form-foot">
                 <button class="btn" onclick="toggleForm('Venta', false)">Cancelar</button>
-                <button class="btn primary" onclick="guardarVenta()"><svg class="ico sm"><use href="#i-check"/></svg> Guardar venta</button>
+                <button class="btn primary" id="ventaGuardarBtn" onclick="guardarVenta()"><svg class="ico sm"><use href="#i-check"/></svg> Guardar venta</button>
               </div>
             </div>
           </div>
@@ -1020,7 +1022,29 @@
     return PAGOS.concat(usados.filter(p => PAGOS.indexOf(p) < 0).sort());
   }
   function opcionesPago(seleccionada) {
-    return PAGOS.map(p => '<option' + (p === seleccionada ? ' selected' : '') + '>' + p + '</option>').join('');
+    const lista = PAGOS.slice();
+    const sel = String(seleccionada == null ? '' : seleccionada);
+    /* Las ventas del Excel traen formas de pago que ya no se ofrecen
+       ("Tarjeta/Transferencia") o vienen vacías. Si no se añaden aquí, corregir
+       una de esas ventas se la cambiaría a Efectivo sin que nadie lo pidiera. */
+    if (sel && lista.indexOf(sel) === -1) lista.push(sel);
+    return lista.map(p => '<option' + (p === sel ? ' selected' : '') + '>' + esc(p) + '</option>').join('');
+  }
+  /** Deja el desplegable capaz de mostrar ese valor tal cual, aunque sea uno
+      viejo que ya no está en la lista, y lo selecciona. Sin esto el navegador
+      se queda en blanco y al guardar se perdería el dato. */
+  function seleccionarConservando(id, valor, etiqueta) {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const v = String(valor == null ? '' : valor);
+    sel.value = v;
+    if (sel.value !== v) {
+      const op = document.createElement('option');
+      op.value = v;
+      op.textContent = etiqueta || (v === '' ? '(sin dato)' : v);
+      sel.appendChild(op);
+      sel.value = v;
+    }
   }
   const DIAS = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
   const TURNOS = ['Entrada','Almuerzo','Salida'];
@@ -1707,7 +1731,66 @@
       recalcularVenta();
       document.getElementById('ventaCliente').focus();
     }
+    // Cerrar el formulario cancela la corrección: si no, la siguiente venta
+    // nueva se guardaría encima de la que se estaba editando.
+    if (name === 'Venta' && !open) salirDeEdicion();
     if (open) f.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+  /** Deja el formulario como "Registrar venta" y limpia lo que quedó dentro. */
+  function salirDeEdicion() {
+    ventaEditando = null;
+    document.getElementById('ventaFormTitulo').textContent = 'Registrar venta';
+    document.getElementById('ventaFormIco').setAttribute('href', '#i-plus');
+    document.getElementById('ventaFormNota').textContent = '';
+    document.getElementById('ventaGuardarBtn').innerHTML = icon('i-check') + ' Guardar venta';
+    limpiarFormVenta();
+  }
+  function limpiarFormVenta() {
+    clearIds(['ventaFolio','ventaCliente','ventaMontoTotal','ventaMontoTarjeta','ventaEfectivo','ventaNoTarjeta','ventaRestante','ventaObs']);
+    document.getElementById('ventaEscuela').value = '';
+    document.getElementById('ventaFecha').value = '';
+    articulosVenta = []; renderArticulos(); quitarFoto();
+    estatusTocadoAMano = false; recalcularVenta();
+  }
+
+  /** Abre una venta ya registrada en el mismo formulario, para corregirla. */
+  function editarVenta(id) {
+    const v = db.ventas.find(x => x.id === id);
+    if (!v) return;
+    if (!puedeEditarVenta(v)) {
+      toast('Solo quien registró esta venta o la dueña pueden corregirla');
+      return;
+    }
+    setPage('ventas');
+    toggleForm('Venta', true);          // deja el formulario en blanco y a la vista
+    ventaEditando = id;
+
+    document.getElementById('ventaFolio').value = v.folio || '';
+    document.getElementById('ventaFecha').value = /^\d{4}-\d{2}-\d{2}$/.test(v.fecha) ? v.fecha : '';
+    document.getElementById('ventaCliente').value = v.cliente || '';
+    populateEscuelas();
+    seleccionarConservando('ventaEscuela', v.escuela || '', v.escuela ? nombreEscuela(v.escuela) : null);
+    document.getElementById('ventaMontoTotal').value = v.montoTotal === '' ? '' : Number(v.montoTotal) || 0;
+    document.getElementById('ventaEfectivo').value = v.efectivo === '' ? '' : Number(v.efectivo) || 0;
+    document.getElementById('ventaMontoTarjeta').value = v.montoTarjeta === '' ? '' : Number(v.montoTarjeta) || 0;
+    document.getElementById('ventaNoTarjeta').value = v.noTarjeta || '';
+    document.getElementById('ventaObs').value = v.obs || '';
+    document.getElementById('ventaFormaPago').innerHTML = opcionesPago(v.formaPago || 'Efectivo');
+    articulosVenta = (v.articulos || []).map(a => Object.assign({}, a));
+    renderArticulos();
+
+    /* El estatus se toma tal cual está guardado: recalcular podría moverlo solo
+       y cambiar el inventario sin que nadie lo pidiera. */
+    recalcularVenta();
+    seleccionarConservando('ventaEstatus', v.estatus || '', v.estatus ? null : '(sin estatus)');
+    estatusTocadoAMano = true;
+
+    document.getElementById('ventaFormTitulo').textContent = 'Corregir venta';
+    document.getElementById('ventaFormIco').setAttribute('href', '#i-edit');
+    document.getElementById('ventaFormNota').textContent = 'Nota ' + (v.folio || 'sin folio')
+      + (v.foto ? ' · la foto se conserva salvo que subas otra' : '');
+    document.getElementById('ventaGuardarBtn').innerHTML = icon('i-check') + ' Guardar cambios';
+    document.getElementById('ventaCliente').focus();
   }
   function irAAlertas(page) {
     setPage(page);
@@ -2247,6 +2330,10 @@
      El estatus sí se puede corregir a mano; si alguien lo toca, se respeta
      y ya no se vuelve a mover solo en esa captura. */
   let estatusTocadoAMano = false;
+  /* Id de la venta que se está corrigiendo, o null si se está capturando una
+     nueva. El formulario es el mismo; lo que cambia es si al guardar se crea
+     un registro o se actualiza el que ya existe. */
+  let ventaEditando = null;
   function recalcularVenta() {
     const total = num('ventaMontoTotal');
     const pagado = num('ventaEfectivo') + num('ventaMontoTarjeta');
@@ -2348,7 +2435,10 @@
         ? '<select onchange="cambiarEstatus(\'' + v.id + '\', this.value)" aria-label="Estatus de ' + esc(v.folio) + '">'
           + ESTATUS.map(e => '<option' + (e === v.estatus ? ' selected' : '') + '>' + e + '</option>').join('') + '</select>'
         : badgeEstatus(v.estatus)) + '</td>'
-      + '<td>' + (esDueno() ? '<button class="btn small danger" onclick="borrar(\'ventas\',\'' + v.id + '\')" aria-label="Borrar venta">' + icon('i-trash') + '</button>' : '') + '</td></tr>';
+      + '<td style="white-space:nowrap">'
+      + (editable ? '<button class="btn small" onclick="editarVenta(\'' + v.id + '\')" title="Corregir esta venta" aria-label="Corregir la nota ' + esc(v.folio) + '">' + icon('i-edit') + '</button> ' : '')
+      + (esDueno() ? '<button class="btn small danger" onclick="borrar(\'ventas\',\'' + v.id + '\')" aria-label="Borrar venta">' + icon('i-trash') + '</button>' : '')
+      + '</td></tr>';
     }).join('') || emptyRow(12, 'Ninguna venta coincide con los filtros', 'i-search');
   }
   async function guardarVenta() {
@@ -2365,8 +2455,17 @@
     /* Dos personas capturando a la vez pueden ver el mismo número propuesto.
        Antes de guardar se comprueba contra lo que ya hay y se ofrece el
        siguiente libre, para no terminar con dos notas 0007. */
+    const original = ventaEditando ? db.ventas.find(x => x.id === ventaEditando) : null;
+    if (ventaEditando && !original) { toast('Esa venta ya no existe'); salirDeEdicion(); return; }
+    // El permiso pudo cambiar entre abrir el formulario y guardar.
+    if (original && !puedeEditarVenta(original)) {
+      toast('Solo quien registró esta venta o la dueña pueden corregirla');
+      salirDeEdicion(); toggleForm('Venta', false); return;
+    }
+
     let folio = val('ventaFolio') || siguienteFolio();
-    if (folioExiste(folio)) {
+    // Al corregir, su propio folio no cuenta como repetido.
+    if (folioExiste(folio) && !(original && String(original.folio || '').trim().toLowerCase() === String(folio).trim().toLowerCase())) {
       const libre = siguienteFolio();
       if (!confirm('Ya existe una nota con el folio ' + folio + '.\n\n'
                  + '¿Guardar esta como ' + libre + '?\n\n'
@@ -2378,15 +2477,17 @@
     }
 
     const venta = {
-      id: uid(),
+      id: original ? original.id : uid(),
       folio,
       mes: MESES[mesIdx] || '', fecha, cliente, escuela,
       montoTotal: num('ventaMontoTotal'), noTarjeta: val('ventaNoTarjeta'),
       montoTarjeta: num('ventaMontoTarjeta'), efectivo: num('ventaEfectivo'), restante: num('ventaRestante'),
       formaPago: val('ventaFormaPago'), estatus: val('ventaEstatus'), obs: val('ventaObs'),
-      registroDe: quienSoy(), foto: '',
+      // Quien registró la venta no cambia al corregirla: es de quien la hizo.
+      registroDe: original ? original.registroDe : quienSoy(),
+      foto: original ? (original.foto || '') : '',
       articulos: articulosVenta.map(a => Object.assign({}, a)),
-      descontada: false
+      descontada: original ? Boolean(original.descontada) : false
     };
 
     let avisoFoto = '';
@@ -2395,7 +2496,8 @@
         // Sin nube la foto vive en este dispositivo y ocupa espacio del navegador.
         venta.foto = fotoPendiente.dataUrl;
       } else {
-        const btn = document.querySelector('#formVenta .btn.primary');
+        const btn = document.getElementById('ventaGuardarBtn');
+        const etiqueta = btn ? btn.innerHTML : '';
         if (btn) { btn.disabled = true; btn.textContent = 'Subiendo foto…'; }
         try {
           venta.foto = await Nube.subirFoto(venta.id, fotoPendiente.blob, fotoPendiente.ext);
@@ -2405,27 +2507,41 @@
           venta.foto = fotoPendiente.dataUrl;
           avisoFoto = ' — la foto se subirá cuando haya señal';
         } finally {
-          if (btn) { btn.disabled = false; btn.innerHTML = icon('i-check') + ' Guardar venta'; }
+          // Se devuelve la etiqueta que tenía, que dice "Guardar venta" o
+          // "Guardar cambios" según se esté capturando o corrigiendo.
+          if (btn) { btn.disabled = false; btn.innerHTML = etiqueta; }
         }
       }
     }
 
-    db.ventas.push(venta);
-    // Si la venta ya sale entregada, los artículos salen del inventario ahora.
     let avisoStock = '';
-    if (venta.estatus === 'Pagado y entregado') {
-      const piezas = descontarArticulos(venta);
-      if (piezas) avisoStock = ' · ' + piezas + (piezas === 1 ? ' pieza descontada' : ' piezas descontadas');
+    if (original) {
+      /* Al corregir pudieron cambiar los artículos o el estatus. Se devuelve al
+         inventario lo que se había descontado con los datos viejos y se vuelve
+         a descontar con los nuevos: así el catálogo refleja la venta corregida
+         y no una mezcla de las dos versiones. */
+      reponerArticulos(original);
+      venta.descontada = false;
+      Object.assign(original, venta);
+      if (original.estatus === 'Pagado y entregado') descontarArticulos(original);
+      subir('ventas', original);
+    } else {
+      db.ventas.push(venta);
+      // Si la venta ya sale entregada, los artículos salen del inventario ahora.
+      if (venta.estatus === 'Pagado y entregado') {
+        const piezas = descontarArticulos(venta);
+        if (piezas) avisoStock = ' · ' + piezas + (piezas === 1 ? ' pieza descontada' : ' piezas descontadas');
+      }
+      subir('ventas', venta);
     }
-    subir('ventas', venta);
-    clearIds(['ventaFolio','ventaCliente','ventaMontoTotal','ventaMontoTarjeta','ventaEfectivo','ventaNoTarjeta','ventaRestante','ventaObs']);
-    document.getElementById('ventaEscuela').value = '';
-    articulosVenta = []; renderArticulos(); quitarFoto();
-    estatusTocadoAMano = false; recalcularVenta();
-    toggleForm('Venta', false); renderAll();
+
+    const eraCorreccion = Boolean(original);
+    toggleForm('Venta', false);   // esto también limpia el formulario y sale de la edición
+    renderAll();
     // Decir el número concreto evita tener que abrir la venta para comprobarlo.
-    const pendiente = restanteDe(venta);
-    toast('Nota ' + venta.folio + ' guardada · '
+    const guardada = eraCorreccion ? original : venta;
+    const pendiente = restanteDe(guardada);
+    toast('Nota ' + guardada.folio + (eraCorreccion ? ' corregida · ' : ' guardada · ')
       + (pendiente > 0 ? 'restan ' + money(pendiente) + ' por cobrar' : 'pagada completa')
       + avisoStock + avisoFoto);
   }
