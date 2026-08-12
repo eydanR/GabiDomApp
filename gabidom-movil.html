@@ -606,13 +606,16 @@
                 <div class="field"><label for="ventaFecha">Fecha</label><input type="date" id="ventaFecha"></div>
                 <div class="field"><label for="ventaCliente">Cliente</label><input id="ventaCliente" list="clientesVentaList" placeholder="Nombre de quien atiendes"><datalist id="clientesVentaList"></datalist></div>
                 <div class="field"><label for="ventaEscuela">Escuela</label><select id="ventaEscuela"></select></div>
-                <div class="field"><label for="ventaMontoTotal">Monto total ($)</label><input type="number" id="ventaMontoTotal" min="0" step="1"></div>
+                <div class="field"><label for="ventaMontoTotal">Monto total ($)</label><input type="number" id="ventaMontoTotal" min="0" step="1" oninput="recalcularVenta()"></div>
                 <div class="field"><label for="ventaFormaPago">Forma de pago</label><select id="ventaFormaPago"></select></div>
-                <div class="field"><label for="ventaEfectivo">Efectivo ($)</label><input type="number" id="ventaEfectivo" min="0" step="1"></div>
-                <div class="field"><label for="ventaMontoTarjeta">Tarjeta / transferencia ($)</label><input type="number" id="ventaMontoTarjeta" min="0" step="1"></div>
+                <div class="field"><label for="ventaEfectivo">Efectivo ($)</label><input type="number" id="ventaEfectivo" min="0" step="1" oninput="recalcularVenta()"></div>
+                <div class="field"><label for="ventaMontoTarjeta">Tarjeta / transferencia ($)</label><input type="number" id="ventaMontoTarjeta" min="0" step="1" oninput="recalcularVenta()"></div>
                 <div class="field"><label for="ventaNoTarjeta">Referencia (tarjeta, TRANS, QR)</label><input id="ventaNoTarjeta"></div>
-                <div class="field"><label for="ventaRestante">Restante por cobrar ($)</label><input type="number" id="ventaRestante" min="0" step="1"></div>
-                <div class="field"><label for="ventaEstatus">Estatus</label><select id="ventaEstatus"><option>Pagado y entregado</option><option>Pendiente</option></select></div>
+                <div class="field"><label for="ventaRestante">Restante por cobrar ($)</label>
+                  <input type="number" id="ventaRestante" min="0" step="1" readonly>
+                  <div class="hint" id="ventaRestanteNota" style="margin:4px 0 0">Se calcula solo: total − efectivo − tarjeta.</div>
+                </div>
+                <div class="field"><label for="ventaEstatus">Estatus</label><select id="ventaEstatus" onchange="estatusTocadoAMano = true"><option>Pagado y entregado</option><option>Pendiente</option></select></div>
                 <div class="field full"><label for="ventaObs">Observaciones</label><textarea id="ventaObs"></textarea></div>
                 <div class="field full">
                   <label>Artículos de la venta</label>
@@ -2473,6 +2476,8 @@ const Nube = (() => {
       renderArticulos();
       populateEscuelas();
       quitarFoto();
+      estatusTocadoAMano = false;
+      recalcularVenta();
       document.getElementById('ventaCliente').focus();
     }
     if (open) f.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -2977,6 +2982,32 @@ const Nube = (() => {
 
   /* ================= Ventas ================= */
   /** Siguiente número de nota, contando solo las emitidas desde el reinicio. */
+  /* El restante ya no se captura: sale de total − efectivo − tarjeta, que es
+     el único valor que puede tener. Así desaparece la causa más común del
+     aviso de "Montos" que la app venía marcando en las ventas del Excel.
+     El estatus sí se puede corregir a mano; si alguien lo toca, se respeta
+     y ya no se vuelve a mover solo en esa captura. */
+  let estatusTocadoAMano = false;
+  function recalcularVenta() {
+    const total = num('ventaMontoTotal');
+    const pagado = num('ventaEfectivo') + num('ventaMontoTarjeta');
+    const restante = Math.max(0, total - pagado);
+    document.getElementById('ventaRestante').value = restante;
+
+    const nota = document.getElementById('ventaRestanteNota');
+    if (pagado > total && total > 0) {
+      nota.textContent = 'Lo cobrado (' + money(pagado) + ') pasa del total (' + money(total) + '). Revisa las cantidades.';
+      nota.style.color = 'var(--critical)';
+    } else {
+      nota.textContent = 'Se calcula solo: total − efectivo − tarjeta.';
+      nota.style.color = '';
+    }
+
+    if (!estatusTocadoAMano) {
+      document.getElementById('ventaEstatus').value =
+        (total > 0 && restante === 0) ? 'Pagado y entregado' : 'Pendiente';
+    }
+  }
   function siguienteFolio() {
     let mayor = 0;
     db.ventas.forEach(v => {
@@ -3131,8 +3162,13 @@ const Nube = (() => {
     clearIds(['ventaFolio','ventaCliente','ventaMontoTotal','ventaMontoTarjeta','ventaEfectivo','ventaNoTarjeta','ventaRestante','ventaObs']);
     document.getElementById('ventaEscuela').value = '';
     articulosVenta = []; renderArticulos(); quitarFoto();
+    estatusTocadoAMano = false; recalcularVenta();
     toggleForm('Venta', false); renderAll();
-    toast('Nota ' + venta.folio + ' guardada' + avisoStock + avisoFoto);
+    // Decir el número concreto evita tener que abrir la venta para comprobarlo.
+    const pendiente = restanteDe(venta);
+    toast('Nota ' + venta.folio + ' guardada · '
+      + (pendiente > 0 ? 'restan ' + money(pendiente) + ' por cobrar' : 'pagada completa')
+      + avisoStock + avisoFoto);
   }
   function cambiarEstatus(id, estatus) {
     const v = db.ventas.find(x => x.id === id);
