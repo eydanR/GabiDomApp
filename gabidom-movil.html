@@ -482,6 +482,7 @@
     <symbol id="i-imagen" viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="15" rx="2.2"/><circle cx="8.5" cy="10" r="1.7"/><path d="M4 17.5 9.5 12l3.5 3.2 3-2.4 4 4.7"/></symbol>
     <symbol id="i-ojo" viewBox="0 0 24 24"><path d="M2.5 12S6 5.8 12 5.8 21.5 12 21.5 12 18 18.2 12 18.2 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3.1"/></symbol>
     <symbol id="i-libro" viewBox="0 0 24 24"><path d="M4 4.5h6a2.5 2.5 0 0 1 2 2.5v13a2 2 0 0 0-2-1.5H4Z"/><path d="M20 4.5h-6a2.5 2.5 0 0 0-2 2.5v13a2 2 0 0 1 2-1.5h6Z"/></symbol>
+    <symbol id="i-tijeras" viewBox="0 0 24 24"><circle cx="6.5" cy="18" r="2.6"/><circle cx="6.5" cy="6" r="2.6"/><path d="M8.7 7.6 20 18.5"/><path d="M8.7 16.4 20 5.5"/></symbol>
     <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 3.5v12"/><path d="M7.5 11 12 15.5 16.5 11"/><path d="M4.5 20.5h15"/></symbol>
     <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M9.5 7V4.5h5V7"/><path d="M6 7l1 13.5h10L18 7"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><path d="M4.5 12.5 9.5 17.5 19.5 6.5"/></symbol>
@@ -884,6 +885,54 @@
             <div class="card-body flush"><div class="t-scroll"><table class="t-min">
               <thead><tr><th>Color</th><th>Talla</th><th>Medida</th><th class="num">Cantidad</th><th class="num">Mínimo<span data-ayuda="minimo"></span></th><th>Nivel de stock<span data-ayuda="nivel"></span></th><th></th></tr></thead>
               <tbody id="tablaInsumos"></tbody>
+            </table></div></div>
+          </div>
+        </section>
+
+        <!-- ============ PRODUCCIÓN ============ -->
+        <section class="page" id="page-produccion">
+          <div class="card form" id="formProduccion">
+            <div class="card-head"><div class="card-title"><svg class="ico"><use href="#i-tijeras" id="prodFormIco"/></svg> <span id="prodFormTitulo">Nueva orden de producción</span></div>
+              <span class="card-note" id="prodFormNota"></span>
+            </div>
+            <div class="card-body">
+              <div class="fields">
+                <div class="field"><label for="prodFolio">Folio de la orden</label><input id="prodFolio" placeholder="OP-0001"></div>
+                <div class="field"><label for="prodFecha">Fecha de la orden</label><input type="date" id="prodFecha"></div>
+                <div class="field"><label for="prodEntrega">Para cuándo se necesita</label><input type="date" id="prodEntrega"></div>
+                <div class="field"><label for="prodEscuela">Escuela</label><select id="prodEscuela"></select></div>
+                <div class="field"><label for="prodEstatus">Estatus</label>
+                  <select id="prodEstatus"><option>Pendiente</option><option>En proceso</option><option>Terminada</option></select>
+                </div>
+                <div class="field full">
+                  <label>Qué se va a confeccionar <span class="hint" id="prodPiezasNota" style="display:inline; margin:0"></span></label>
+                  <div id="prodLista" class="elegidas"></div>
+                  <button type="button" class="btn small" id="prodAgregar" onclick="agregarFilaProduccion()">
+                    <svg class="ico sm"><use href="#i-plus"/></svg> Agregar prenda
+                  </button>
+                </div>
+                <div class="field full"><label for="prodNotas">Notas</label><textarea id="prodNotas" placeholder="Tela, detalles, quién la confecciona…"></textarea></div>
+              </div>
+              <div class="form-foot">
+                <button class="btn" onclick="toggleForm('Produccion', false)">Cancelar</button>
+                <button class="btn primary" id="prodGuardarBtn" onclick="guardarProduccion()"><svg class="ico sm"><use href="#i-check"/></svg> Guardar orden</button>
+              </div>
+            </div>
+          </div>
+          <div class="kpis" id="prodKpis"></div>
+          <div class="filters">
+            <div class="search"><svg class="ico sm"><use href="#i-search"/></svg><input id="buscarProduccion" placeholder="Buscar folio, escuela o prenda" oninput="renderProduccion()"></div>
+            <select id="filtroEstatusProd" onchange="renderProduccion()">
+              <option value="">Todos los estatus</option><option>Pendiente</option><option>En proceso</option><option>Terminada</option>
+            </select>
+          </div>
+          <div class="card">
+            <div class="card-head"><div class="card-title">Órdenes de producción</div><span class="card-note" id="prodResumen"></span>
+              <button class="btn small" onclick="exportarProduccion()" title="Descargar lo que se ve, en Excel"><svg class="ico sm"><use href="#i-down"/></svg> Excel</button>
+            </div>
+            <div class="card-body flush"><div class="t-scroll"><table class="t-min">
+              <thead><tr><th>Folio</th><th>Ordenada</th><th>Entrega</th><th>Escuela</th><th>Qué se confecciona</th><th class="num">Piezas</th><th>Registró</th><th>Estatus</th><th></th></tr></thead>
+              <tbody id="tablaProduccion"></tbody>
             </table></div></div>
           </div>
         </section>
@@ -1434,6 +1483,15 @@ const Nube = (() => {
     escuelas: {
       campos: { id: 'id', n: 'clave', nombre: 'nombre', nivel: 'nivel', turno: 'turno' },
       numericos: [], fechas: []
+    },
+    produccion: {
+      campos: {
+        id: 'id', folio: 'folio', fecha: 'fecha', entrega: 'entrega', escuela: 'escuela',
+        articulos: 'articulos', estatus: 'estatus', notas: 'notas',
+        registroDe: 'registro_de', sumada: 'sumada'
+      },
+      json: ['articulos'],
+      numericos: [], fechas: ['fecha', 'entrega']
     }
   };
 
@@ -1905,7 +1963,8 @@ const Nube = (() => {
     ]},
     { group: 'Inventario', items: [
       ['prendas','Prendas','i-shirt','Uniformes por variante y talla','todos'],
-      ['insumos','Cierres','i-zip','Insumos por color y medida','todos']
+      ['insumos','Cierres','i-zip','Insumos por color y medida','todos'],
+      ['produccion','Producción','i-tijeras','Órdenes de confección en curso','todos']
     ]},
     { group: 'Equipo', items: [
       ['empleados','Empleados','i-team','Personal de GabiDom','dueno'],
@@ -2119,7 +2178,7 @@ const Nube = (() => {
        catálogo de conjuntos crece. */
     (base.escuelas || []).forEach(e => { e.busca = buscaDeEscuela(e.n); });
     if (!base.asistencia || typeof base.asistencia !== 'object') base.asistencia = {};
-    ['ventas', 'revisar', 'prendas', 'insumos', 'clientes', 'empleados']
+    ['ventas', 'revisar', 'prendas', 'insumos', 'clientes', 'empleados', 'produccion']
       .forEach(k => { if (!Array.isArray(base[k])) base[k] = []; });
     return base;
   }
@@ -2133,6 +2192,7 @@ const Nube = (() => {
     return {
       folioSeq: 1,
       clientes: [],
+      produccion: [],
       ventas: s.ventas.map(v => ({
         /* La fecha se conserva vacía si el Excel no la traía: inventarla con "hoy"
            creaba un mes fantasma en la gráfica de ingresos. */
@@ -2333,7 +2393,7 @@ const Nube = (() => {
   /* Si la base va atrás de la app, se avisa qué parte del esquema falta en vez
      de dejar los datos atascados sin explicación. */
   const PASO_DE = { articulos: 5, descontada: 5, foto: 3, etiquetas: 5, movimientos: 5,
-                    escuela: 6, escuelas: 6 };
+                    escuela: 6, escuelas: 6, tipo_uniforme: 9, produccion: 10, sumada: 10, entrega: 10 };
   let avisadoEsquema = false;
   let pasoQueFalta = null;      // se muestra fijo en el indicador, no solo un instante
   Nube.alFaltarEsquema((tabla, columna) => {
@@ -2391,7 +2451,7 @@ const Nube = (() => {
          Sin esto, tener ventas en la nube pero no el inventario hacía
          desaparecer las prendas de la pantalla. */
       const faltantes = [];
-      ['ventas', 'prendas', 'insumos', 'revisar', 'clientes', 'empleados', 'etiquetas', 'escuelas'].forEach(t => {
+      ['ventas', 'prendas', 'insumos', 'revisar', 'clientes', 'empleados', 'etiquetas', 'escuelas', 'produccion'].forEach(t => {
         if (!remoto[t] || !remoto[t].length) {
           if ((db[t] || []).length) faltantes.push(t);
           return;
@@ -2450,7 +2510,8 @@ const Nube = (() => {
   const NOMBRE_TABLA = {
     ventas: 'una venta', prendas: 'el inventario de prendas', insumos: 'el inventario de cierres',
     etiquetas: 'un artículo etiquetado', clientes: 'un cliente', escuelas: 'una escuela',
-    empleados: 'un empleado', asistencia: 'la asistencia', revisar: 'un folio por revisar'
+    empleados: 'un empleado', asistencia: 'la asistencia', revisar: 'un folio por revisar',
+    produccion: 'una orden de producción'
   };
   function textoDeRechazo(r) {
     const donde = NOMBRE_TABLA[r.tabla] || 'algunos datos';
@@ -2630,7 +2691,8 @@ const Nube = (() => {
       ventas: '<button class="btn accent" onclick="toggleForm(\'Venta\', true)">' + icon('i-plus') + ' Nueva venta</button>',
       clientes: '<button class="btn accent" onclick="toggleForm(\'Cliente\', true)">' + icon('i-plus') + ' Nuevo cliente</button>',
       empleados: '<button class="btn accent" onclick="toggleForm(\'Empleado\', true)">' + icon('i-plus') + ' Nuevo empleado</button>',
-      asistente: '<button class="btn primary" onclick="prepararResumenIA()">' + icon('i-spark') + ' Preguntar algo</button>'
+      asistente: '<button class="btn primary" onclick="prepararResumenIA()">' + icon('i-spark') + ' Preguntar algo</button>',
+      produccion: '<button class="btn accent" onclick="toggleForm(\'Produccion\', true)">' + icon('i-plus') + ' Nueva orden</button>'
     };
     let html = map[currentPage] || '';
     // El respaldo y la carga inicial son cosa de la dueña, no del mostrador.
@@ -2661,9 +2723,19 @@ const Nube = (() => {
       recalcularVenta();
       document.getElementById('ventaCliente').focus();
     }
+    if (name === 'Produccion' && open) {
+      populateEscuelasEn('prodEscuela');
+      const f = document.getElementById('prodFecha');
+      if (!f.value) f.value = iso(new Date());
+      const folio = document.getElementById('prodFolio');
+      if (!folio.value) folio.value = siguienteFolioProduccion();
+      if (!lineasProduccion.length) lineasProduccion = [{ descripcion: '', talla: '', cantidad: 1 }];
+      renderLineasProduccion();
+    }
     // Cerrar el formulario cancela la corrección: si no, la siguiente venta
     // nueva se guardaría encima de la que se estaba editando.
     if (name === 'Venta' && !open) salirDeEdicion();
+    if (name === 'Produccion' && !open) salirDeEdicionProduccion();
     if (open) f.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
   /** Deja el formulario como "Registrar venta" y limpia lo que quedó dentro. */
@@ -2738,7 +2810,7 @@ const Nube = (() => {
 
   function renderAll() {
     renderInicio(); renderMostrador(); renderVentas(); renderRevisar(); renderClientes(); renderEscuelas(); populateClientes();
-    renderPrendas(); renderInsumos(); renderEmpleados(); renderAsistencia(); renderReportes();
+    renderPrendas(); renderInsumos(); renderProduccion(); renderEmpleados(); renderAsistencia(); renderReportes();
     populateMesesFiltro(); populatePagos(); populateEscuelas(); renderCounts();
   }
   function renderCounts() {
@@ -3353,12 +3425,13 @@ const Nube = (() => {
   /* ================= Escuelas ================= */
   /** El desplegable agrupa por nivel; lo que aún no tiene nivel va al final,
       visible, para que se note que falta clasificarlo y no se pierda. */
-  function populateEscuelas() {
-    const sel = document.getElementById('ventaEscuela');
+  function populateEscuelas() { populateEscuelasEn('ventaEscuela'); populateEscuelasEn('prodEscuela'); }
+  function populateEscuelasEn(id) {
+    const sel = document.getElementById(id);
     if (!sel) return;
     const actual = sel.value;
     const lista = db.escuelas || [];
-    let html = '<option value="">Sin escuela (venta a particular)</option>';
+    let html = '<option value="">' + (id === 'prodEscuela' ? 'Sin escuela (para existencia)' : 'Sin escuela (venta a particular)') + '</option>';
     NIVELES.forEach(nivel => {
       const dentro = lista.filter(e => e.nivel === nivel);
       if (!dentro.length) return;
@@ -3629,6 +3702,334 @@ const Nube = (() => {
     subir('ventas', v);
     renderInicio(); renderVentas(); renderReportes();
     toast(aviso);
+  }
+
+  /* ================= Producción =================
+     GabiDom no solo vende: confecciona. Una orden anota qué se va a hacer,
+     cuántas piezas y para cuándo. Al marcarla "Terminada" las piezas entran al
+     catálogo de artículos, que es el mismo del que descuentan las ventas: una
+     sola cifra que sube al producir y baja al vender, sin dos inventarios que
+     luego no cuadran entre sí. */
+  const ESTATUS_PROD = ['Pendiente', 'En proceso', 'Terminada'];
+  const MAX_LINEAS_PROD = 15;
+  let lineasProduccion = [];      // [{ descripcion, talla, cantidad }]
+  let produccionEditando = null;
+
+  function puedeEditarOrden(o) { return esDueno() || (o.registroDe && o.registroDe === quienSoy()); }
+  function piezasDeOrden(o) {
+    return (o.articulos || []).reduce((n, a) => n + (Number(a.cantidad) || 0), 0);
+  }
+  function siguienteFolioProduccion() {
+    let mayor = 0;
+    (db.produccion || []).forEach(o => {
+      const m = String(o.folio || '').match(/^OP-(\d+)$/i);
+      if (m) mayor = Math.max(mayor, Number(m[1]));
+    });
+    return 'OP-' + String(mayor + 1).padStart(4, '0');
+  }
+
+  /* --- filas de "qué se va a confeccionar" --- */
+  function agregarFilaProduccion() {
+    if (lineasProduccion.length >= MAX_LINEAS_PROD) return;
+    lineasProduccion.push({ descripcion: '', talla: '', cantidad: 1 });
+    renderLineasProduccion();
+  }
+  function quitarFilaProduccion(i) {
+    lineasProduccion.splice(i, 1);
+    if (!lineasProduccion.length) lineasProduccion.push({ descripcion: '', talla: '', cantidad: 1 });
+    renderLineasProduccion();
+  }
+  function elegirPrendaProd(i, descripcion) {
+    lineasProduccion[i].descripcion = descripcion;
+    lineasProduccion[i].talla = '';
+    renderLineasProduccion();
+  }
+  function elegirTallaProd(i, talla) { lineasProduccion[i].talla = talla; renderLineasProduccion(); }
+  function elegirCantidadProd(i, cantidad) {
+    lineasProduccion[i].cantidad = Math.max(1, Number(cantidad) || 1);
+    renderLineasProduccion();
+  }
+  function renderLineasProduccion() {
+    const caja = document.getElementById('prodLista');
+    if (!caja) return;
+    if (!lineasProduccion.length) lineasProduccion.push({ descripcion: '', talla: '', cantidad: 1 });
+    const nombres = Array.from(new Set((db.etiquetas || []).map(x => x.descripcion)))
+      .sort((a,b) => String(a).localeCompare(String(b), 'es'));
+
+    caja.innerHTML = lineasProduccion.map((f, i) => {
+      const tallas = Array.from(new Set((db.etiquetas || [])
+        .filter(x => x.descripcion === f.descripcion).map(x => x.talla)))
+        .sort((a,b) => (Number(a)||999) - (Number(b)||999) || String(a).localeCompare(String(b),'es'));
+      const op = (t, sel) => '<option value="' + esc(t) + '"' + (t === sel ? ' selected' : '') + '>' + esc(t) + '</option>';
+      return '<div class="elegida">'
+        + '<select class="e-prenda" aria-label="Prenda ' + (i+1) + '" onchange="elegirPrendaProd(' + i + ', this.value)">'
+        +   '<option value="">Elige la prenda…</option>' + nombres.map(n => op(n, f.descripcion)).join('')
+        + '</select>'
+        + '<select class="e-talla" aria-label="Talla de la prenda ' + (i+1) + '"' + (f.descripcion ? '' : ' disabled')
+        +   ' onchange="elegirTallaProd(' + i + ', this.value)">'
+        +   '<option value="">' + (f.descripcion ? 'Talla…' : 'Elige antes la prenda') + '</option>'
+        +   tallas.map(t => op(t, f.talla)).join('')
+        + '</select>'
+        + '<input class="num e-cant" type="number" min="1" step="1" style="width:82px" value="' + (Number(f.cantidad) || 1) + '"'
+        +   ' aria-label="Piezas de la prenda ' + (i+1) + '" onchange="elegirCantidadProd(' + i + ', this.value)">'
+        + '<button type="button" class="icon-btn" onclick="quitarFilaProduccion(' + i + ')"'
+        +   ' title="Quitar esta prenda" aria-label="Quitar la prenda ' + (i+1) + '">' + icon('i-x') + '</button>'
+        + '</div>';
+    }).join('');
+
+    const btn = document.getElementById('prodAgregar');
+    if (btn) btn.disabled = lineasProduccion.length >= MAX_LINEAS_PROD;
+    const nota = document.getElementById('prodPiezasNota');
+    if (nota) {
+      const listas = lineasProduccion.filter(f => f.descripcion && f.talla);
+      const piezas = listas.reduce((n, f) => n + (Number(f.cantidad) || 0), 0);
+      nota.textContent = '· ' + listas.length + ' de ' + MAX_LINEAS_PROD
+        + (piezas ? ' · ' + piezas + (piezas === 1 ? ' pieza' : ' piezas') : '');
+    }
+  }
+  function articulosDeLaOrden() {
+    const out = [];
+    lineasProduccion.forEach(f => {
+      if (!f.descripcion || !f.talla) return;
+      const et = (db.etiquetas || []).find(x => x.descripcion === f.descripcion && String(x.talla) === String(f.talla));
+      if (!et) return;
+      const ya = out.find(a => a.codigo === et.codigo);
+      if (ya) ya.cantidad += (Number(f.cantidad) || 1);
+      else out.push({ codigo: et.codigo, nombre: et.descripcion, talla: et.talla, cantidad: Number(f.cantidad) || 1 });
+    });
+    return out;
+  }
+
+  /* --- entrada al inventario al terminar la orden --- */
+  /** Suma al catálogo lo confeccionado. Igual que en ventas, la marca "sumada"
+      evita que una orden entre dos veces al inventario. */
+  function sumarAlInventario(orden) {
+    if (orden.sumada || !(orden.articulos || []).length) return 0;
+    let piezas = 0;
+    orden.articulos.forEach(a => {
+      const inv = (db.etiquetas || []).find(x => x.codigo === a.codigo);
+      if (!inv) return;
+      const antes = Number(inv.cantidad) || 0;
+      inv.cantidad = antes + (Number(a.cantidad) || 0);
+      piezas += inv.cantidad - antes;
+      anotarMovimiento('etiquetas', inv, antes, inv.cantidad,
+        'Producción terminada — orden ' + (orden.folio || ''));
+      subir('etiquetas', inv);
+    });
+    orden.sumada = true;
+    return piezas;
+  }
+  /** Deshace la entrada si la orden deja de estar terminada (se marcó por
+      error, o hay que rehacer piezas). Sin esto el inventario quedaría alto
+      para siempre y la orden no volvería a sumar al terminarse de verdad. */
+  function quitarDelInventario(orden) {
+    if (!orden.sumada || !(orden.articulos || []).length) return 0;
+    let piezas = 0;
+    orden.articulos.forEach(a => {
+      const inv = (db.etiquetas || []).find(x => x.codigo === a.codigo);
+      if (!inv) return;
+      const antes = Number(inv.cantidad) || 0;
+      inv.cantidad = Math.max(0, antes - (Number(a.cantidad) || 0));
+      piezas += antes - inv.cantidad;
+      anotarMovimiento('etiquetas', inv, antes, inv.cantidad,
+        'Se deshizo el cierre de la orden ' + (orden.folio || ''));
+      subir('etiquetas', inv);
+    });
+    orden.sumada = false;
+    return piezas;
+  }
+
+  /* --- formulario --- */
+  function salirDeEdicionProduccion() {
+    produccionEditando = null;
+    document.getElementById('prodFormTitulo').textContent = 'Nueva orden de producción';
+    document.getElementById('prodFormNota').textContent = '';
+    document.getElementById('prodGuardarBtn').innerHTML = icon('i-check') + ' Guardar orden';
+    clearIds(['prodFolio','prodNotas']);
+    document.getElementById('prodFecha').value = '';
+    document.getElementById('prodEntrega').value = '';
+    document.getElementById('prodEscuela').value = '';
+    document.getElementById('prodEstatus').value = 'Pendiente';
+    lineasProduccion = [];
+    renderLineasProduccion();
+  }
+  function editarOrden(id) {
+    const o = (db.produccion || []).find(x => x.id === id);
+    if (!o) return;
+    if (!puedeEditarOrden(o)) { toast('Solo quien registró esta orden o la dueña pueden corregirla'); return; }
+    setPage('produccion');
+    toggleForm('Produccion', true);
+    produccionEditando = id;
+    document.getElementById('prodFolio').value = o.folio || '';
+    document.getElementById('prodFecha').value = /^\d{4}-\d{2}-\d{2}$/.test(o.fecha) ? o.fecha : '';
+    document.getElementById('prodEntrega').value = /^\d{4}-\d{2}-\d{2}$/.test(o.entrega) ? o.entrega : '';
+    populateEscuelasEn('prodEscuela');
+    seleccionarConservando('prodEscuela', o.escuela || '', o.escuela ? nombreEscuela(o.escuela) : null);
+    seleccionarConservando('prodEstatus', o.estatus || 'Pendiente');
+    document.getElementById('prodNotas').value = o.notas || '';
+    lineasProduccion = (o.articulos || []).map(a => ({
+      descripcion: a.nombre, talla: a.talla, cantidad: Number(a.cantidad) || 1
+    }));
+    renderLineasProduccion();
+    document.getElementById('prodFormTitulo').textContent = 'Corregir orden';
+    document.getElementById('prodFormNota').textContent = 'Orden ' + (o.folio || 'sin folio');
+    document.getElementById('prodGuardarBtn').innerHTML = icon('i-check') + ' Guardar cambios';
+  }
+  function guardarProduccion() {
+    const articulos = articulosDeLaOrden();
+    if (!articulos.length) { toast('Elige al menos una prenda con su talla'); return; }
+
+    const original = produccionEditando ? (db.produccion || []).find(x => x.id === produccionEditando) : null;
+    if (produccionEditando && !original) { toast('Esa orden ya no existe'); salirDeEdicionProduccion(); return; }
+    if (original && !puedeEditarOrden(original)) {
+      toast('Solo quien registró esta orden o la dueña pueden corregirla');
+      toggleForm('Produccion', false); return;
+    }
+
+    let folio = val('prodFolio') || siguienteFolioProduccion();
+    const repetido = (db.produccion || []).some(o =>
+      String(o.folio || '').trim().toLowerCase() === folio.trim().toLowerCase()
+      && (!original || o.id !== original.id));
+    if (repetido) {
+      const libre = siguienteFolioProduccion();
+      if (!confirm('Ya existe una orden con el folio ' + folio + '.\n\n¿Guardarla como ' + libre + '?')) {
+        document.getElementById('prodFolio').focus(); return;
+      }
+      folio = libre;
+    }
+
+    const orden = {
+      id: original ? original.id : uid(),
+      folio,
+      fecha: val('prodFecha') || iso(new Date()),
+      entrega: val('prodEntrega'),
+      escuela: val('prodEscuela'),
+      estatus: val('prodEstatus') || 'Pendiente',
+      notas: val('prodNotas'),
+      registroDe: original ? original.registroDe : quienSoy(),
+      articulos,
+      sumada: original ? Boolean(original.sumada) : false
+    };
+
+    let aviso = '';
+    if (original) {
+      /* Como en ventas: se deshace la entrada hecha con los datos viejos y se
+         vuelve a aplicar con los nuevos, para que el inventario refleje la
+         orden corregida y no una mezcla de las dos versiones. */
+      quitarDelInventario(original);
+      orden.sumada = false;
+      Object.assign(original, orden);
+      if (original.estatus === 'Terminada') {
+        const p = sumarAlInventario(original);
+        if (p) aviso = ' · ' + p + (p === 1 ? ' pieza entró' : ' piezas entraron') + ' al inventario';
+      }
+      subir('produccion', original);
+    } else {
+      db.produccion.push(orden);
+      if (orden.estatus === 'Terminada') {
+        const p = sumarAlInventario(orden);
+        if (p) aviso = ' · ' + p + (p === 1 ? ' pieza entró' : ' piezas entraron') + ' al inventario';
+      }
+      subir('produccion', orden);
+    }
+
+    const eraCorreccion = Boolean(original);
+    const guardada = eraCorreccion ? original : orden;
+    toggleForm('Produccion', false);
+    renderAll();
+    toast('Orden ' + guardada.folio + (eraCorreccion ? ' corregida · ' : ' guardada · ')
+      + piezasDeOrden(guardada) + ' piezas' + aviso);
+  }
+  function cambiarEstatusOrden(id, estatus) {
+    const o = (db.produccion || []).find(x => x.id === id);
+    if (!o) return;
+    if (!puedeEditarOrden(o)) { toast('Solo quien registró esta orden o la dueña pueden cambiarla'); renderProduccion(); return; }
+    o.estatus = estatus;
+    let aviso = 'Orden actualizada';
+    if (estatus === 'Terminada') {
+      const p = sumarAlInventario(o);
+      if (p) aviso = p + (p === 1 ? ' pieza entró' : ' piezas entraron') + ' al inventario';
+    } else {
+      const p = quitarDelInventario(o);
+      if (p) aviso = p + (p === 1 ? ' pieza salió' : ' piezas salieron') + ' del inventario';
+    }
+    subir('produccion', o);
+    renderAll();
+    toast(aviso);
+  }
+
+  /* --- tabla --- */
+  function ordenesFiltradas() {
+    const q = (document.getElementById('buscarProduccion').value || '').trim().toLowerCase();
+    const est = document.getElementById('filtroEstatusProd').value;
+    return (db.produccion || []).filter(o => {
+      if (est && o.estatus !== est) return false;
+      if (!q) return true;
+      const texto = [o.folio, nombreEscuela(o.escuela), o.notas, o.registroDe]
+        .concat((o.articulos || []).map(a => a.nombre + ' ' + a.talla)).join(' ');
+      return texto.toLowerCase().includes(q);
+    });
+  }
+  function resumenArticulos(o) {
+    const arts = o.articulos || [];
+    if (!arts.length) return '<span class="hint">—</span>';
+    const primero = arts[0].nombre + (arts[0].talla ? ' · talla ' + arts[0].talla : '') + ' ×' + arts[0].cantidad;
+    return esc(primero) + (arts.length > 1
+      ? ' <span class="hint">y ' + (arts.length - 1) + ' más</span>' : '');
+  }
+  function renderProduccion() {
+    const cuerpo = document.getElementById('tablaProduccion');
+    if (!cuerpo) return;
+    const rows = ordenesFiltradas();
+    const todas = db.produccion || [];
+    const piezas = rows.reduce((n, o) => n + piezasDeOrden(o), 0);
+    document.getElementById('prodResumen').textContent =
+      rows.length + ' de ' + todas.length + ' · ' + piezas + (piezas === 1 ? ' pieza' : ' piezas');
+
+    const hoy = iso(new Date());
+    const abiertas = todas.filter(o => o.estatus !== 'Terminada');
+    const tarde = abiertas.filter(o => o.entrega && o.entrega < hoy);
+    document.getElementById('prodKpis').innerHTML = [
+      ['i-tijeras','', 'Órdenes abiertas', abiertas.length, todas.length + ' en total'],
+      ['i-box','', 'Piezas por confeccionar', abiertas.reduce((n,o) => n + piezasDeOrden(o), 0), 'De las órdenes abiertas'],
+      ['i-alert', tarde.length ? 'bad' : 'good', 'Pasadas de fecha', tarde.length, 'Con entrega vencida'],
+      ['i-check','good', 'Terminadas', todas.filter(o => o.estatus === 'Terminada').length, 'Ya entraron al inventario']
+    ].map(k => '<div class="kpi"><div class="kpi-ico ' + k[1] + '">' + icon(k[0],'lg') + '</div><div style="min-width:0">'
+      + '<div class="kpi-label">' + k[2] + '</div><div class="kpi-value">' + k[3] + '</div><div class="kpi-foot">' + k[4] + '</div></div></div>').join('');
+
+    cuerpo.innerHTML = rows.slice().reverse().map(o => {
+      const editable = puedeEditarOrden(o);
+      const vencida = o.entrega && o.entrega < hoy && o.estatus !== 'Terminada';
+      return '<tr><td style="white-space:nowrap"><b>' + esc(o.folio) + '</b></td>'
+        + '<td>' + dateFmt(o.fecha) + '</td>'
+        + '<td>' + (o.entrega
+            ? (vencida ? '<span class="badge bad">' + icon('i-alert') + dateFmt(o.entrega) + '</span>' : dateFmt(o.entrega))
+            : '—') + '</td>'
+        + '<td>' + (esc(nombreEscuela(o.escuela)) || '—') + '</td>'
+        + '<td>' + resumenArticulos(o) + '</td>'
+        + '<td class="num">' + piezasDeOrden(o) + '</td>'
+        + '<td>' + (esc(o.registroDe) || '—') + '</td>'
+        + '<td>' + (editable
+            ? '<select onchange="cambiarEstatusOrden(\'' + o.id + '\', this.value)" aria-label="Estatus de la orden ' + esc(o.folio) + '">'
+              + ESTATUS_PROD.map(e => '<option' + (e === o.estatus ? ' selected' : '') + '>' + e + '</option>').join('') + '</select>'
+            : '<span class="badge neutral">' + esc(o.estatus) + '</span>') + '</td>'
+        + '<td style="white-space:nowrap">'
+        + (editable ? '<button class="btn small" onclick="editarOrden(\'' + o.id + '\')" title="Corregir esta orden" aria-label="Corregir la orden ' + esc(o.folio) + '">' + icon('i-edit') + '</button> ' : '')
+        + (esDueno() ? '<button class="btn small danger" onclick="borrar(\'produccion\',\'' + o.id + '\')" aria-label="Borrar orden">' + icon('i-trash') + '</button>' : '')
+        + '</td></tr>';
+    }).join('') || emptyRow(9, 'Ninguna orden coincide con los filtros', 'i-tijeras');
+  }
+  function exportarProduccion() {
+    const rows = ordenesFiltradas();
+    if (!rows.length) { toast('No hay órdenes que exportar con esos filtros'); return; }
+    const filas = [];
+    rows.forEach(o => (o.articulos || []).forEach(a => filas.push([
+      o.folio, o.fecha, o.entrega, nombreEscuela(o.escuela), a.nombre, a.talla, a.cantidad,
+      o.estatus, o.registroDe, o.notas
+    ])));
+    descargarCSV('produccion-gabidom-' + iso(new Date()) + '.csv',
+      ['Folio','Ordenada','Entrega','Escuela','Prenda','Talla','Piezas','Estatus','Registró','Notas'], filas);
+    toast(rows.length + (rows.length === 1 ? ' orden descargada' : ' órdenes descargadas'));
   }
 
   /* ================= Por revisar ================= */
@@ -4110,6 +4511,9 @@ const Nube = (() => {
     const item = lista.find(x => x.id === id);
     const nombre = item ? (item.folio || item.nombre || item.variante || item.color || 'registro') : 'registro';
     if (!confirm('¿Borrar "' + nombre + '"? Esta acción no se puede deshacer.')) return;
+    /* Borrar una orden ya terminada dejaría el inventario alto para siempre:
+       lo que sumó tiene que salir antes de que la orden desaparezca. */
+    if (tipo === 'produccion' && item) quitarDelInventario(item);
     // La foto se va con la venta: si no, queda ocupando espacio para siempre.
     if (tipo === 'ventas' && item && item.foto && !String(item.foto).startsWith('data:')) {
       Nube.borrarFoto(item.foto).catch(() => { /* se reintenta al limpiar huérfanas */ });

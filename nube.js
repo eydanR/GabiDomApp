@@ -107,6 +107,15 @@ const Nube = (() => {
     escuelas: {
       campos: { id: 'id', n: 'clave', nombre: 'nombre', nivel: 'nivel', turno: 'turno' },
       numericos: [], fechas: []
+    },
+    produccion: {
+      campos: {
+        id: 'id', folio: 'folio', fecha: 'fecha', entrega: 'entrega', escuela: 'escuela',
+        articulos: 'articulos', estatus: 'estatus', notas: 'notas',
+        registroDe: 'registro_de', sumada: 'sumada'
+      },
+      json: ['articulos'],
+      numericos: [], fechas: ['fecha', 'entrega']
     }
   };
 
