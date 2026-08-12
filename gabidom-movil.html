@@ -553,6 +553,13 @@
         <!-- ============ INICIO ============ -->
         <section class="page active" id="page-inicio">
           <div class="kpis" id="kpis"></div>
+          <div class="card">
+            <div class="card-head">
+              <div class="card-title"><svg class="ico"><use href="#i-chart"/></svg> Últimos 14 días</div>
+              <span class="card-note" id="inicioChartNota"></span>
+            </div>
+            <div class="card-body"><div id="inicioChart"></div></div>
+          </div>
           <div class="two-col">
             <div class="card">
               <div class="card-head">
@@ -2593,6 +2600,8 @@ const Nube = (() => {
       '<tr><td>' + esc(i.color) + '</td><td>' + esc(i.medida) + '</td>'
       + '<td>' + stockCell(i.cantidad, i.stockMinimo) + '</td></tr>'
     ).join('') || emptyRow(3, 'Todos los cierres están sobre el mínimo', 'i-check');
+
+    renderChartInicio();
   }
 
   /* ================= Mostrador: consulta pieza por pieza =================
@@ -3485,6 +3494,71 @@ const Nube = (() => {
     });
     return Array.from(map, ([k, total]) => ({ k, total })).sort((a,b) => a.k.localeCompare(b.k));
   }
+  /* Gráfica de Inicio: los últimos 14 días de un vistazo. A la dueña le
+     muestra dinero; a quien está en el mostrador, número de ventas, igual
+     que sus tarjetas de arriba — ahí no se enseñan totales del negocio. */
+  function renderChartInicio() {
+    const mount = document.getElementById('inicioChart');
+    if (!mount) return;
+    const DIAS = 14;
+    const conDinero = esDueno();
+
+    const hoy = new Date(); hoy.setHours(0,0,0,0);
+    const data = [];
+    for (let i = DIAS - 1; i >= 0; i--) {
+      const d = new Date(hoy); d.setDate(d.getDate() - i);
+      const clave = iso(d);
+      const delDia = db.ventas.filter(v => v.fecha === clave);
+      data.push({
+        clave,
+        etiqueta: d.getDate() + ' ' + MESES_CORTO[d.getMonth()],
+        total: conDinero ? delDia.reduce((s,v) => s + Number(v.montoTotal || 0), 0) : delDia.length
+      });
+    }
+
+    const suma = data.reduce((s,d) => s + d.total, 0);
+    document.getElementById('inicioChartNota').textContent = conDinero
+      ? money(suma) + ' en 14 días'
+      : suma + (suma === 1 ? ' venta en 14 días' : ' ventas en 14 días');
+
+    if (!suma) {
+      mount.innerHTML = '<div class="empty">' + icon('i-chart','lg') + '<p>Todavía no hay ventas en estos días</p></div>';
+      return;
+    }
+
+    const W = 760, H = 200, padL = 62, padR = 14, padT = 18, padB = 34;
+    const plotW = W - padL - padR, plotH = H - padT - padB;
+    const max = niceMax(Math.max.apply(null, data.map(d => d.total)));
+    const band = plotW / data.length;
+    const bw = Math.min(26, Math.max(6, band - 10));
+    const maxIdx = data.reduce((bi, d, i) => d.total > data[bi].total ? i : bi, 0);
+    const y = v => padT + plotH - (v / max) * plotH;
+    const fmt = v => conDinero ? moneyShort(v) : String(Math.round(v));
+    const fmtLargo = v => conDinero ? money(v) : (v + (v === 1 ? ' venta' : ' ventas'));
+
+    let s = '<div class="viz-scroll"><svg class="viz" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="'
+      + (conDinero ? 'Ingresos por día' : 'Ventas por día') + ' de los últimos 14 días">';
+    [0, 0.5, 1].forEach(f => {
+      const gy = y(max * f);
+      s += '<line class="' + (f === 0 ? 'axis-line' : 'grid-line') + '" x1="' + padL + '" y1="' + gy + '" x2="' + (W - padR) + '" y2="' + gy + '"/>';
+      s += '<text class="tick" x="' + (padL - 9) + '" y="' + (gy + 3.5) + '" text-anchor="end">' + fmt(max * f) + '</text>';
+    });
+    data.forEach((d, i) => {
+      const bx = padL + band * i + (band - bw) / 2;
+      const by = y(d.total);
+      const bh = plotH - (by - padT);
+      s += '<rect class="hit" x="' + (padL + band * i) + '" y="' + padT + '" width="' + band + '" height="' + plotH + '"'
+        + ' tabindex="0" role="button" aria-label="' + esc(d.etiqueta + ': ' + fmtLargo(d.total)) + '"'
+        + ' data-t="' + esc(d.etiqueta) + '" data-v="' + esc(fmtLargo(d.total)) + '"/>';
+      if (bh > 0) s += '<path class="bar" d="' + barPath(bx, by, bw, bh, 4) + '" fill="var(--series-1)"/>';
+      if (i === maxIdx && bh > 14) s += '<text class="cap-label" x="' + (bx + bw/2) + '" y="' + (by - 7) + '" text-anchor="middle">' + fmt(d.total) + '</text>';
+      s += '<text class="tick" x="' + (padL + band * i + band/2) + '" y="' + (H - padB + 16) + '" text-anchor="middle">' + esc(d.etiqueta) + '</text>';
+    });
+    s += '</svg></div>';
+    mount.innerHTML = s;
+    bindHits(mount);
+  }
+
   function renderChartMes(rows) {
     const data = datosPorMes(rows);
     const mount = document.getElementById('chartMes');
