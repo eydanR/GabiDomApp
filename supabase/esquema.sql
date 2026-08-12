@@ -189,7 +189,10 @@ begin
   end loop;
 end $$;
 
--- Empleados y asistencia: solo la dueña.
+-- Empleados y asistencia: cambiarlos, solo la dueña.
+-- (Leerlos también queda restringido a la dueña; eso lo hace el PASO 8, más
+--  abajo, para que quien ya corrió este archivo antes solo tenga que correrlo
+--  otra vez y no rehacer nada.)
 do $$
 declare t text;
 begin
@@ -448,3 +451,24 @@ create policy ventas_editar on public.ventas
   for update to authenticated
   using (public.es_dueno() or registro_de = public.mi_nombre())
   with check (public.es_dueno() or registro_de = public.mi_nombre());
+
+-- ============================================================================
+-- PASO 8 — que los salarios no se puedan consultar desde el mostrador
+--
+-- La pantalla de Empleados ya estaba oculta para quien no es dueña, pero la
+-- regla de lectura de empleados y asistencia seguía abierta a cualquiera con
+-- sesión: bastaba con pedir la tabla por fuera de la app para ver los sueldos.
+-- Aquí la lectura queda restringida igual que el resto de esas dos tablas.
+--
+-- Ojo: los movimientos de inventario siguen siendo visibles para todas —
+-- ahí no hay sueldos, y sirven para saber quién ajustó qué.
+-- ============================================================================
+
+do $$
+declare t text;
+begin
+  foreach t in array array['empleados','asistencia'] loop
+    execute format('drop policy if exists %I_leer on public.%I', t, t);
+    execute format('create policy %I_leer on public.%I for select to authenticated using (public.es_dueno())', t, t);
+  end loop;
+end $$;
