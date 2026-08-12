@@ -2228,6 +2228,11 @@ const Nube = (() => {
     if (!sesion || sesion.rol === 'dueno') return;
     const tenia = (db.empleados || []).length || Object.keys(db.asistencia || {}).length;
     if (!tenia) return;
+    /* En una tableta compartida, la dueña pudo dejar cambios sin subir antes de
+       pasarla al mostrador. Borrar aquí y ahora los perdería, porque la cola se
+       sube con la sesión de quien esté dentro. Con algo pendiente se deja para
+       el siguiente ingreso, cuando ya esté todo arriba. */
+    if (Nube.pendientes() > 0) return;
     db.empleados = [];
     db.asistencia = {};
     save();
@@ -2806,6 +2811,10 @@ const Nube = (() => {
     const suma = articulosVenta.reduce((n, a) => n + a.precio * a.cantidad, 0);
     const campo = document.getElementById('ventaMontoTotal');
     if (suma && campo && !campo.value) campo.value = suma;
+    /* Poner el valor desde código no dispara "oninput", así que el restante se
+       quedaba en 0 y el estatus en Pendiente después de escanear. Hay que
+       recalcular a mano o la venta se guarda descuadrada. */
+    recalcularVenta();
   }
 
   async function abrirEscaner() {
@@ -3598,7 +3607,11 @@ const Nube = (() => {
 
     const W = 760, H = 200, padL = 62, padR = 14, padT = 18, padB = 34;
     const plotW = W - padL - padR, plotH = H - padT - padB;
-    const max = niceMax(Math.max.apply(null, data.map(d => d.total)));
+    const crudo = Math.max.apply(null, data.map(d => d.total));
+    /* Contando ventas no hay medias ventas: el tope se redondea a par para que
+       la línea de en medio caiga en un número entero y la etiqueta no mienta
+       (con tope 3, la de en medio es 1.5 y se leía "3"). */
+    const max = conDinero ? niceMax(crudo) : Math.max(2, Math.ceil(crudo / 2) * 2);
     const band = plotW / data.length;
     const bw = Math.min(26, Math.max(6, band - 10));
     const maxIdx = data.reduce((bi, d, i) => d.total > data[bi].total ? i : bi, 0);
@@ -3800,7 +3813,12 @@ const Nube = (() => {
      un CSV a secas. Se exporta lo que se está viendo, con sus filtros. */
   function descargarCSV(nombre, encabezados, filas) {
     const escapa = v => {
-      const s = (v === null || v === undefined) ? '' : String(v);
+      let s = (v === null || v === undefined) ? '' : String(v);
+      /* Excel trata como fórmula todo lo que empieza por = + - @, así que un
+         teléfono "+52 55…" o una nota que empieza con guion salían como error
+         en la celda. Se antepone un apóstrofo, que Excel usa justamente para
+         decir "esto es texto" y no se muestra en la celda. */
+      if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
       return /[";\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
     };
     const cuerpo = [encabezados].concat(filas).map(f => f.map(escapa).join(';')).join('\r\n');
@@ -3905,40 +3923,69 @@ const Nube = (() => {
     const grupos = [];
     const cabe = (...partes) => partes.filter(Boolean).join(' ').toLowerCase().includes(q);
     const corta = (lista) => lista.slice(0, 6);
+    const pon = (id, valor) => { const el = document.getElementById(id); if (el) el.value = valor; };
+    const desmarca = (id) => { const el = document.getElementById(id); if (el) el.checked = false; };
 
     const ventas = corta(db.ventas.filter(v => cabe(v.folio, v.cliente, nombreEscuela(v.escuela))));
     if (ventas.length) grupos.push({ titulo: 'Ventas', ico: 'i-cart', items: ventas.map(v => ({
       texto: 'Nota ' + (v.folio || 'sin folio'),
       sub: [v.cliente, nombreEscuela(v.escuela), dateFmt(v.fecha), moneyOr(v.montoTotal)].filter(Boolean).join(' · '),
-      ir: () => { setPage('ventas'); const b = document.getElementById('buscarVenta'); b.value = v.folio || v.cliente || ''; renderVentas(); }
+      /* Se limpian los otros filtros de la pantalla: si quedaba puesto otro mes
+         o un estatus, la venta que se acaba de elegir no aparecería y el
+         buscador dejaría a la persona mirando una tabla vacía. */
+      ir: () => {
+        setPage('ventas');
+        ['filtroMesVenta','filtroEstatusVenta','filtroPagoVenta'].forEach(id => pon(id, ''));
+        pon('buscarVenta', v.folio || v.cliente || '');
+        renderVentas();
+      }
     })) });
 
     const prendas = corta(db.prendas.filter(p => cabe(p.categoria, p.variante, p.talla)));
     if (prendas.length) grupos.push({ titulo: 'Prendas', ico: 'i-shirt', items: prendas.map(p => ({
       texto: p.variante + ' · talla ' + p.talla,
       sub: p.categoria + ' · ' + p.cantidad + ' en existencia',
-      ir: () => { setPage('prendas'); const b = document.getElementById('buscarPrenda'); b.value = p.variante; renderPrendas(); }
+      // Prendas siempre filtra por categoría, así que hay que mover la pestaña.
+      ir: () => {
+        setPage('prendas');
+        prendaCategoria = p.categoria;
+        desmarca('soloAlertaPrendas');
+        pon('buscarPrenda', p.variante);
+        renderPrendas();
+      }
     })) });
 
     const insumos = corta(db.insumos.filter(i => cabe(i.insumo, i.color, i.talla, i.medida)));
     if (insumos.length) grupos.push({ titulo: 'Cierres', ico: 'i-zip', items: insumos.map(i => ({
       texto: i.color + (i.medida ? ' · ' + i.medida : ''),
       sub: (i.insumo || 'Cierre') + ' · ' + i.cantidad + ' en existencia',
-      ir: () => { setPage('insumos'); const b = document.getElementById('buscarInsumo'); b.value = i.color; renderInsumos(); }
+      ir: () => {
+        setPage('insumos');
+        desmarca('soloAlertaInsumos');
+        pon('buscarInsumo', i.color);
+        renderInsumos();
+      }
     })) });
 
+    /* Los artículos etiquetados no tienen pantalla propia — el Mostrador lista
+       prendas y cierres, no el catálogo de códigos —, así que llevar ahí solo
+       terminaba en "nada coincide". El resultado ya trae lo que se venía a
+       consultar, y al tocarlo se repite completo por si se quiere leer con
+       calma o dictar el código. */
     const arts = corta((db.etiquetas || []).filter(e => cabe(e.codigo, e.descripcion, e.sku, e.talla)));
     if (arts.length) grupos.push({ titulo: 'Artículos con código', ico: 'i-barras', items: arts.map(e => ({
       texto: e.descripcion + (e.talla ? ' · talla ' + e.talla : ''),
       sub: e.codigo + (e.sku ? ' · ' + e.sku : '') + ' · ' + (Number(e.cantidad) || 0) + ' en existencia',
-      ir: () => { setPage('mostrador'); const b = document.getElementById('mostradorBuscar'); b.value = e.descripcion; renderMostrador(); }
+      ir: () => toast(e.descripcion + (e.talla ? ' talla ' + e.talla : '') + ' · código ' + e.codigo
+        + ' · ' + (Number(e.cantidad) || 0) + ' en existencia'
+        + (Number(e.precio) ? ' · ' + money(e.precio) : ''))
     })) });
 
     if (esDueno()) {
       const gente = corta(clientesUnicos().filter(c => cabe(c.nombre, c.tipo, c.tel)));
       if (gente.length) grupos.push({ titulo: 'Clientes y escuelas', ico: 'i-users', items: gente.map(c => ({
         texto: c.nombre, sub: c.tipo + (c.tel ? ' · ' + c.tel : ''),
-        ir: () => { setPage('clientes'); const b = document.getElementById('buscarCliente'); b.value = c.nombre; renderClientes(); }
+        ir: () => { setPage('clientes'); pon('buscarCliente', c.nombre); renderClientes(); }
       })) });
 
       const emps = corta(db.empleados.filter(e => cabe(e.nombre, e.puesto, e.turno)));
