@@ -108,6 +108,13 @@ const Nube = (() => {
       campos: { id: 'id', n: 'clave', nombre: 'nombre', nivel: 'nivel', turno: 'turno' },
       numericos: [], fechas: []
     },
+    cobros: {
+      campos: {
+        id: 'id', ventaId: 'venta_id', fecha: 'fecha', monto: 'monto',
+        formaPago: 'forma_pago', tipo: 'tipo', nota: 'nota', registroDe: 'registro_de'
+      },
+      numericos: ['monto'], fechas: ['fecha']
+    },
     produccion: {
       campos: {
         id: 'id', folio: 'folio', fecha: 'fecha', entrega: 'entrega', escuela: 'escuela',
