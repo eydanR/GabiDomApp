@@ -536,3 +536,57 @@ create index if not exists produccion_entrega_idx on public.produccion (entrega)
 alter table public.movimientos drop constraint if exists movimientos_tabla_check;
 alter table public.movimientos add constraint movimientos_tabla_check
   check (tabla in ('prendas','insumos','etiquetas'));
+
+-- ============================================================================
+-- PASO 11 — cobros por día: apartados, abonos y ajustes
+--
+-- Hasta aquí la venta solo recordaba cuánto faltaba, no CUÁNDO se pagó. Con eso
+-- no se puede cuadrar la caja: un abono de una venta de hace un mes entra al
+-- cajón hoy, pero en los reportes no aparecía por ningún lado.
+--
+-- Esta tabla anota cada entrada de dinero posterior a la venta, con su propia
+-- fecha. Lo que se cobró el día mismo de la venta sigue viviendo en la venta
+-- (efectivo y monto_tarjeta), así que nada de lo ya capturado se toca ni se
+-- duplica.
+--
+--   Anticipo → lo que dejó el cliente al apartar, si se capturó después
+--   Abono    → un pago a cuenta posterior
+--   Ajuste   → corrección de un error de captura; NO es dinero que entró al
+--              cajón, solo endereza el saldo. Puede ir en negativo.
+--
+-- Quién puede qué: cualquiera que atienda puede cobrar (para eso está el
+-- mostrador), pero solo la dueña puede corregir, borrar o registrar un ajuste.
+-- ============================================================================
+
+create table if not exists public.cobros (
+  id          uuid primary key default gen_random_uuid(),
+  venta_id    uuid not null references public.ventas(id) on delete cascade,
+  fecha       date not null default current_date,
+  monto       numeric not null,
+  forma_pago  text,
+  tipo        text not null default 'Abono' check (tipo in ('Anticipo','Abono','Ajuste')),
+  nota        text,
+  registro_de text,
+  momento     timestamptz not null default now()
+);
+
+alter table public.cobros enable row level security;
+
+drop policy if exists cobros_leer on public.cobros;
+create policy cobros_leer on public.cobros for select to authenticated using (true);
+
+-- Cobrar sí puede cualquiera; ajustar la contabilidad, solo la dueña.
+drop policy if exists cobros_crear on public.cobros;
+create policy cobros_crear on public.cobros
+  for insert to authenticated
+  with check (tipo <> 'Ajuste' or public.es_dueno());
+
+drop policy if exists cobros_dueno on public.cobros;
+create policy cobros_dueno on public.cobros
+  for update to authenticated using (public.es_dueno()) with check (public.es_dueno());
+
+drop policy if exists cobros_borrar on public.cobros;
+create policy cobros_borrar on public.cobros for delete to authenticated using (public.es_dueno());
+
+create index if not exists cobros_fecha_idx on public.cobros (fecha);
+create index if not exists cobros_venta_idx on public.cobros (venta_id);

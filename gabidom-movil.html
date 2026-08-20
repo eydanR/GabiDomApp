@@ -306,6 +306,13 @@
     .buscador-item .ico { color: var(--ink-3); flex: none; }
     .buscador-item .bi-txt { flex: 1; min-width: 0; }
     .buscador-item .bi-sub { display: block; font-size: 12px; color: var(--ink-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    /* Desglose del corte: se lee de un vistazo contra el dinero del cajón. */
+    .corte-forma { display: flex; justify-content: space-between; align-items: baseline; gap: 14px;
+                   padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 14.5px; }
+    .corte-forma b { font-variant-numeric: tabular-nums; font-weight: 700; }
+    .corte-forma.total { border-bottom: 0; border-top: 2px solid var(--line-2, var(--line)); margin-top: 4px;
+                         padding-top: 11px; font-weight: 750; }
+    .corte-forma.total b { font-size: 17px; }
     .glo { padding: 11px 12px; border-radius: 9px; }
     .glo + .glo { margin-top: 2px; }
     .glo.destacado { background: var(--accent-050, var(--surface-2)); box-shadow: inset 0 0 0 1.5px var(--accent-500); }
@@ -889,6 +896,44 @@
           </div>
         </section>
 
+        <!-- ============ CORTE DE CAJA ============ -->
+        <section class="page" id="page-corte">
+          <div class="card"><div class="card-body">
+            <p class="hint" style="margin:0"><b>Vendido</b> es lo que se facturó ese día. <b>Cobrado</b> es el dinero
+            que de verdad entró, venga de una venta de hoy o del abono de una nota vieja. Son cifras distintas a
+            propósito: la segunda es la que se compara contra el cajón.</p>
+          </div></div>
+          <div class="filters">
+            <button class="btn" onclick="moverCorte(-1)" aria-label="Día anterior">‹ Día anterior</button>
+            <input type="date" id="corteFecha" onchange="renderCorte()" style="max-width:180px">
+            <button class="btn" onclick="moverCorte(1)" aria-label="Día siguiente">Día siguiente ›</button>
+            <button class="btn" onclick="document.getElementById('corteFecha').value = iso(new Date()); renderCorte()">Hoy</button>
+          </div>
+          <div class="kpis" id="corteKpis"></div>
+          <div class="two-col">
+            <div class="card" style="margin:0">
+              <div class="card-head"><div class="card-title"><svg class="ico"><use href="#i-money"/></svg> Cómo entró el dinero</div></div>
+              <div class="card-body" id="corteFormas"></div>
+            </div>
+            <div class="card" style="margin:0">
+              <div class="card-head"><div class="card-title"><svg class="ico"><use href="#i-clock"/></svg> Notas que siguen debiendo</div></div>
+              <div class="card-body flush"><div class="t-scroll"><table>
+                <thead><tr><th>Folio</th><th>Cliente</th><th>Estatus</th><th class="num">Debe</th></tr></thead>
+                <tbody id="corteDeudas"></tbody>
+              </table></div></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-head"><div class="card-title">Movimientos del día</div><span class="card-note" id="corteResumen"></span>
+              <button class="btn small" onclick="exportarCorte()" title="Descargar el corte en Excel"><svg class="ico sm"><use href="#i-down"/></svg> Excel</button>
+            </div>
+            <div class="card-body flush"><div class="t-scroll"><table class="t-min">
+              <thead><tr><th>Folio</th><th>Cliente</th><th>Tipo</th><th>Concepto</th><th>Forma</th><th class="num">Monto</th><th>Registró</th></tr></thead>
+              <tbody id="tablaCorte"></tbody>
+            </table></div></div>
+          </div>
+        </section>
+
         <!-- ============ PRODUCCIÓN ============ -->
         <section class="page" id="page-produccion">
           <div class="card form" id="formProduccion">
@@ -1027,6 +1072,37 @@
       <button class="btn small" onclick="cerrarVisor(event, true)"><svg class="ico sm"><use href="#i-x"/></svg> Cerrar</button>
     </div>
     <img id="visorImg" alt="Foto de la nota">
+  </div>
+
+  <div class="buscador" id="cobroModal" onclick="if(event.target===this) cerrarCobro()">
+    <div class="buscador-caja" role="dialog" aria-label="Registrar un cobro">
+      <div class="buscador-top">
+        <svg class="ico"><use href="#i-money"/></svg>
+        <b style="flex:1; font-size:14.5px" id="cobroTitulo">Registrar cobro</b>
+        <button class="btn small" onclick="cerrarCobro()">Cerrar</button>
+      </div>
+      <div class="card-body">
+        <p class="hint" id="cobroResumen" style="margin-bottom:14px"></p>
+        <div class="fields">
+          <div class="field"><label for="cobroMonto" id="cobroMontoLabel">Cuánto entra ($)</label>
+            <input type="number" id="cobroMonto" min="0" step="1" oninput="pintarCobro()"></div>
+          <div class="field"><label for="cobroFecha">Día en que entró</label>
+            <input type="date" id="cobroFecha"></div>
+          <div class="field"><label for="cobroForma">Forma de pago</label>
+            <select id="cobroForma"></select></div>
+          <div class="field"><label for="cobroTipo">Tipo</label>
+            <select id="cobroTipo" onchange="pintarCobro()"></select></div>
+          <div class="field full"><label for="cobroNota">Nota</label>
+            <input id="cobroNota" placeholder="Opcional: quién pagó, referencia…"></div>
+        </div>
+        <p class="hint" id="cobroAviso" style="margin:12px 0 0"></p>
+        <div class="form-foot">
+          <button class="btn" onclick="cerrarCobro()">Cancelar</button>
+          <button class="btn primary" id="cobroGuardar" onclick="guardarCobro()"><svg class="ico sm"><use href="#i-check"/></svg> Registrar</button>
+        </div>
+        <div id="cobroHistorial"></div>
+      </div>
+    </div>
   </div>
 
   <div class="buscador" id="glosario" onclick="if(event.target===this) cerrarGlosario()">
@@ -1483,6 +1559,13 @@ const Nube = (() => {
     escuelas: {
       campos: { id: 'id', n: 'clave', nombre: 'nombre', nivel: 'nivel', turno: 'turno' },
       numericos: [], fechas: []
+    },
+    cobros: {
+      campos: {
+        id: 'id', ventaId: 'venta_id', fecha: 'fecha', monto: 'monto',
+        formaPago: 'forma_pago', tipo: 'tipo', nota: 'nota', registroDe: 'registro_de'
+      },
+      numericos: ['monto'], fechas: ['fecha']
     },
     produccion: {
       campos: {
@@ -1958,6 +2041,7 @@ const Nube = (() => {
       ['mostrador','Mostrador','i-box','Consulta el stock pieza por pieza','todos'],
       ['ventas','Ventas','i-cart','Registro de ventas y cobros','todos'],
       ['revisar','Por revisar','i-alert','Folios sin datos completos','dueno'],
+      ['corte','Corte de caja','i-money','Cuadra lo vendido con lo cobrado','dueno'],
       ['reportes','Reportes','i-chart','Ingresos y formas de pago','dueno'],
       ['clientes','Clientes','i-users','Escuelas y particulares','dueno']
     ]},
@@ -1980,7 +2064,11 @@ const Nube = (() => {
      la app propone al registrar una venta nueva. */
   const FOLIO_REINICIO = '2026-08-07';
   const MESES_CORTO = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-  const ESTATUS = ['Pagado y entregado','Pendiente'];
+  /* Apartado = el cliente dejó algo y la mercancía está separada, pero no se la
+     ha llevado. Las piezas salen del inventario al entregar, no al apartar, así
+     que un apartado no toca las existencias hasta que pasa a entregado. */
+  const ESTATUS = ['Pagado y entregado','Apartado','Pendiente'];
+  const TIPOS_COBRO = ['Abono','Anticipo','Ajuste'];
   const PAGOS = ['Efectivo','QR','Transferencia','Tarjeta bienestar','Mixto'];
   const NIVELES = ['Kinder', 'Primaria', 'Secundaria'];
   /* Las 117 ventas del Excel traen 'Tarjeta/Transferencia', que ya no se ofrece
@@ -2051,7 +2139,12 @@ const Nube = (() => {
     return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
   }
   function numOr(v) { return (v === '' || v === null || v === undefined) ? '' : Number(v); }
-  function money(n) { return '$' + Number(n || 0).toLocaleString('es-MX', { maximumFractionDigits: 0 }); }
+  /* El signo va antes del peso: un ajuste en negativo se leía "$-150", que en
+     una columna de dinero se confunde con un guion de campo vacío. */
+  function money(n) {
+    const v = Number(n || 0);
+    return (v < 0 ? '-$' : '$') + Math.abs(v).toLocaleString('es-MX', { maximumFractionDigits: 0 });
+  }
   /** Igual que money(), pero un campo vacío se muestra como guion en vez de "$0". */
   function moneyOr(n) { return (n === '' || n === null || n === undefined) ? '—' : money(n); }
   function moneyShort(n) {
@@ -2072,10 +2165,43 @@ const Nube = (() => {
   function icon(name, cls) { return '<svg class="ico ' + (cls || 'sm') + '"><use href="#' + name + '"/></svg>'; }
 
   /** Restante real por cobrar de una venta. */
+  /* Lo que la venta misma dice que faltaba el día que se capturó. No incluye
+     los abonos posteriores: esos viven en db.cobros, con su propia fecha. */
   function restanteDe(v) {
     if (v.restante !== '' && v.restante !== null && v.restante !== undefined) return Number(v.restante) || 0;
     const pagado = Number(v.montoTarjeta || 0) + Number(v.efectivo || 0);
     return Math.max(0, Number(v.montoTotal || 0) - pagado);
+  }
+  /* --------- Cobros: lo que entra después del día de la venta ---------
+     Una venta anota lo que se cobró el mismo día (efectivo y tarjeta). Todo lo
+     que llegue después —un abono, la liquidación de un apartado, o un ajuste
+     por un error de captura— se anota aparte, con la fecha en que de verdad
+     entró. Sin eso no se puede cuadrar la caja: el dinero de una venta vieja
+     que se cobra hoy no aparecía en ningún lado. */
+  function cobrosDe(idVenta) {
+    return (db.cobros || []).filter(c => c.ventaId === idVenta);
+  }
+  function abonadoA(v) {
+    return cobrosDe(v.id).reduce((s, c) => s + (Number(c.monto) || 0), 0);
+  }
+  /** Lo que el cliente todavía debe hoy, ya descontados sus abonos. */
+  function saldoDe(v) {
+    return Math.max(0, restanteDe(v) - abonadoA(v));
+  }
+  /** ¿Esta nota es dinero que de verdad falta por cobrar?
+      Tener saldo no basta: el Excel trae cuatro notas marcadas "Pagado y
+      entregado" a las que igual les quedó un restante apuntado. Sumarlas al
+      total por cobrar inflaría la cifra en $830 con dinero que, según la propia
+      nota, ya se cobró. Esas se marcan aparte con la etiqueta "Montos" para que
+      se revisen; no se convierten en deuda por nuestra cuenta. */
+  function debeDinero(v) {
+    if (saldoDe(v) <= 0) return false;
+    /* Si a la nota ya se le movió dinero desde la app, manda el libro de
+       cobros: alguien la trabajó a conciencia y su saldo es el bueno, aunque
+       el estatus diga "pagada" (pasa cuando un ajuste vuelve a abrir la
+       cuenta). Solo las notas que nadie ha tocado se rigen por el estatus. */
+    if (cobrosDe(v.id).length) return true;
+    return v.estatus !== 'Pagado y entregado';
   }
 
   /** Venta sin datos aprovechables (venía como renglón vacío en la hoja Ventas). */
@@ -2090,6 +2216,13 @@ const Nube = (() => {
     const pagado = Number(v.montoTarjeta || 0) + Number(v.efectivo || 0) + Number(v.restante || 0);
     return Math.abs(pagado - total) > 1;
   }
+  /** Dice "pagada" pero le quedó saldo apuntado. Cuatro notas del Excel están
+      así. No se toca el dato: se marca, y la dueña la cuadra con un cobro (si
+      el dinero sí entró y falta anotarlo) o con un ajuste (si fue error). */
+  function pagadaConSaldo(v) {
+    return v.estatus === 'Pagado y entregado' && !esIncompleta(v)
+      && saldoDe(v) > 0 && !debeDinero(v);
+  }
   function avisoVenta(v) {
     if (esIncompleta(v)) return ' <span class="badge neutral" title="Este folio venía sin fecha ni monto en el Excel">Incompleta</span>';
     if (inconsistente(v)) {
@@ -2097,10 +2230,16 @@ const Nube = (() => {
       return ' <span class="badge warn" title="Tarjeta + efectivo + restante = ' + money(pagado)
         + ', pero el total dice ' + money(v.montoTotal) + '. Revisa la captura.">' + icon('i-alert') + 'Montos</span>';
     }
+    if (pagadaConSaldo(v)) {
+      return ' <span class="badge warn" title="Está marcada como pagada, pero le quedan ' + money(saldoDe(v))
+        + ' apuntados. No se cuenta como deuda hasta que se aclare: cuádrala con un cobro o un ajuste.">'
+        + icon('i-alert') + 'Cuadrar</span>';
+    }
     return '';
   }
   function badgeEstatus(e) {
     if (e === 'Pagado y entregado') return '<span class="badge ok">' + icon('i-check') + 'Pagado</span>';
+    if (e === 'Apartado') return '<span class="badge info">' + icon('i-box') + 'Apartado</span>';
     if (e === 'Pendiente') return '<span class="badge bad">' + icon('i-clock') + 'Pendiente</span>';
     return '<span class="badge neutral">Sin estatus</span>';
   }
@@ -2178,7 +2317,7 @@ const Nube = (() => {
        catálogo de conjuntos crece. */
     (base.escuelas || []).forEach(e => { e.busca = buscaDeEscuela(e.n); });
     if (!base.asistencia || typeof base.asistencia !== 'object') base.asistencia = {};
-    ['ventas', 'revisar', 'prendas', 'insumos', 'clientes', 'empleados', 'produccion']
+    ['ventas', 'revisar', 'prendas', 'insumos', 'clientes', 'empleados', 'produccion', 'cobros']
       .forEach(k => { if (!Array.isArray(base[k])) base[k] = []; });
     return base;
   }
@@ -2193,6 +2332,7 @@ const Nube = (() => {
       folioSeq: 1,
       clientes: [],
       produccion: [],
+      cobros: [],
       ventas: s.ventas.map(v => ({
         /* La fecha se conserva vacía si el Excel no la traía: inventarla con "hoy"
            creaba un mes fantasma en la gráfica de ingresos. */
@@ -2393,7 +2533,7 @@ const Nube = (() => {
   /* Si la base va atrás de la app, se avisa qué parte del esquema falta en vez
      de dejar los datos atascados sin explicación. */
   const PASO_DE = { articulos: 5, descontada: 5, foto: 3, etiquetas: 5, movimientos: 5,
-                    escuela: 6, escuelas: 6, tipo_uniforme: 9, produccion: 10, sumada: 10, entrega: 10 };
+                    escuela: 6, escuelas: 6, tipo_uniforme: 9, produccion: 10, sumada: 10, entrega: 10, cobros: 11, venta_id: 11 };
   let avisadoEsquema = false;
   let pasoQueFalta = null;      // se muestra fijo en el indicador, no solo un instante
   Nube.alFaltarEsquema((tabla, columna) => {
@@ -2451,7 +2591,7 @@ const Nube = (() => {
          Sin esto, tener ventas en la nube pero no el inventario hacía
          desaparecer las prendas de la pantalla. */
       const faltantes = [];
-      ['ventas', 'prendas', 'insumos', 'revisar', 'clientes', 'empleados', 'etiquetas', 'escuelas', 'produccion'].forEach(t => {
+      ['ventas', 'prendas', 'insumos', 'revisar', 'clientes', 'empleados', 'etiquetas', 'escuelas', 'produccion', 'cobros'].forEach(t => {
         if (!remoto[t] || !remoto[t].length) {
           if ((db[t] || []).length) faltantes.push(t);
           return;
@@ -2511,7 +2651,7 @@ const Nube = (() => {
     ventas: 'una venta', prendas: 'el inventario de prendas', insumos: 'el inventario de cierres',
     etiquetas: 'un artículo etiquetado', clientes: 'un cliente', escuelas: 'una escuela',
     empleados: 'un empleado', asistencia: 'la asistencia', revisar: 'un folio por revisar',
-    produccion: 'una orden de producción'
+    produccion: 'una orden de producción', cobros: 'un cobro'
   };
   function textoDeRechazo(r) {
     const donde = NOMBRE_TABLA[r.tabla] || 'algunos datos';
@@ -2590,9 +2730,13 @@ const Nube = (() => {
   async function ofrecerImportacion(tablas) {
     const NOMBRES = { ventas: 'ventas', prendas: 'prendas', insumos: 'cierres',
                       etiquetas: 'artículos con código de barras', escuelas: 'escuelas',
-                      revisar: 'folios por revisar', clientes: 'clientes', empleados: 'empleados' };
-    const lista = (tablas && tablas.length ? tablas : ['prendas','insumos','etiquetas','escuelas','ventas','revisar','clientes','empleados'])
-      .filter(t => (db[t] || []).length);
+                      revisar: 'folios por revisar', clientes: 'clientes', empleados: 'empleados',
+                      produccion: 'órdenes de producción', cobros: 'cobros' };
+    /* Los cobros van SIEMPRE después de las ventas: cada uno cuelga de su nota,
+       y si suben antes, la base los rechaza porque la venta todavía no existe. */
+    const lista = (tablas && tablas.length ? tablas : ['prendas','insumos','etiquetas','escuelas','ventas','cobros','produccion','revisar','clientes','empleados'])
+      .filter(t => (db[t] || []).length)
+      .sort((a, b) => (a === 'cobros' ? 1 : 0) - (b === 'cobros' ? 1 : 0));
     if (!lista.length) { toast('No hay nada nuevo que subir'); return; }
 
     const detalle = lista.map(t => db[t].length + ' ' + (NOMBRES[t] || t)).join(', ');
@@ -2810,7 +2954,7 @@ const Nube = (() => {
 
   function renderAll() {
     renderInicio(); renderMostrador(); renderVentas(); renderRevisar(); renderClientes(); renderEscuelas(); populateClientes();
-    renderPrendas(); renderInsumos(); renderProduccion(); renderEmpleados(); renderAsistencia(); renderReportes();
+    renderPrendas(); renderInsumos(); renderProduccion(); renderCorte(); renderEmpleados(); renderAsistencia(); renderReportes();
     populateMesesFiltro(); populatePagos(); populateEscuelas(); renderCounts();
   }
   function renderCounts() {
@@ -2826,8 +2970,10 @@ const Nube = (() => {
   /* ================= Inicio ================= */
   function renderInicio() {
     const total = db.ventas.reduce((s,v) => s + Number(v.montoTotal || 0), 0);
-    const pendientes = db.ventas.filter(v => v.estatus === 'Pendiente');
-    const saldo = pendientes.reduce((s,v) => s + restanteDe(v), 0);
+    /* Un apartado también debe dinero: si aquí solo se miraran las pendientes,
+       la mitad de lo que falta por cobrar no aparecería en la portada. */
+    const pendientes = db.ventas.filter(debeDinero);
+    const saldo = pendientes.reduce((s,v) => s + saldoDe(v), 0);
     const bajasP = alertas(db.prendas), bajasI = alertas(db.insumos);
 
     const hoy = iso(new Date());
@@ -2855,11 +3001,11 @@ const Nube = (() => {
       + '<td class="num">' + moneyOr(v.montoTotal) + '</td><td>' + badgeEstatus(v.estatus) + '</td></tr>'
     ).join('') || emptyRow(4, 'Aún no hay ventas registradas', 'i-cart');
 
-    const porCobrar = pendientes.slice().sort((a,b) => restanteDe(b) - restanteDe(a)).slice(0, 6);
+    const porCobrar = pendientes.slice().sort((a,b) => saldoDe(b) - saldoDe(a)).slice(0, 6);
     document.getElementById('pendientesNota').textContent = pendientes.length ? money(saldo) + ' en total' : '';
     document.getElementById('inicioPendientes').innerHTML = porCobrar.map(v =>
       '<tr><td style="white-space:nowrap"><b>' + esc(v.folio) + '</b></td><td>' + (esc(v.cliente) || '—') + '</td>'
-      + '<td class="num">' + money(restanteDe(v)) + '</td></tr>'
+      + '<td class="num">' + money(saldoDe(v)) + '</td></tr>'
     ).join('') || emptyRow(3, 'Sin cobros pendientes', 'i-check');
 
     document.getElementById('inicioPrendas').innerHTML = bajasP.slice(0, 6).map(p =>
@@ -3566,7 +3712,7 @@ const Nube = (() => {
       + '<td class="num">' + moneyOr(v.montoTotal) + '</td>'
       + '<td class="num">' + (v.montoTarjeta !== '' ? money(v.montoTarjeta) : '—') + '</td>'
       + '<td class="num">' + (v.efectivo !== '' ? money(v.efectivo) : '—') + '</td>'
-      + '<td class="num">' + (restanteDe(v) > 0 ? money(restanteDe(v)) : '—') + '</td>'
+      + '<td class="num">' + (saldoDe(v) > 0 ? money(saldoDe(v)) : '—') + '</td>'
       + '<td>' + celdaFoto(v) + '</td>'
       + '<td>' + (esc(v.registroDe) || '—') + '</td>'
       + '<td>' + (editable
@@ -3574,6 +3720,11 @@ const Nube = (() => {
           + ESTATUS.map(e => '<option' + (e === v.estatus ? ' selected' : '') + '>' + e + '</option>').join('') + '</select>'
         : badgeEstatus(v.estatus)) + '</td>'
       + '<td style="white-space:nowrap">'
+      /* También en las que dicen "pagada" pero traen saldo: son justo las que
+         hay que cuadrar, y sin el botón no había forma de abrirles un ajuste. */
+      + (saldoDe(v) > 0 ? '<button class="btn small accent" onclick="abrirCobro(\'' + v.id + '\')" title="'
+          + (pagadaConSaldo(v) ? 'Cuadrar esta nota' : 'Registrar un cobro') + '" aria-label="Cobrar la nota '
+          + esc(v.folio) + '">' + icon('i-money') + '</button> ' : '')
       + (editable ? '<button class="btn small" onclick="editarVenta(\'' + v.id + '\')" title="Corregir esta venta" aria-label="Corregir la nota ' + esc(v.folio) + '">' + icon('i-edit') + '</button> ' : '')
       + (esDueno() ? '<button class="btn small danger" onclick="borrar(\'ventas\',\'' + v.id + '\')" aria-label="Borrar venta">' + icon('i-trash') + '</button>' : '')
       + '</td></tr>';
@@ -3679,7 +3830,7 @@ const Nube = (() => {
     renderAll();
     // Decir el número concreto evita tener que abrir la venta para comprobarlo.
     const guardada = eraCorreccion ? original : venta;
-    const pendiente = restanteDe(guardada);
+    const pendiente = saldoDe(guardada);
     toast('Nota ' + guardada.folio + (eraCorreccion ? ' corregida · ' : ' guardada · ')
       + (pendiente > 0 ? 'restan ' + money(pendiente) + ' por cobrar' : 'pagada completa')
       + avisoStock + avisoFoto);
@@ -3700,8 +3851,253 @@ const Nube = (() => {
       if (piezas) aviso = piezas + (piezas === 1 ? ' pieza devuelta' : ' piezas devueltas') + ' al inventario';
     }
     subir('ventas', v);
-    renderInicio(); renderVentas(); renderReportes();
+    renderInicio(); renderVentas(); renderReportes(); renderCorte();
     toast(aviso);
+  }
+
+  /* ================= Cobros =================
+     Cobrar es distinto de corregir la venta: cualquiera que atienda puede
+     recibir dinero, aunque la venta la haya capturado otra persona. Lo que sí
+     queda para la dueña es el ajuste, porque no es dinero que entró sino una
+     corrección de la contabilidad. */
+  let cobroVenta = null;      // id de la venta que se está cobrando
+
+  function abrirCobro(idVenta) {
+    const v = db.ventas.find(x => x.id === idVenta);
+    if (!v) return;
+    cobroVenta = idVenta;
+    const saldo = saldoDe(v);
+    document.getElementById('cobroTitulo').textContent = 'Cobrar la nota ' + (v.folio || '');
+    document.getElementById('cobroResumen').innerHTML =
+      '<b>' + esc(v.cliente || nombreEscuela(v.escuela) || 'Sin cliente') + '</b> · '
+      + 'total ' + money(v.montoTotal) + ' · debe <b>' + money(saldo) + '</b>';
+    document.getElementById('cobroMonto').value = saldo > 0 ? saldo : '';
+    document.getElementById('cobroFecha').value = iso(new Date());
+    document.getElementById('cobroForma').innerHTML = opcionesPago('Efectivo');
+    /* El ajuste solo lo ofrece la app a la dueña; la base lo vuelve a comprobar
+       por su cuenta, así que no basta con esconder la opción. */
+    const tipos = esDueno() ? TIPOS_COBRO : TIPOS_COBRO.filter(t => t !== 'Ajuste');
+    document.getElementById('cobroTipo').innerHTML =
+      tipos.map(t => '<option' + (t === 'Abono' ? ' selected' : '') + '>' + t + '</option>').join('');
+    document.getElementById('cobroNota').value = '';
+    pintarCobro();
+    renderHistorialCobros(idVenta);
+    document.getElementById('cobroModal').classList.add('show');
+    document.getElementById('cobroMonto').focus();
+  }
+  function cerrarCobro() {
+    document.getElementById('cobroModal').classList.remove('show');
+    cobroVenta = null;
+  }
+  /** Explica en la misma pantalla qué va a pasar con el saldo y con la caja. */
+  function pintarCobro() {
+    const v = db.ventas.find(x => x.id === cobroVenta);
+    if (!v) return;
+    const monto = Number(document.getElementById('cobroMonto').value) || 0;
+    const tipo = document.getElementById('cobroTipo').value;
+    const saldo = saldoDe(v);
+    const queda = Math.max(0, saldo - monto);
+    const aviso = document.getElementById('cobroAviso');
+    const forma = document.getElementById('cobroForma');
+    const campoMonto = document.getElementById('cobroMonto');
+    // Un ajuste no entra al cajón, así que preguntar la forma de pago confunde.
+    forma.closest('.field').hidden = (tipo === 'Ajuste');
+    /* Un error de captura se puede haber ido para cualquiera de los dos lados:
+       tanto "se apuntó que debía y ya había pagado" como "se apuntó pagado y
+       en realidad faltaba". Por eso el ajuste admite números negativos, que
+       suben el saldo; un cobro no, porque el dinero no sale del cajón. */
+    campoMonto.min = (tipo === 'Ajuste') ? '' : '0';
+    document.getElementById('cobroMontoLabel').textContent =
+      (tipo === 'Ajuste') ? 'Cuánto se corrige ($)' : 'Cuánto entra ($)';
+
+    if (tipo === 'Ajuste') {
+      aviso.innerHTML = 'Un ajuste <b>no cuenta como dinero que entró</b> a la caja: solo corrige el saldo. '
+        + 'En positivo baja lo que debe; en negativo lo sube, por si se capturó pagado algo que no lo estaba. '
+        + 'Después de este ajuste la nota quedaría debiendo <b>' + money(queda) + '</b>.';
+      return;
+    }
+    if (monto > saldo && saldo > 0) {
+      aviso.innerHTML = 'Ese monto pasa de lo que debe (' + money(saldo) + '). '
+        + 'Se va a registrar completo, pero revisa que no sea un error de dedo.';
+      return;
+    }
+    aviso.innerHTML = queda > 0
+      ? 'Después de este cobro la nota quedaría debiendo <b>' + money(queda) + '</b>.'
+      : 'Con esto la nota <b>queda liquidada</b>'
+        + (v.estatus === 'Apartado' ? ', pero sigue apartada hasta que se la lleven.' : '.');
+  }
+  function guardarCobro() {
+    const v = db.ventas.find(x => x.id === cobroVenta);
+    if (!v) { cerrarCobro(); return; }
+    const monto = Number(document.getElementById('cobroMonto').value) || 0;
+    const tipo = document.getElementById('cobroTipo').value;
+    if (!monto) { toast('Escribe cuánto entra'); document.getElementById('cobroMonto').focus(); return; }
+    if (tipo === 'Ajuste' && !esDueno()) { toast('Solo la dueña puede registrar un ajuste'); return; }
+
+    const cobro = {
+      id: uid(),
+      ventaId: v.id,
+      fecha: val('cobroFecha') || iso(new Date()),
+      monto,
+      formaPago: tipo === 'Ajuste' ? '' : val('cobroForma'),
+      tipo,
+      nota: val('cobroNota'),
+      registroDe: quienSoy()
+    };
+    db.cobros.push(cobro);
+    subir('cobros', cobro);
+
+    /* Un ajuste no cierra nada ni mueve el inventario: es un número que se
+       endereza, no mercancía que sale por la puerta. Si de verdad entró dinero
+       que faltaba anotar, lo que va es un cobro con su fecha, no un ajuste. */
+    /* Al quedar liquidada, una venta pendiente se cierra sola. Una apartada no:
+       el cliente ya pagó pero la mercancía sigue aquí, y cerrarla descontaría
+       del inventario algo que todavía no sale de la tienda. */
+    let extra = '';
+    if (tipo === 'Ajuste') {
+      extra = ' · el saldo queda en ' + money(saldoDe(v)) + '; el estatus no se toca';
+    } else if (saldoDe(v) <= 0 && v.estatus === 'Pendiente') {
+      v.estatus = 'Pagado y entregado';
+      const piezas = descontarArticulos(v);
+      extra = piezas ? ' · ' + piezas + (piezas === 1 ? ' pieza descontada' : ' piezas descontadas') : '';
+      subir('ventas', v);
+    } else if (saldoDe(v) <= 0 && v.estatus === 'Apartado') {
+      extra = ' · queda liquidada; márcala como entregada cuando se la lleve';
+    }
+
+    save(); renderAll(); renderHistorialCobros(v.id); pintarCobro();
+    document.getElementById('cobroMonto').value = '';
+    toast((tipo === 'Ajuste' ? 'Ajuste de ' : 'Cobro de ') + money(monto)
+      + ' en la nota ' + (v.folio || '') + extra);
+  }
+  function borrarCobro(id) {
+    if (!esDueno()) { toast('Solo la dueña puede borrar un cobro'); return; }
+    const c = (db.cobros || []).find(x => x.id === id);
+    if (!c) return;
+    if (!confirm('¿Borrar el cobro de ' + money(c.monto) + ' del ' + dateFmt(c.fecha) + '?')) return;
+    db.cobros = db.cobros.filter(x => x.id !== id);
+    subirBorrado('cobros', id);
+    save(); renderAll();
+    if (cobroVenta) { renderHistorialCobros(cobroVenta); pintarCobro(); }
+    toast('Cobro borrado');
+  }
+  function renderHistorialCobros(idVenta) {
+    const caja = document.getElementById('cobroHistorial');
+    if (!caja) return;
+    const lista = cobrosDe(idVenta).slice().sort((a,b) => String(a.fecha).localeCompare(String(b.fecha)));
+    if (!lista.length) { caja.innerHTML = ''; return; }
+    caja.innerHTML = '<div class="card-head" style="padding:14px 0 10px; border-bottom:0">'
+      + '<div class="card-title" style="font-size:13px">Cobros de esta nota</div></div>'
+      + '<div class="t-scroll"><table><thead><tr><th>Día</th><th>Tipo</th><th class="num">Monto</th><th>Forma</th><th>Registró</th><th></th></tr></thead><tbody>'
+      + lista.map(c => '<tr><td style="white-space:nowrap">' + dateFmt(c.fecha) + '</td>'
+        + '<td>' + (c.tipo === 'Ajuste' ? '<span class="badge warn">Ajuste</span>' : esc(c.tipo)) + '</td>'
+        + '<td class="num">' + money(c.monto) + '</td>'
+        + '<td>' + (esc(c.formaPago) || '—') + '</td>'
+        + '<td>' + (esc(c.registroDe) || '—') + '</td>'
+        + '<td>' + (esDueno() ? '<button class="btn small danger" onclick="borrarCobro(\'' + c.id + '\')" aria-label="Borrar cobro">' + icon('i-trash') + '</button>' : '') + '</td></tr>').join('')
+      + '</tbody></table></div>';
+  }
+
+  /* ================= Corte de caja =================
+     Responde dos preguntas distintas que antes se confundían en una sola cifra:
+     cuánto se VENDIÓ ese día (lo que se facturó) y cuánto se COBRÓ ese día (lo
+     que de verdad entró al cajón, venga de una venta de hoy o de un abono de
+     una de hace un mes). Sin separarlas no hay forma de cuadrar contra el
+     efectivo que se cuenta al cerrar. */
+  function cobradoElDia(dia) {
+    const deVentas = db.ventas.filter(v => v.fecha === dia).map(v => ({
+      cuando: dia, folio: v.folio, cliente: v.cliente || nombreEscuela(v.escuela),
+      concepto: 'Venta del día', tipo: 'Venta',
+      efectivo: Number(v.efectivo || 0), otro: Number(v.montoTarjeta || 0),
+      forma: v.formaPago, quien: v.registroDe, ventaId: v.id, id: 'v-' + v.id
+    })).filter(x => x.efectivo || x.otro);
+
+    const deCobros = (db.cobros || []).filter(c => c.fecha === dia).map(c => {
+      const v = db.ventas.find(x => x.id === c.ventaId) || {};
+      const enEfectivo = c.formaPago === 'Efectivo';
+      return {
+        cuando: dia, folio: v.folio, cliente: v.cliente || nombreEscuela(v.escuela),
+        concepto: c.nota || (c.tipo === 'Ajuste' ? 'Corrección' : 'Pago a cuenta'), tipo: c.tipo,
+        efectivo: (c.tipo === 'Ajuste' || !enEfectivo) ? 0 : Number(c.monto || 0),
+        otro: (c.tipo === 'Ajuste' || enEfectivo) ? 0 : Number(c.monto || 0),
+        ajuste: c.tipo === 'Ajuste' ? Number(c.monto || 0) : 0,
+        forma: c.formaPago, quien: c.registroDe, ventaId: c.ventaId, id: c.id
+      };
+    });
+    return deVentas.concat(deCobros);
+  }
+  function renderCorte() {
+    const caja = document.getElementById('tablaCorte');
+    if (!caja) return;
+    const dia = document.getElementById('corteFecha').value || iso(new Date());
+    const filas = cobradoElDia(dia);
+
+    const deben = db.ventas.filter(debeDinero).sort((a,b) => saldoDe(b) - saldoDe(a));
+    document.getElementById('corteDeudas').innerHTML = deben.slice(0, 8).map(v =>
+      '<tr><td style="white-space:nowrap"><b>' + esc(v.folio) + '</b></td>'
+      + '<td>' + (esc(v.cliente) || esc(nombreEscuela(v.escuela)) || '—') + '</td>'
+      + '<td>' + badgeEstatus(v.estatus) + '</td>'
+      + '<td class="num">' + money(saldoDe(v)) + '</td></tr>'
+    ).join('') || emptyRow(4, 'Nadie debe nada', 'i-check');
+
+    const ventasDelDia = db.ventas.filter(v => v.fecha === dia);
+    const vendido = ventasDelDia.reduce((s,v) => s + Number(v.montoTotal || 0), 0);
+    const efectivo = filas.reduce((s,f) => s + f.efectivo, 0);
+    const otro = filas.reduce((s,f) => s + f.otro, 0);
+    const ajustes = filas.reduce((s,f) => s + (f.ajuste || 0), 0);
+    const cobrado = efectivo + otro;
+    const porCobrar = db.ventas.reduce((s,v) => s + (debeDinero(v) ? saldoDe(v) : 0), 0);
+
+    document.getElementById('corteKpis').innerHTML = [
+      ['i-cart','', 'Vendido este día', money(vendido), ventasDelDia.length + (ventasDelDia.length === 1 ? ' venta capturada' : ' ventas capturadas')],
+      ['i-money','good', 'Cobrado este día', money(cobrado), 'Dinero que entró, venga de donde venga'],
+      ['i-clock', porCobrar > 0 ? 'warn' : 'good', 'Por cobrar en total', money(porCobrar), 'De todas las notas, no solo de hoy'],
+      ['i-alert', ajustes ? 'warn' : '', 'Ajustes del día', money(ajustes), 'Correcciones, no dinero']
+    ].map(k => '<div class="kpi"><div class="kpi-ico ' + k[1] + '">' + icon(k[0],'lg') + '</div><div style="min-width:0">'
+      + '<div class="kpi-label">' + k[2] + '</div><div class="kpi-value">' + k[3] + '</div><div class="kpi-foot">' + k[4] + '</div></div></div>').join('');
+
+    /* Desglose por forma de pago: es lo que se compara contra el cajón. */
+    const porForma = {};
+    filas.forEach(f => {
+      if (f.tipo === 'Ajuste') return;
+      const clave = f.forma || 'Sin especificar';
+      porForma[clave] = (porForma[clave] || 0) + f.efectivo + f.otro;
+    });
+    const formas = Object.entries(porForma).sort((a,b) => b[1] - a[1]);
+    document.getElementById('corteFormas').innerHTML = formas.length
+      ? formas.map(([f, m]) => '<div class="corte-forma"><span>' + esc(f) + '</span><b>' + money(m) + '</b></div>').join('')
+        + '<div class="corte-forma total"><span>Total cobrado</span><b>' + money(cobrado) + '</b></div>'
+      : '<p class="hint" style="margin:0">Este día no entró dinero.</p>';
+
+    document.getElementById('corteResumen').textContent =
+      filas.length + (filas.length === 1 ? ' movimiento' : ' movimientos');
+    caja.innerHTML = filas.map(f =>
+      '<tr><td style="white-space:nowrap"><b>' + (esc(f.folio) || '—') + '</b></td>'
+      + '<td>' + (esc(f.cliente) || '—') + '</td>'
+      + '<td>' + (f.tipo === 'Venta' ? '<span class="badge info">Venta</span>'
+                : f.tipo === 'Ajuste' ? '<span class="badge warn">Ajuste</span>'
+                : '<span class="badge ok">' + esc(f.tipo) + '</span>') + '</td>'
+      + '<td>' + (esc(f.concepto) || '—') + '</td>'
+      + '<td>' + (esc(f.forma) || '—') + '</td>'
+      + '<td class="num">' + (f.tipo === 'Ajuste' ? money(f.ajuste) : money(f.efectivo + f.otro)) + '</td>'
+      + '<td>' + (esc(f.quien) || '—') + '</td></tr>'
+    ).join('') || emptyRow(7, 'Este día no hubo movimientos de dinero', 'i-money');
+  }
+  function moverCorte(dias) {
+    const campo = document.getElementById('corteFecha');
+    const d = new Date((campo.value || iso(new Date())) + 'T12:00:00');
+    d.setDate(d.getDate() + dias);
+    campo.value = iso(d);
+    renderCorte();
+  }
+  function exportarCorte() {
+    const dia = document.getElementById('corteFecha').value || iso(new Date());
+    const filas = cobradoElDia(dia);
+    if (!filas.length) { toast('Este día no hubo movimientos'); return; }
+    descargarCSV('corte-gabidom-' + dia + '.csv',
+      ['Día','Folio','Cliente','Tipo','Concepto','Forma de pago','Efectivo','Otro','Ajuste','Registró'],
+      filas.map(f => [dia, f.folio, f.cliente, f.tipo, f.concepto, f.forma, f.efectivo, f.otro, f.ajuste || 0, f.quien]));
+    toast(filas.length + ' movimientos descargados');
   }
 
   /* ================= Producción =================
@@ -4476,7 +4872,7 @@ const Nube = (() => {
   function renderReportes() {
     const rows = reportesFiltrados();
     const total = rows.reduce((s,v) => s + Number(v.montoTotal || 0), 0);
-    const porCobrar = rows.reduce((s,v) => s + (v.estatus === 'Pendiente' ? restanteDe(v) : 0), 0);
+    const porCobrar = rows.reduce((s,v) => s + (debeDinero(v) ? saldoDe(v) : 0), 0);
     const conMonto = rows.filter(v => Number(v.montoTotal || 0) > 0);
     const revisar = rows.filter(v => inconsistente(v) || esIncompleta(v)).length;
 
@@ -4515,6 +4911,10 @@ const Nube = (() => {
        lo que sumó tiene que salir antes de que la orden desaparezca. */
     if (tipo === 'produccion' && item) quitarDelInventario(item);
     // La foto se va con la venta: si no, queda ocupando espacio para siempre.
+    /* Los cobros cuelgan de la venta: si se borra la venta y no se van con
+       ella, quedan sumando en el corte de un día sin nota que los explique.
+       En la base ya se van solos; aquí hay que hacerlo a mano. */
+    if (tipo === 'ventas') db.cobros = (db.cobros || []).filter(c => c.ventaId !== id);
     if (tipo === 'ventas' && item && item.foto && !String(item.foto).startsWith('data:')) {
       Nube.borrarFoto(item.foto).catch(() => { /* se reintenta al limpiar huérfanas */ });
     }
@@ -4550,7 +4950,7 @@ const Nube = (() => {
     descargarCSV('ventas-gabidom-' + iso(new Date()) + '.csv',
       ['Folio','Fecha','Cliente','Escuela','Total','Tarjeta','Efectivo','Restante','Forma de pago','Estatus','Registró','Observaciones'],
       rows.map(v => [v.folio, v.fecha, v.cliente, nombreEscuela(v.escuela), v.montoTotal,
-                     v.montoTarjeta, v.efectivo, restanteDe(v), v.formaPago, v.estatus, v.registroDe, v.obs]));
+                     v.montoTarjeta, v.efectivo, saldoDe(v), v.formaPago, v.estatus, v.registroDe, v.obs]));
     toast(rows.length + (rows.length === 1 ? ' venta descargada' : ' ventas descargadas'));
   }
   function exportarReporte() {
@@ -4559,7 +4959,7 @@ const Nube = (() => {
     descargarCSV('reporte-gabidom-' + iso(new Date()) + '.csv',
       ['Folio','Fecha','Cliente','Escuela','Total','Restante','Forma de pago','Estatus','Observaciones'],
       rows.map(v => [v.folio, v.fecha, v.cliente, nombreEscuela(v.escuela), v.montoTotal,
-                     restanteDe(v), v.formaPago, v.estatus, v.obs]));
+                     saldoDe(v), v.formaPago, v.estatus, v.obs]));
     toast(rows.length + (rows.length === 1 ? ' venta descargada' : ' ventas descargadas'));
   }
   function exportarDatos() {
@@ -4806,7 +5206,7 @@ const Nube = (() => {
     if (ir) ir();
   });
   document.addEventListener('keydown', ev => {
-    if (ev.key === 'Escape') { closeNav(); tipHide(); cerrarBuscador(); cerrarGlosario(); }
+    if (ev.key === 'Escape') { closeNav(); tipHide(); cerrarBuscador(); cerrarGlosario(); cerrarCobro(); }
     /* "/" y Ctrl+K abren el buscador, pero no mientras se escribe en un campo
        ni con la pantalla de acceso puesta (ahí todavía no hay datos que ver). */
     const escribiendo = /^(INPUT|TEXTAREA|SELECT)$/.test((ev.target.tagName || '').toUpperCase());
@@ -4842,6 +5242,7 @@ const Nube = (() => {
 
   applyTheme(localStorage.getItem(THEME_KEY));
   pintarAyudas();
+  document.getElementById('corteFecha').value = iso(new Date());
   arrancarAcceso();
   </script>
 </body>
